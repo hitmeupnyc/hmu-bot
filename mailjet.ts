@@ -13,13 +13,13 @@ export const sendEmail = async (
       Messages: [
         {
           From: {
-            Email: "hello@hitmeupnyc.com",
-            Name: "Hit Me Up community",
+            Email: "hello@glossgroup.nyc",
+            Name: "Gloss Group NYC",
           },
           To: [
             {
               Email: recipient,
-              Name: "HMU Member",
+              Name: "Gloss Member",
             },
           ],
           Subject: "Your confirmation code!",

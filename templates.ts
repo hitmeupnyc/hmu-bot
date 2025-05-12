@@ -3,7 +3,7 @@ html {
   font-size: 24px;
   font-family: sans-serif;
   color: white;
-  background-color: rgb(138, 71, 255);
+  background-color: rgb(0, 0, 0);
 }
 
 body {
@@ -25,7 +25,7 @@ button {
   cursor: pointer;
   font-size: 0.75rem;
   padding: 0.5rem 1rem;
-  background-color: rgb(118, 61, 217);
+  background-color: rgb(40, 40, 40);
   color: white;
   border: none;
   border-radius: 0.5rem;
@@ -45,11 +45,11 @@ input {
 
 export const layout = (children: string) => `<html>
   <head>
-    <title>HMU Discord community</title>
+    <title>Gloss Discord community</title>
     <style>${styles}</style>
   </head>
   <body>
-    <img width="200" height="200" src="https://images.squarespace-cdn.com/content/v1/6424111cd19b7922f0e81e49/9b7ff4f6-7192-4dd6-a7db-9409edda7c9b/HMU.png?format=1500w" />
+    <img width="200" height="200" src="https://images.squarespace-cdn.com/content/v1/6625cf710ccb91746bb54d9d/f6611066-7bf0-40fe-b295-f40fb97c0048/Gloss+Logo+-+White.png" />
     ${children}
   </body>
 </html>`;
@@ -57,7 +57,6 @@ export const layout = (children: string) => `<html>
 export const success = () => {
   return layout(`
 <p>Your email was found in the list of approved members!</p>
-<p>Welcome to the HMU Discord ✨ You're all set, you can close this window.</p>
+<p>Welcome to the Gloss Discord ✨ You're all set, you can close this window.</p>
 `);
 };
-

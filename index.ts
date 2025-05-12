@@ -27,7 +27,7 @@ type HonoBindings = {
   GOOGLE_SA_PRIVATE_KEY: string;
   MAILJET_PUBLIC: string;
   MAILJET_KEY: string;
-  hmu_bot: KVNamespace;
+  "gloss-bot": KVNamespace;
 };
 
 const app = new Hono<{
@@ -83,7 +83,7 @@ app.post("/discord", async (c) => {
           return c.json({
             type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
             data: {
-              content: `Welcome to Hit Me Up NYC! Please verify your account to gain access to the correct private spaces.`,
+              content: `Welcome to Gloss Group NYC! Please verify your account to gain access to the correct private spaces.`,
               components: [
                 {
                   type: MessageComponentTypes.ACTION_ROW,
@@ -92,7 +92,9 @@ app.post("/discord", async (c) => {
                       type: MessageComponentTypes.BUTTON,
                       style: ButtonStyleTypes.LINK,
                       label: "Verify me",
-                      url: `https://discord.com/oauth2/authorize?client_id=1255713553965518859&response_type=code&redirect_uri=${encodeURIComponent(
+                      url: `https://discord.com/oauth2/authorize?client_id=${
+                        c.env.DISCORD_APP_ID
+                      }&response_type=code&redirect_uri=${encodeURIComponent(
                         c.env.DISCORD_OAUTH_DESTINATION,
                       )}&scope=email+identify`,
                     },
@@ -159,7 +161,7 @@ app.post("/discord", async (c) => {
           type: InteractionResponseType.MODAL,
           data: {
             custom_id: "modal-verify-email",
-            title: "What email do you subscribe to HMU with?",
+            title: "What email do you subscribe to Gloss with?",
             components: [
               {
                 type: 1,
@@ -222,14 +224,14 @@ app.post("/discord", async (c) => {
           `${c.env.MAILJET_PUBLIC}:${c.env.MAILJET_KEY}`,
         );
         // Store the OTP, keyed by their email. Set it to expire in 5 mins
-        await c.env.hmu_bot.put(`email:${email}`, otp, {
+        await c.env["gloss-bot"].put(`email:${email}`, otp, {
           expirationTtl: 60 * 5,
         });
 
         return c.json({
           type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
           data: {
-            content: `Thanks, check your email for a confirmation code from \`hello@hitmeupnyc.com\`! Make sure to check spam if you don't see it.`,
+            content: `Thanks, check your email for a confirmation code from \`hello@glossgroup.nyc\`! Make sure to check spam if you don't see it.`,
             flags: InteractionResponseFlags.EPHEMERAL,
             components: [
               {
@@ -256,9 +258,9 @@ app.post("/discord", async (c) => {
 
         const userId = interaction.member.user.id;
         const [storedCode, vettedRoleId, privateRoleId] = await Promise.all([
-          c.env.hmu_bot.get(`email:${email}`),
-          c.env.hmu_bot.get("vetted"),
-          c.env.hmu_bot.get("private"),
+          c.env["gloss-bot"].get(`email:${email}`),
+          c.env["gloss-bot"].get("vetted"),
+          c.env["gloss-bot"].get("private"),
         ]);
         // check if code matches the one in the db
         if (code !== storedCode) {
@@ -273,7 +275,7 @@ app.post("/discord", async (c) => {
             return c.json({
               type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
               data: {
-                content: `That’s the right code, but you’re not on the list 👀 [Apply to join](https://www.hitmeupnyc.com/join)`,
+                content: `That’s the right code, but you’re not on the list 👀 [Apply to join](https://www.glossgroup.nyc/join)`,
                 flags: InteractionResponseFlags.EPHEMERAL,
               },
             });
@@ -340,8 +342,8 @@ app.get("/oauth", async (c) => {
   );
 
   const [vettedRoleId, privateRoleId] = await Promise.all([
-    c.env.hmu_bot.get("vetted"),
-    c.env.hmu_bot.get("private"),
+    c.env["gloss-bot"].get("vetted"),
+    c.env["gloss-bot"].get("private"),
   ]);
 
   if (!vettedRoleId || !privateRoleId) {
@@ -381,7 +383,7 @@ app.get("/oauth", async (c) => {
     if (!isPrivate && !isVetted) {
       console.error("Email not found in mailing lists");
       return c.html(
-        `<p>${email} was not found in the list of vetted members.</p>`,
+        layout(`<p>${email} was not found in the list of vetted members.</p>`),
       );
     }
   } catch (e) {
@@ -397,7 +399,7 @@ app.get("/oauth", async (c) => {
 });
 
 const checkMembership = async (c: any, email: string) => {
-  const documentId = await c.env.hmu_bot.get("sheet");
+  const documentId = await c.env["gloss-bot"].get("sheet");
   if (!documentId) {
     throw new Error("no 'sheet' in KV store");
   }
@@ -488,9 +490,9 @@ async function setup(
   }
 
   await Promise.all([
-    env.hmu_bot.put("sheet", documentId),
-    env.hmu_bot.put("vetted", vettedRoleId),
-    env.hmu_bot.put("private", privateRoleId),
+    env["gloss-bot"].put("sheet", documentId),
+    env["gloss-bot"].put("vetted", vettedRoleId),
+    env["gloss-bot"].put("private", privateRoleId),
   ]);
 
   try {

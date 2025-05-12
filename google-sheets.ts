@@ -29,9 +29,11 @@ export async function fetchSheet(id: string, range: string) {
     console.log("SHEETS", res.ok, res.status);
     if (!res.ok) {
       console.log("SHEETS", JSON.stringify(output));
-      throw new Error(
-        "Something went wrong while retrieving the list of emails.",
-      );
+      if (res.status !== 403) {
+        throw new Error(
+          "Something went wrong while retrieving the list of emails.",
+        );
+      }
     }
     return output;
   });

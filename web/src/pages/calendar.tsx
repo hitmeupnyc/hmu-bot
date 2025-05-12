@@ -31,7 +31,6 @@ const EventCalendarPage = ({
   useEffect(()=>{
     if (width && width < 700) {
       setMobile(true);
-      setViewType('agenda');
     } else {
       setMobile(false);
     }
@@ -39,8 +38,8 @@ const EventCalendarPage = ({
 
   return (
     <div>
-      {viewType === 'calendar' && <Calendar events={events} isMobile={isMobile} switchView={()=>setViewType('agenda')}/>}
-      {viewType === 'agenda' && <Agenda events={events} isMobile={isMobile} switchView={()=>setViewType('calendar')}/>}
+      {(!isMobile && viewType === 'calendar') && <Calendar events={events} isMobile={isMobile} switchView={()=>setViewType('agenda')}/>}
+      {(isMobile || viewType === 'agenda') && <Agenda events={events} isMobile={isMobile} switchView={()=>setViewType('calendar')}/>}
     </div>
   );
 };

@@ -12,6 +12,7 @@
     "@fullcalendar/daygrid": "^6.1.17",
     "@fullcalendar/list": "^6.1.17",
     "@fullcalendar/react": "^6.1.17",
+    "@uidotdev/usehooks": "^2.4.1",
     "next": "15.3.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

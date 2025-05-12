@@ -22,7 +22,7 @@ export const getStaticProps = (async () => {
 const EventAgendaPage = ({
   events,
 }: InferGetStaticPropsType<typeof getStaticProps>) => {
-  return <Agenda events={events} />;
+  return <Agenda isMobile={false} switchView={()=>{}} events={events} />;
 };
 
 export default EventAgendaPage;

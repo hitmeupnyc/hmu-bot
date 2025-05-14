@@ -5,15 +5,15 @@ const { subtle } = globalThis.crypto;
 const SERVICE_ACCOUNT = {
   type: "service_account",
   project_id: "auth-project-189019",
-  private_key_id: "68afb592c1d3108f5fa04da86a9089d0d418e3b3",
+  private_key_id: "60760b6e845e07be9900808e69e53942085aa13b",
   // private_key: "",
-  client_email: "hmu-bot@auth-project-189019.iam.gserviceaccount.com",
-  client_id: "116274722892340415772",
+  client_email: "gloss-728@auth-project-189019.iam.gserviceaccount.com",
+  client_id: "113133869373402979767",
   auth_uri: "https://accounts.google.com/o/oauth2/auth",
   token_uri: "https://oauth2.googleapis.com/token",
   auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
   client_x509_cert_url:
-    "https://www.googleapis.com/robot/v1/metadata/x509/hmu-bot%40auth-project-189019.iam.gserviceaccount.com",
+    "https://www.googleapis.com/robot/v1/metadata/x509/gloss-728%40auth-project-189019.iam.gserviceaccount.com",
   universe_domain: "googleapis.com",
 };
 

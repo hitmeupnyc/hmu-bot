@@ -381,7 +381,7 @@ app.get("/oauth", async (c) => {
     if (!isPrivate && !isVetted) {
       console.error("Email not found in mailing lists");
       return c.html(
-        `<p>${email} was not found in the list of vetted members.</p>`,
+        layout(`<p>${email} was not found in the list of vetted members.</p>`),
       );
     }
   } catch (e) {

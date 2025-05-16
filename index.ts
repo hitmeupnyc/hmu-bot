@@ -92,7 +92,9 @@ app.post("/discord", async (c) => {
                       type: MessageComponentTypes.BUTTON,
                       style: ButtonStyleTypes.LINK,
                       label: "Verify me",
-                      url: `https://discord.com/oauth2/authorize?client_id=1255713553965518859&response_type=code&redirect_uri=${encodeURIComponent(
+                      url: `https://discord.com/oauth2/authorize?client_id=${
+                        c.env.DISCORD_APP_ID
+                      }&response_type=code&redirect_uri=${encodeURIComponent(
                         c.env.DISCORD_OAUTH_DESTINATION,
                       )}&scope=email+identify`,
                     },

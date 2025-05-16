@@ -30,6 +30,11 @@ export async function getAccessToken(privateKey: string) {
       "urn:ietf:params:oauth:grant-type:jwt-bearer",
     )}&assertion=${jwt}`,
   });
+  console.info("[Google Auth][getAccessToken]", res.status);
+  if (!res.ok) {
+    console.error(`[Google Auth][getAccessToken]`, await res.text());
+    return "";
+  }
   const data = await res.json();
   return data.access_token;
 }

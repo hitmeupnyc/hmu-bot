@@ -403,32 +403,31 @@ const checkMembership = async (c: any, email: string) => {
   if (!documentId) {
     throw new Error("no 'sheet' in KV store");
   }
-  const [vettedSheet, privateSheet] = await Promise.all([
-    fetchSheet(documentId, "Vetted Members!C2:C"),
-    fetchSheet(documentId, "Private Members!C2:C"),
+  const [sheetData] = await Promise.all([
+    fetchSheet(documentId, "Main List!B2:D"),
   ]);
 
-  if (!vettedSheet.values) {
+  if (!sheetData.values) {
     throw new Error("Couldn't find the Vetted list.");
-  }
-  if (!privateSheet.values) {
-    throw new Error("Couldn't find the Private list.");
   }
 
   const lcEmail = cleanEmail(email);
 
-  const vettedEmails = getEmailListFromSheetValues(vettedSheet.values);
-  const isVetted = vettedEmails.some((e) => e.toLowerCase().includes(lcEmail));
+  const memberList = getEmailListFromSheetValues(sheetData.values);
+  const match = memberList.find((e) => e[2].toLowerCase().includes(lcEmail));
 
-  const privateEmails = getEmailListFromSheetValues(privateSheet.values);
-  const isPrivate = privateEmails.some((e) =>
-    e.toLowerCase().includes(lcEmail),
-  );
-  return { isVetted, isPrivate };
+  if (match) {
+    return {
+      isPrivate: match[0] === "Full Member",
+      isVetted: match[0] === "Vetted",
+    };
+  }
+
+  return { isVetted: false, isPrivate: false };
 };
 
 const getEmailListFromSheetValues = (sheetValues) =>
-  sheetValues.flatMap((v) => v.flat()).filter((x) => Boolean(x)) as string[];
+  sheetValues.filter((x) => Boolean(x)) as string[];
 
 export default app;
 
@@ -496,14 +495,11 @@ async function setup(
   ]);
 
   try {
-    const data = await Promise.all([
-      fetchSheet(documentId, "Vetted Members!D1"),
-      fetchSheet(documentId, "Private Members!D1"),
-    ]);
+    const data = await Promise.all([fetchSheet(documentId, "Main List!D1")]);
 
     const columnHeadings = data.flatMap((d) => d.values.flat());
     console.log({ columnHeadings });
-    if (!columnHeadings.every((h) => h === "Email Address")) {
+    if (!columnHeadings.every((h) => h === "Email")) {
       return { ok: false, reason: setupFailureReasons.wrongHeadings };
     }
 

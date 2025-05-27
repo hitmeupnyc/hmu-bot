@@ -164,7 +164,7 @@ app.post("/discord", async (c) => {
             title: "What email do you subscribe to Gloss with?",
             components: [
               {
-                type: 1,
+                type: MessageComponentTypes.ACTION_ROW,
                 components: [
                   {
                     type: MessageComponentTypes.INPUT_TEXT,
@@ -191,7 +191,7 @@ app.post("/discord", async (c) => {
             title: "Confirmation code:",
             components: [
               {
-                type: 1,
+                type: MessageComponentTypes.ACTION_ROW,
                 components: [
                   {
                     type: MessageComponentTypes.INPUT_TEXT,

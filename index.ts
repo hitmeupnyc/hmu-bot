@@ -77,43 +77,27 @@ app.post("/discord", async (c) => {
       return c.json({ type: 1, data: {} });
     case 2: {
       if (interaction.data.name === "setup") {
-        const setupResult = await setup(c.env, interaction.data.options);
-
-        if (setupResult.ok) {
-          return c.json({
-            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-            data: {
-              content: `Welcome to Gloss Group NYC! Please verify your account to gain access to the correct private spaces.`,
-              components: [
-                {
-                  type: MessageComponentTypes.ACTION_ROW,
-                  components: [
-                    {
-                      type: MessageComponentTypes.BUTTON,
-                      style: ButtonStyleTypes.LINK,
-                      label: "Verify me",
-                      url: `https://discord.com/oauth2/authorize?client_id=${
-                        c.env.DISCORD_APP_ID
-                      }&response_type=code&redirect_uri=${encodeURIComponent(
-                        c.env.DISCORD_OAUTH_DESTINATION,
-                      )}&scope=email+identify`,
-                    },
-                    {
-                      type: MessageComponentTypes.BUTTON,
-                      style: ButtonStyleTypes.SECONDARY,
-                      label: "Manually verify email",
-                      custom_id: "manual-verify",
-                    },
-                  ],
-                },
-              ],
-            },
-          });
-        }
+        setupRoles(c.env, interaction.data.options);
         return c.json({
-          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          type: InteractionResponseType.MODAL,
           data: {
-            content: `Something broke! Here's all I know: '${setupResult.reason}'`,
+            custom_id: "modal-setup",
+            title: "What Google Sheet do you want to use?",
+            components: [
+              {
+                type: MessageComponentTypes.ACTION_ROW,
+                components: [
+                  {
+                    type: MessageComponentTypes.INPUT_TEXT,
+                    custom_id: "sheet-url",
+                    label: "Google Sheet URL",
+                    style: TextStyleTypes.SHORT,
+                    placeholder: "https://docs.google.com/spreadsheets/d/...",
+                    required: true,
+                  },
+                ],
+              },
+            ],
           },
         });
       }
@@ -211,6 +195,50 @@ app.post("/discord", async (c) => {
       }
     }
     case 5: {
+      if (interaction.data.custom_id === "modal-setup") {
+        const setupResult = await setupSheet(
+          c.env,
+          interaction.data.components[0].components,
+        );
+
+        if (setupResult.ok) {
+          return c.json({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: {
+              content: `Welcome to Gloss Group NYC! Please verify your account to gain access to the correct private spaces.`,
+              components: [
+                {
+                  type: MessageComponentTypes.ACTION_ROW,
+                  components: [
+                    {
+                      type: MessageComponentTypes.BUTTON,
+                      style: ButtonStyleTypes.LINK,
+                      label: "Verify me",
+                      url: `https://discord.com/oauth2/authorize?client_id=${
+                        c.env.DISCORD_APP_ID
+                      }&response_type=code&redirect_uri=${encodeURIComponent(
+                        c.env.DISCORD_OAUTH_DESTINATION,
+                      )}&scope=email+identify`,
+                    },
+                    {
+                      type: MessageComponentTypes.BUTTON,
+                      style: ButtonStyleTypes.SECONDARY,
+                      label: "Manually verify email",
+                      custom_id: "manual-verify",
+                    },
+                  ],
+                },
+              ],
+            },
+          });
+        }
+        return c.json({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            content: `Something broke! Here's all I know: '${setupResult.reason}'`,
+          },
+        });
+      }
       if (interaction.data.custom_id === "modal-verify-email") {
         // Send verification email, respond with a new modal for code
         const email = cleanEmail(
@@ -445,24 +473,6 @@ enum ApplicationCommandOptionType {
   Attachment = 11,
 }
 
-type SetupOptions = (
-  | {
-      name: "sheet-url";
-      type: ApplicationCommandOptionType.String;
-      value: string;
-    }
-  | {
-      name: "private-role";
-      type: ApplicationCommandOptionType.Role;
-      value: string;
-    }
-  | {
-      name: "vetted-role";
-      type: ApplicationCommandOptionType.Role;
-      value: string;
-    }
-)[];
-
 const setupFailureReasons = {
   invalidUrl: "That URL doesn’t look like a Google Sheet",
   errorFetching: "There was a problem fetching from the Google Sheet",
@@ -472,27 +482,44 @@ const setupFailureReasons = {
 type SetupFailureReason =
   (typeof setupFailureReasons)[keyof typeof setupFailureReasons];
 
-async function setup(
+async function setupRoles(
   env: HonoBindings,
-  options: SetupOptions,
-): Promise<
-  { ok: true; data: string[] } | { ok: false; reason: SetupFailureReason }
-> {
-  const url = options.find((o) => o.name === "sheet-url");
+  options: any,
+): Promise<{ ok: true } | { ok: false; reason: SetupFailureReason }> {
   const vettedRoleId =
     options.find((o) => o.name === "vetted-role")?.value || "";
   const privateRoleId =
     options.find((o) => o.name === "private-role")?.value || "";
+
+  try {
+    await Promise.all([
+      env["gloss-bot"].put("vetted", vettedRoleId),
+      env["gloss-bot"].put("private", privateRoleId),
+    ]);
+    return { ok: true };
+  } catch (e) {
+    console.log("[ERR]", e);
+  }
+
+  return {
+    ok: false,
+    reason: setupFailureReasons.errorFetching,
+  };
+}
+
+async function setupSheet(
+  env: HonoBindings,
+  options: any,
+): Promise<
+  { ok: true; data: string[] } | { ok: false; reason: SetupFailureReason }
+> {
+  const url = options.find((o) => o.custom_id === "sheet-url");
   const documentId = url ? retrieveSheetId(url.value) : "";
   if (!documentId) {
     return { ok: false, reason: setupFailureReasons.invalidUrl };
   }
 
-  await Promise.all([
-    env["gloss-bot"].put("sheet", documentId),
-    env["gloss-bot"].put("vetted", vettedRoleId),
-    env["gloss-bot"].put("private", privateRoleId),
-  ]);
+  await Promise.all([env["gloss-bot"].put("sheet", documentId)]);
 
   try {
     const data = await Promise.all([fetchSheet(documentId, "Main List!D1")]);

@@ -12,14 +12,6 @@ const commands = [
     .setName("setup")
     .setDescription("Set up necessities for using the bot")
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-    .addStringOption((x) =>
-      x
-        .setName("sheet-url")
-        .setDescription(
-          "The Google Sheet to cross-reference for verified members",
-        )
-        .setRequired(true),
-    )
     .addRoleOption((x) =>
       x
         .setName("vetted-role")

@@ -19,7 +19,7 @@
     "@cloudflare/workers-types": "^4.20240529.0",
     "@hono/node-server": "^1.11.4",
     "discord-interactions": "^4.3.0",
-    "discord.js": "^14.15.3",
+    "discord.js": "^14.19.3",
     "hono": "^4.4.8",
     "js-base64": "^3.7.7",
     "otp": "^1.1.2",

@@ -13,7 +13,7 @@ export const sendEmail = async (
       Messages: [
         {
           From: {
-            Email: "hello@glossgroup.nyc",
+            Email: "admin@glossgroup.nyc",
             Name: "Gloss Group NYC",
           },
           To: [

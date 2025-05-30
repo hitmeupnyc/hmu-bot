@@ -77,7 +77,7 @@ app.post("/discord", async (c) => {
       return c.json({ type: 1, data: {} });
     case 2: {
       if (interaction.data.name === "setup") {
-        setupRoles(c.env, interaction.data.options);
+        await setupRoles(c.env, interaction.data.options);
         return c.json({
           type: InteractionResponseType.MODAL,
           data: {

@@ -116,14 +116,12 @@ app.post("/discord", async (c) => {
           });
         }
         try {
-          const { isVetted, isPrivate } = await checkMembership(c, email);
+          const { isPrivate } = await checkMembership(c, email);
           return c.json({
             type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
             data: {
               flags: InteractionResponseFlags.EPHEMERAL,
               content: `This email ${
-                isVetted ? "IS" : "is NOT"
-              } a vetted member and ${
                 isPrivate ? "IS" : "is NOT"
               } a private member`,
             },
@@ -285,9 +283,8 @@ app.post("/discord", async (c) => {
         const email = cleanEmail(rawEmail);
 
         const userId = interaction.member.user.id;
-        const [storedCode, vettedRoleId, privateRoleId] = await Promise.all([
+        const [storedCode, privateRoleId] = await Promise.all([
           c.env["gloss-bot"].get(`email:${email}`),
-          c.env["gloss-bot"].get("vetted"),
           c.env["gloss-bot"].get("private"),
         ]);
         // check if code matches the one in the db
@@ -298,8 +295,8 @@ app.post("/discord", async (c) => {
           });
         }
         try {
-          const { isPrivate, isVetted } = await checkMembership(c, email);
-          if (!isPrivate && !isVetted) {
+          const { isPrivate } = await checkMembership(c, email);
+          if (!isPrivate) {
             return c.json({
               type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
               data: {
@@ -307,19 +304,6 @@ app.post("/discord", async (c) => {
                 flags: InteractionResponseFlags.EPHEMERAL,
               },
             });
-          }
-
-          if (isVetted) {
-            console.log(`Granting vetted role to user ${userId}`);
-            const a = await grantRole(
-              c.env.DISCORD_TOKEN,
-              c.env.DISCORD_GUILD_ID,
-              vettedRoleId,
-              userId,
-            );
-            if (!a.ok) {
-              console.log("Discord error:", a.status, await a.text());
-            }
           }
 
           if (isPrivate) {
@@ -374,7 +358,7 @@ app.get("/oauth", async (c) => {
     c.env["gloss-bot"].get("private"),
   ]);
 
-  if (!vettedRoleId || !privateRoleId) {
+  if (!privateRoleId) {
     console.error(
       "Couldn't load Discord Role IDs:",
       vettedRoleId,
@@ -387,16 +371,7 @@ app.get("/oauth", async (c) => {
     );
   }
   try {
-    const { isVetted, isPrivate } = await checkMembership(c, email);
-    if (isVetted) {
-      console.log(`Granting vetted role to user ${userId}`);
-      await grantRole(
-        c.env.DISCORD_TOKEN,
-        c.env.DISCORD_GUILD_ID,
-        vettedRoleId,
-        userId,
-      );
-    }
+    const { isPrivate } = await checkMembership(c, email);
 
     if (isPrivate) {
       console.log(`Granting private role to user ${userId}`);
@@ -408,7 +383,7 @@ app.get("/oauth", async (c) => {
       );
     }
 
-    if (!isPrivate && !isVetted) {
+    if (!isPrivate) {
       console.error("Email not found in mailing lists");
       return c.html(
         layout(`<p>${email} was not found in the list of vetted members.</p>`),
@@ -447,7 +422,6 @@ const checkMembership = async (c: any, email: string) => {
   if (match) {
     return {
       isPrivate: match[0] === "Full Member",
-      isVetted: match[0] === "Vetted",
     };
   }
 

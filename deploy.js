@@ -14,14 +14,8 @@ const commands = [
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addRoleOption((x) =>
       x
-        .setName("vetted-role")
-        .setDescription("The role to grant to Vetted members")
-        .setRequired(true),
-    )
-    .addRoleOption((x) =>
-      x
         .setName("private-role")
-        .setDescription("The role to grant to Private members")
+        .setDescription("The role to grant members")
         .setRequired(true),
     ),
   new SlashCommandBuilder()

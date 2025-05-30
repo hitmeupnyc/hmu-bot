@@ -419,6 +419,8 @@ const checkMembership = async (c: any, email: string) => {
   const memberList = getEmailListFromSheetValues(sheetData.values);
   const match = memberList.find((e) => e[2].toLowerCase().includes(lcEmail));
 
+  console.log(JSON.stringify(match));
+
   if (match) {
     return {
       isPrivate: match[0] === "Full Member",

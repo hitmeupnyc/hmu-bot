@@ -6,6 +6,10 @@ import {
 } from "discord.js";
 
 const GUILD_ID = process.env.DISCORD_GUILD_ID;
+console.log({
+  GUILD_ID,
+  APP_ID: process.env.DISCORD_APP_ID,
+});
 
 const commands = [
   new SlashCommandBuilder()

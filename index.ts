@@ -407,7 +407,7 @@ const checkMembership = async (c: any, email: string) => {
     throw new Error("no 'sheet' in KV store");
   }
   const [sheetData] = await Promise.all([
-    fetchSheet(documentId, "Main List!B2:D"),
+    fetchSheet(documentId, "Main List!B2:J"),
   ]);
 
   if (!sheetData.values) {
@@ -423,7 +423,7 @@ const checkMembership = async (c: any, email: string) => {
 
   if (match) {
     return {
-      isPrivate: match[0] === "Full Member",
+      isPrivate: match[0] === "Full Member" && match[8] === "TRUE",
     };
   }
 

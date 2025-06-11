@@ -257,7 +257,7 @@ app.post("/discord", async (c) => {
         return c.json({
           type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
           data: {
-            content: `Thanks, check your email for a confirmation code from \`hello@glossgroup.nyc\`! Make sure to check spam if you don't see it.`,
+            content: `Thanks, check your email for a confirmation code from \`admin@glossgroup.nyc\`! Make sure to check spam if you don't see it.`,
             flags: InteractionResponseFlags.EPHEMERAL,
             components: [
               {

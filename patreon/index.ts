@@ -1,4 +1,5 @@
 import { Client, GatewayIntentBits, Partials } from "discord.js";
+import { FREQUENCY, scheduleTask } from "./helpers/schedule.ts";
 
 const makeLogger =
   (prefix, attr: "log" | "warn" | "error" = "log") =>
@@ -9,6 +10,10 @@ export const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
   partials: [Partials.GuildMember],
 });
+
+const CHANNELS = {
+  n00dz: "1334571592633810964",
+};
 
 const privateRole = "1260328377940836462";
 const vettedRole = "1260328524087033896";
@@ -34,6 +39,24 @@ client
     );
     process.exit(1);
   });
+
+client.on("ready", (bot) => {
+  scheduleTask(FREQUENCY.weekly, async () => {
+    const channel = await bot.channels.fetch(CHANNELS.n00dz);
+    if (channel.isSendable()) {
+      await channel.send(`# The #n00dz r00lz
+
+1. This is a **PRIVATE CHANNEL**.  Everything posted and discussed here is to remain here.  That means _ABSOLUTELY NO_ outside sharing of others photos/videos/comments posted in this channel.
+2. You may only post content of yourself.  If you want to post content of you with other people, you must have the consent of every individual in the photo/video prior to posting.
+3. Effort must be put into the post!  Avoid just posting closeups of your genitals. Generally keep your nudes body and/or face oriented.
+4. No sliding into DMs! If you would like to DM someone, always ask here first.
+5. Be respectful. No harassment of any kind will be tolerated. The [Hit Me Up Consent Policy](https://www.hitmeupnyc.com/consent) applies here. 
+6. Any violation of these rules will result in immediate lifetime ban from Hit Me Up.
+
+Have fun, and happy posting!`);
+    }
+  });
+});
 
 client.on("guildMemberUpdate", async (oldMember, newMember) => {
   const log = makeLogger(`${oldMember.id} (${oldMember.displayName})`);

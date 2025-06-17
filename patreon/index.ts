@@ -1,5 +1,5 @@
 import { Client, GatewayIntentBits, Partials } from "discord.js";
-import { FREQUENCY, scheduleTask } from "./helpers/schedule.ts";
+import { FREQUENCY, scheduleTask } from "./src/schedule.ts";
 
 const makeLogger =
   (prefix, attr: "log" | "warn" | "error" = "log") =>

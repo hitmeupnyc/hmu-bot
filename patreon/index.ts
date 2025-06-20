@@ -41,7 +41,7 @@ client
   });
 
 client.on("ready", (bot) => {
-  scheduleTask(FREQUENCY.weekly, async () => {
+  scheduleTask("n00dz r00lz", FREQUENCY.moreThanWeekly, async () => {
     const channel = await bot.channels.fetch(CHANNELS.n00dz);
     if (channel.isSendable()) {
       await channel.send(`# The #n00dz r00lz
@@ -53,7 +53,9 @@ client.on("ready", (bot) => {
 5. Be respectful. No harassment of any kind will be tolerated. The [Hit Me Up Consent Policy](https://www.hitmeupnyc.com/consent) applies here. 
 6. Any violation of these rules will result in immediate lifetime ban from Hit Me Up.
 
-Have fun, and happy posting!`);
+Have fun, and happy posting!
+
+-# cc @here: you can suppress this mention from [notification settings](https://support.discord.com/hc/en-us/articles/215253148-How-do-I-stop-everyone-mentions-from-select-servers). This notification is sent every couple of days.`);
     }
   });
 });

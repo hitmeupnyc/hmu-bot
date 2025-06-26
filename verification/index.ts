@@ -443,7 +443,7 @@ enum ApplicationCommandOptionType {
   Attachment = 11,
 }
 
-type SetupOptions = (
+export type SetupOptions = (
   | {
       name: "sheet-url";
       type: ApplicationCommandOptionType.String;
@@ -461,7 +461,7 @@ type SetupOptions = (
     }
 )[];
 
-const setupFailureReasons = {
+export const setupFailureReasons = {
   invalidUrl: "That URL doesn’t look like a Google Sheet",
   errorFetching: "There was a problem fetching from the Google Sheet",
   wrongHeadings:
@@ -470,7 +470,7 @@ const setupFailureReasons = {
 type SetupFailureReason =
   (typeof setupFailureReasons)[keyof typeof setupFailureReasons];
 
-async function setup(
+export async function setup(
   env: HonoBindings,
   options: SetupOptions,
 ): Promise<

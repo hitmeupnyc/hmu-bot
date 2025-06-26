@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    setupFiles: ['./mocks/setup.ts'],
   },
   resolve: {
     extensions: ['.ts', '.js'],

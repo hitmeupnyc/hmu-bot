@@ -11,7 +11,8 @@
     "deploy:commands": "node --env-file=./.env deploy.js",
     "deploy": "wrangler deploy --minify index.ts",
     "start": "node --env-file=./.env --watch ./index.js",
-    "test": "node --test '**/*.test.js'"
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "author": "",
   "license": "MIT",
@@ -25,5 +26,10 @@
     "otp": "^1.1.2",
     "uuid": "^10.0.0",
     "wrangler": "~3.80.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.4",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
   }
 }

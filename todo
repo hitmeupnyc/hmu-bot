@@ -1,0 +1,5 @@
+gloss adaptation
+Google service account https://console.cloud.google.com/iam-admin/serviceaccounts?project=auth-project-189019
+service acct email: gloss-728@auth-project-189019.iam.gserviceaccount.com
+
+Set up separate mailjet sender https://app.mailjet.com/account/sender

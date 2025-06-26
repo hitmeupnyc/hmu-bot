@@ -15,6 +15,7 @@ import { fetchSheet, init } from "./google-sheets";
 import { fetchEmailFromCode, grantRole } from "./discord";
 import { layout, success } from "./templates";
 import { sendEmail } from "./mailjet";
+import { retrieveSheetId, cleanEmail, sanitizeEmail, getEmailListFromSheetValues } from "./utils";
 import OTP from "otp";
 
 type HonoBindings = {
@@ -425,8 +426,6 @@ const checkMembership = async (c: any, email: string) => {
   return { isVetted, isPrivate };
 };
 
-const getEmailListFromSheetValues = (sheetValues) =>
-  sheetValues.flatMap((v) => v.flat()).filter((x) => Boolean(x)) as string[];
 
 export default app;
 
@@ -516,23 +515,6 @@ async function setup(
   };
 }
 
-const retrieveSheetId = (url: string) => {
-  const match = url.match(/\/d\/([^/]+)\/edit/);
-  return match ? match[1] : null;
-};
-
-const cleanEmail = (email: string) => {
-  return email.toLowerCase();
-};
-
-const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-
-const sanitizeEmail = (arbitraryText: string) => {
-  return arbitraryText.replace(emailRegex, (match) => {
-    const [local, domain] = match.split("@");
-    return `${local[0]}${"*".repeat(local.length - 1)}@${domain}`;
-  });
-};
 
 const log = console.log.bind(console);
 console.log = (...args) =>

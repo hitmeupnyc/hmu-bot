@@ -11,19 +11,16 @@ import { Hono } from "hono";
 import { logger } from "hono/logger";
 
 import { KVNamespace } from "@cloudflare/workers-types";
-import { fetchSheet, init } from "./google-sheets";
-import { fetchEmailFromCode, grantRole } from "./discord";
-import { layout, success } from "./templates";
-import { sendEmail } from "./mailjet";
-import {
-  retrieveSheetId,
-  cleanEmail,
-  sanitizeEmail,
-  getEmailListFromSheetValues,
-} from "./utils";
+import { init } from "./lib/google-sheets";
+import { fetchEmailFromCode, grantRole } from "./lib/discord";
+import { layout, success } from "./lib/templates";
+import { sendEmail } from "./lib/mailjet";
+import { cleanEmail, sanitizeEmail } from "./lib/utils";
 import OTP from "otp";
+import { checkMembership } from "./lib/checkMembership";
+import { setupRoles, setupSheet } from "./lib/setup";
 
-type HonoBindings = {
+export type HonoBindings = {
   DISCORD_APP_ID: string;
   DISCORD_GUILD_ID: string;
   DISCORD_PUBLIC_KEY: string;
@@ -433,43 +430,6 @@ app.get("/oauth", async (c) => {
   return c.html(success());
 });
 
-const checkMembership = async (c: any, email: string) => {
-  const documentId = await c.env.hmu_bot.get("sheet");
-  if (!documentId) {
-    throw new Error("no 'sheet' in KV store");
-  }
-  const [vettedSheet, privateSheet] = await Promise.all([
-    fetchSheet(documentId, "Vetted Members!C2:C"),
-    fetchSheet(documentId, "Private Members!C2:C"),
-  ]);
-
-  if (!vettedSheet.values) {
-    throw new Error("Couldn't find the Vetted list.");
-  }
-  if (!privateSheet.values) {
-    throw new Error("Couldn't find the Private list.");
-  }
-
-  const lcEmail = cleanEmail(email);
-
-  const vettedEmails = getEmailListFromSheetValues(vettedSheet.values);
-  const isVetted = vettedEmails.some((e) => e.toLowerCase().includes(lcEmail));
-
-  const privateEmails = getEmailListFromSheetValues(privateSheet.values);
-  const isPrivate = privateEmails.some((e) =>
-    e.toLowerCase().includes(lcEmail),
-  );
-  console.log(
-    `[checkMembership] ${email} is ${isVetted ? "vetted" : "not vetted"} and ${
-      isPrivate ? "private" : "not private"
-    }`,
-  );
-  return { isVetted, isPrivate };
-};
-
-// Export for testing
-export { checkMembership };
-
 export default app;
 
 enum ApplicationCommandOptionType {
@@ -505,69 +465,8 @@ export const setupFailureReasons = {
   wrongHeadings:
     "The Google Sheet provided did not have the sheet name or column headers expected. Looked for sheets named 'Private Members' and 'Vetted Members', looked for 'Email Address' in column D.",
 } as const;
-type SetupFailureReason =
+export type SetupFailureReason =
   (typeof setupFailureReasons)[keyof typeof setupFailureReasons];
-
-export async function setupRoles(
-  env: HonoBindings,
-  options: SetupOptions,
-): Promise<{ ok: true } | { ok: false; reason: SetupFailureReason }> {
-  const vettedRoleId =
-    options.find((o) => o.name === "vetted-role")?.value || "";
-  const privateRoleId =
-    options.find((o) => o.name === "private-role")?.value || "";
-  try {
-    await Promise.all([
-      env.hmu_bot.put("vetted", vettedRoleId),
-      env.hmu_bot.put("private", privateRoleId),
-    ]);
-    return { ok: true };
-  } catch (e) {
-    console.log("[ERR]", e);
-  }
-
-  return {
-    ok: false,
-    reason: setupFailureReasons.errorFetching,
-  };
-}
-
-async function setupSheet(
-  env: HonoBindings,
-  options: any,
-): Promise<
-  { ok: true; data: string[] } | { ok: false; reason: SetupFailureReason }
-> {
-  const url = options.find((o) => o.custom_id === "sheet-url");
-  const documentId = url ? retrieveSheetId(url.value) : "";
-  if (!documentId) {
-    return { ok: false, reason: setupFailureReasons.invalidUrl };
-  }
-
-  await Promise.all([env.hmu_bot.put("sheet", documentId)]);
-
-  try {
-    const data = await Promise.all([
-      fetchSheet(documentId, "Vetted Members!D1"),
-      fetchSheet(documentId, "Private Members!D1"),
-    ]);
-
-    const columnHeadings = data.flatMap((d) => d.values.flat());
-    console.log(`[setup] columnHeadings: ${columnHeadings.join(", ")}`);
-    if (!columnHeadings.every((h) => h === "Email Address")) {
-      return { ok: false, reason: setupFailureReasons.wrongHeadings };
-    }
-
-    return { ok: true, data: columnHeadings };
-  } catch (e) {
-    console.log("[ERR]", e);
-  }
-
-  return {
-    ok: false,
-    reason: setupFailureReasons.errorFetching,
-  };
-}
 
 const log = console.log.bind(console);
 console.log = (...args) =>

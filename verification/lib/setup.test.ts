@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { http, HttpResponse } from "msw";
-import { server } from "./mocks/setup";
-import { setup, setupFailureReasons } from "./index";
-import { mockEnv } from "./fixtures/setup-data";
+import { server } from "../mocks/setup";
+import { setupFailureReasons } from "../index";
+import { setupSheet } from "./setup";
+import { mockEnv } from "../fixtures/setup-data";
 
 // Don't mock the google-sheets module - let MSW intercept the fetch calls
 // vi.mock('./google-sheets');
@@ -37,7 +38,10 @@ describe("Setup Function with MSW", () => {
 
   describe("URL Validation", () => {
     it("extracts document ID from valid Google Sheets URL", async () => {
-      const result = await setup(mockEnv, createOptions("valid-sheet-123"));
+      const result = await setupSheet(
+        mockEnv,
+        createOptions("valid-sheet-123"),
+      );
 
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -64,7 +68,7 @@ describe("Setup Function with MSW", () => {
         },
       ];
 
-      const result = await setup(mockEnv, invalidOptions);
+      const result = await setupSheet(mockEnv, invalidOptions);
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -75,7 +79,10 @@ describe("Setup Function with MSW", () => {
 
   describe("Sheet Structure Validation with MSW", () => {
     it("validates correct sheet structure", async () => {
-      const result = await setup(mockEnv, createOptions("valid-sheet-123"));
+      const result = await setupSheet(
+        mockEnv,
+        createOptions("valid-sheet-123"),
+      );
 
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -84,7 +91,10 @@ describe("Setup Function with MSW", () => {
     });
 
     it("rejects sheets with wrong column headers", async () => {
-      const result = await setup(mockEnv, createOptions("wrong-headers-789"));
+      const result = await setupSheet(
+        mockEnv,
+        createOptions("wrong-headers-789"),
+      );
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -93,7 +103,10 @@ describe("Setup Function with MSW", () => {
     });
 
     it("handles empty sheet responses", async () => {
-      const result = await setup(mockEnv, createOptions("empty-sheet-456"));
+      const result = await setupSheet(
+        mockEnv,
+        createOptions("empty-sheet-456"),
+      );
 
       // Empty values array results in empty columnHeadings array
       expect(result.ok).toBe(true);
@@ -103,7 +116,10 @@ describe("Setup Function with MSW", () => {
     });
 
     it("handles malformed sheet responses", async () => {
-      const result = await setup(mockEnv, createOptions("malformed-data-abc"));
+      const result = await setupSheet(
+        mockEnv,
+        createOptions("malformed-data-abc"),
+      );
 
       // flatMap flattens: [null, 'Email Address', 'Extra Column']
       // every() fails because null !== 'Email Address'
@@ -119,7 +135,7 @@ describe("Setup Function with MSW", () => {
       // Use fake timers to speed up retry delays
       vi.useFakeTimers();
 
-      const setupPromise = setup(
+      const setupPromise = setupSheet(
         mockEnv,
         createOptions("permission-denied-def"),
       );
@@ -140,7 +156,10 @@ describe("Setup Function with MSW", () => {
     it("handles network errors", async () => {
       vi.useFakeTimers();
 
-      const setupPromise = setup(mockEnv, createOptions("network-error-ghi"));
+      const setupPromise = setupSheet(
+        mockEnv,
+        createOptions("network-error-ghi"),
+      );
 
       // Fast-forward through retry delays
       await vi.advanceTimersByTimeAsync(8000);
@@ -159,7 +178,10 @@ describe("Setup Function with MSW", () => {
       vi.useFakeTimers();
       const consoleSpy = vi.spyOn(console, "log");
 
-      const setupPromise = setup(mockEnv, createOptions("network-error-ghi"));
+      const setupPromise = setupSheet(
+        mockEnv,
+        createOptions("network-error-ghi"),
+      );
 
       // Fast-forward through retry delays
       await vi.advanceTimersByTimeAsync(8000);
@@ -178,7 +200,10 @@ describe("Setup Function with MSW", () => {
   describe("Dynamic Handler Testing", () => {
     it("can override handlers for specific test scenarios", async () => {
       // Handler defined in mocks/handlers.ts for 'custom-test-123'
-      const result = await setup(mockEnv, createOptions("custom-test-123"));
+      const result = await setupSheet(
+        mockEnv,
+        createOptions("custom-test-123"),
+      );
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -190,7 +215,10 @@ describe("Setup Function with MSW", () => {
       vi.useFakeTimers();
 
       // Handler defined in mocks/handlers.ts for 'timeout-test-456'
-      const setupPromise = setup(mockEnv, createOptions("timeout-test-456"));
+      const setupPromise = setupSheet(
+        mockEnv,
+        createOptions("timeout-test-456"),
+      );
 
       // Fast-forward through the handler delay (100ms) + retry delays (7s)
       await vi.advanceTimersByTimeAsync(8000);
@@ -226,7 +254,7 @@ describe("Setup Function with MSW", () => {
         ),
       );
 
-      await setup(mockEnv, createOptions("request-test-789"));
+      await setupSheet(mockEnv, createOptions("request-test-789"));
 
       expect(requestCount).toBe(2); // Two requests for vetted and private sheets
       expect(requestUrls).toHaveLength(2);

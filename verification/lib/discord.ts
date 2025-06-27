@@ -1,4 +1,4 @@
-import { retry, retryConfigs } from "./lib/retry.js";
+import { retry, retryConfigs } from "./retry.js";
 
 export async function fetchEmailFromCode(
   code: string,

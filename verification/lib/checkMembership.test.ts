@@ -239,9 +239,9 @@ describe("Membership Checking Logic Tests", () => {
 
       server.use(
         http.get(
-          "https://sheets.googleapis.com/v4/spreadsheets/:sheetId/values/*",
+          "https://sheets.googleapis.com/v4/spreadsheets/:sheet/values/*",
           ({ params }) => {
-            capturedSheetIds.push(params.sheetId as string);
+            capturedSheetIds.push(params.sheet as string);
             return HttpResponse.json({ values: [["test@example.com"]] });
           },
         ),

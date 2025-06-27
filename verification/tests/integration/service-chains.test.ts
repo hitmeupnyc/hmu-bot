@@ -70,7 +70,7 @@ describe('Service Integration Chains', () => {
   describe('Google Sheets → Membership Validation Chain', () => {
     it('successfully validates vetted member through complete chain', async () => {
       // Pre-store sheet ID
-      await mockKV.put('sheetId', 'test-sheet-123');
+      await mockKV.put('sheet', 'test-sheet-123');
 
       const startTime = Date.now();
       const result = await checkMembership(mockContext, 'vetted@example.com');
@@ -82,7 +82,7 @@ describe('Service Integration Chains', () => {
     });
 
     it('validates private member with both memberships', async () => {
-      await mockKV.put('sheetId', 'test-sheet-123');
+      await mockKV.put('sheet', 'test-sheet-123');
 
       const result = await checkMembership(mockContext, 'premium@example.com');
 
@@ -91,7 +91,7 @@ describe('Service Integration Chains', () => {
     });
 
     it('handles non-member validation correctly', async () => {
-      await mockKV.put('sheetId', 'test-sheet-123');
+      await mockKV.put('sheet', 'test-sheet-123');
 
       const result = await checkMembership(mockContext, 'nonmember@example.com');
 
@@ -100,7 +100,7 @@ describe('Service Integration Chains', () => {
     });
 
     it('handles Google Sheets API failures gracefully', async () => {
-      await mockKV.put('sheetId', 'test-sheet-123');
+      await mockKV.put('sheet', 'test-sheet-123');
 
       // Mock Google Sheets API failure
       server.use(
@@ -337,15 +337,15 @@ describe('Service Integration Chains', () => {
       
       expect(sheetId).toBe(expectedSheetId);
       
-      await mockKV.put('sheetId', sheetId);
-      const stored = await mockKV.get('sheetId');
+      await mockKV.put('sheet', sheetId);
+      const stored = await mockKV.get('sheet');
       expect(stored).toBe(expectedSheetId);
     });
   });
 
   describe('Cross-Service Error Propagation', () => {
     it('propagates Google Sheets errors to membership checking', async () => {
-      await mockKV.put('sheetId', 'test-sheet-123');
+      await mockKV.put('sheet', 'test-sheet-123');
 
       // Mock sequential failures
       server.use(
@@ -358,7 +358,7 @@ describe('Service Integration Chains', () => {
     });
 
     it('handles partial service failures gracefully', async () => {
-      await mockKV.put('sheetId', 'test-sheet-123');
+      await mockKV.put('sheet', 'test-sheet-123');
 
       // Mock first request success, second request failure
       let requestCount = 0;
@@ -383,7 +383,7 @@ describe('Service Integration Chains', () => {
     });
 
     it('tracks service call timing for performance monitoring', async () => {
-      await mockKV.put('sheetId', 'test-sheet-123');
+      await mockKV.put('sheet', 'test-sheet-123');
 
       const services = ['sheets-vetted', 'sheets-private'];
       const timings: Record<string, number> = {};
@@ -419,7 +419,7 @@ describe('Service Integration Chains', () => {
 
     it('handles authentication token refresh in service chain', async () => {
       // This tests the middleware chain in the actual app
-      await mockKV.put('sheetId', 'test-sheet-123');
+      await mockKV.put('sheet', 'test-sheet-123');
 
       // First call should trigger token initialization
       const result1 = await checkMembership(mockContext, 'vetted@example.com');

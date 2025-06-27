@@ -14,8 +14,17 @@ vi.mock('../../lib/google-sheets', () => ({
     alreadyHadToken: true,
     reloadAccessToken: vi.fn().mockResolvedValue(undefined)
   }),
-  fetchSheet: vi.fn().mockResolvedValue({
-    values: [['Email Address']]
+  fetchSheet: vi.fn().mockImplementation((documentId, range) => {
+    // For setup validation (D1 ranges), return just the header
+    if (range.includes('!D1')) {
+      return Promise.resolve({
+        values: [['Email Address']]
+      });
+    }
+    // For membership checking (D1:D ranges), return header + data
+    return Promise.resolve({
+      values: [['Email Address'], ['vetted@example.com'], ['premium@example.com']]
+    });
   })
 }));
 
@@ -172,7 +181,11 @@ describe('Complete User Workflow Integration Tests', () => {
         data: {
           custom_id: 'modal-setup',
           components: [{
-            components: [{ value: 'https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit' }]
+            components: [
+              { custom_id: 'sheet-url', value: 'https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit' },
+              { custom_id: 'vetted-role', value: 'vetted-role-123' },
+              { custom_id: 'private-role', value: 'private-role-456' }
+            ]
           }],
           options: [] // Prevent undefined.map error
         }
@@ -207,7 +220,7 @@ describe('Complete User Workflow Integration Tests', () => {
       expect(oauthUrl).toContain('scope=email+identify');
 
       // Verify sheet ID was stored
-      const sheetId = await mockKV.get('sheetId');
+      const sheetId = await mockKV.get('sheet');
       expect(sheetId).toBe('1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms');
     });
 
@@ -221,7 +234,11 @@ describe('Complete User Workflow Integration Tests', () => {
         data: {
           custom_id: 'modal-setup',
           components: [{
-            components: [{ value: 'https://invalid-url.com/not-sheets' }]
+            components: [
+              { custom_id: 'sheet-url', value: 'https://invalid-url.com/not-sheets' },
+              { custom_id: 'vetted-role', value: 'vetted-role-123' },
+              { custom_id: 'private-role', value: 'private-role-456' }
+            ]
           }]
         }
       };
@@ -244,9 +261,10 @@ describe('Complete User Workflow Integration Tests', () => {
 
   describe('OAuth Verification Workflow', () => {
     it('completes full OAuth verification for vetted member', async () => {
-      // Pre-setup: Store role IDs
+      // Pre-setup: Store role IDs and sheet ID
       await mockKV.put('vetted', 'vetted-role-123');
       await mockKV.put('private', 'private-role-456');
+      await mockKV.put('sheet', '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms');
 
       // Simulate OAuth callback with valid code
       const response = await client.oauth.$get({
@@ -258,13 +276,14 @@ describe('Complete User Workflow Integration Tests', () => {
       // The actual app returns HTML success page
       const html = await response.text();
       expect(html).toContain('html');
-      expect(html).toContain('Thank you'); // Success message from templates
+      expect(html).toContain('Welcome to the HMU Discord'); // Success message from templates
     });
 
     it('completes OAuth verification for private member with both roles', async () => {
       // Setup for private member (should get both vetted and private roles)
       await mockKV.put('vetted', 'vetted-role-123');
       await mockKV.put('private', 'private-role-456');
+      await mockKV.put('sheet', '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms');
 
       // Mock Discord OAuth to return private member email
       server.use(
@@ -283,12 +302,13 @@ describe('Complete User Workflow Integration Tests', () => {
 
       expect(response.status).toBe(200);
       const html = await response.text();
-      expect(html).toContain('Thank you');
+      expect(html).toContain('Welcome to the HMU Discord');
     });
 
     it('handles OAuth verification for non-member', async () => {
       await mockKV.put('vetted', 'vetted-role-123');
       await mockKV.put('private', 'private-role-456');
+      await mockKV.put('sheet', '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms');
 
       // Mock Discord OAuth to return non-member email
       server.use(
@@ -325,6 +345,7 @@ describe('Complete User Workflow Integration Tests', () => {
     it('handles OAuth API errors gracefully', async () => {
       await mockKV.put('vetted', 'vetted-role-123');
       await mockKV.put('private', 'private-role-456');
+      await mockKV.put('sheet', '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms');
 
       // Mock Discord OAuth token exchange failure
       server.use(
@@ -342,7 +363,7 @@ describe('Complete User Workflow Integration Tests', () => {
 
       expect(response.status).toBe(200);
       const html = await response.text();
-      expect(html).toContain('something went wrong');
+      expect(html).toContain('Something broke!');
     });
   });
 

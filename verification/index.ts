@@ -74,8 +74,8 @@ app.post("/discord", async (c) => {
     `interaction type: ${interaction.type}. custom_id: ${
       interaction.data?.custom_id
     } ${interaction.data?.name} ${interaction.data?.options
-      .map((o) => o.name)
-      .join(", ")}`,
+      ?.map((o) => o.name)
+      .join(", ") || ""}`,
   );
 
   // top-level interactions (slash commands etc)

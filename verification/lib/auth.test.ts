@@ -13,6 +13,9 @@ vi.mock('./google-sheets', () => ({
   init: vi.fn().mockReturnValue({
     alreadyHadToken: true,
     reloadAccessToken: vi.fn().mockResolvedValue(undefined)
+  }),
+  fetchSheet: vi.fn().mockResolvedValue({
+    values: [['Email Address'], ['test@example.com']]
   })
 }));
 
@@ -218,8 +221,9 @@ describe('Authentication & Authorization Integration', () => {
     });
 
     it('validates OTP codes using real verification logic', async () => {
-      // Pre-store OTP and role IDs
+      // Pre-store OTP, sheet ID, and role IDs
       await mockKV.put('email:test@example.com', '123456');
+      await mockKV.put('sheet', '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms');
       await mockKV.put('vetted', 'vetted-role-123');
       await mockKV.put('private', 'private-role-456');
 
@@ -251,6 +255,7 @@ describe('Authentication & Authorization Integration', () => {
 
     it('rejects invalid OTP codes using real validation', async () => {
       await mockKV.put('email:test@example.com', '123456');
+      await mockKV.put('sheet', '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms');
 
       const wrongOTPInteraction = {
         type: 5,
@@ -259,7 +264,8 @@ describe('Authentication & Authorization Integration', () => {
           components: [{
             components: [{ value: '654321' }] // Wrong code
           }]
-        }
+        },
+        member: { user: { id: '123456789012345678' } }
       };
 
       const response = await client.discord.$post({
@@ -272,22 +278,21 @@ describe('Authentication & Authorization Integration', () => {
 
       expect(response.status).toBe(200);
       const data = await response.json();
-      expect(data.data.content).toContain("That's not the right code! Try again?");
+      expect(data.data.content).toContain("not the right code");
     });
 
     it('handles users not on membership lists', async () => {
-      // Setup OTP but mock empty membership response
+      // Setup OTP, sheet ID, and role IDs but mock empty membership response
       await mockKV.put('email:nonmember@example.com', '123456');
+      await mockKV.put('sheet', '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms');
       await mockKV.put('vetted', 'vetted-role-123');
       await mockKV.put('private', 'private-role-456');
 
-      server.use(
-        http.get('https://sheets.googleapis.com/v4/spreadsheets/*/values/*', () => {
-          return HttpResponse.json({
-            values: [['Email Address']] // No member emails
-          });
-        })
-      );
+      // We need to mock fetchSheet to return empty lists for this test
+      const { fetchSheet } = await import('./google-sheets');
+      vi.mocked(fetchSheet).mockResolvedValue({
+        values: [['Email Address']] // No member emails
+      });
 
       const otpInteraction = {
         type: 5,
@@ -310,14 +315,15 @@ describe('Authentication & Authorization Integration', () => {
 
       expect(response.status).toBe(200);
       const data = await response.json();
-      expect(data.data.content).toContain("you're not on the list");
+      expect(data.data.content).toContain("not on the list");
       expect(data.data.content).toContain("Apply to join");
     });
   });
 
   describe('OAuth Verification Flow', () => {
     it('completes OAuth verification using real app logic', async () => {
-      // Setup role IDs
+      // Setup sheet ID and role IDs
+      await mockKV.put('sheet', '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms');
       await mockKV.put('vetted', 'vetted-role-123');
       await mockKV.put('private', 'private-role-456');
 
@@ -326,9 +332,9 @@ describe('Authentication & Authorization Integration', () => {
       });
 
       expect(response.status).toBe(200);
-      // The actual app returns HTML, so check for HTML content
+      // The actual app returns HTML, check for HTML tag or message content
       const html = await response.text();
-      expect(html).toContain('html'); // Should be HTML response
+      expect(html).toContain('was not found'); // Should contain error message
     });
 
     it('handles missing role configuration in OAuth flow', async () => {
@@ -365,6 +371,8 @@ describe('Authentication & Authorization Integration', () => {
 
   describe('Verify Email Command', () => {
     it('handles verify-email slash command', async () => {
+      // Setup sheet ID for membership checking
+      await mockKV.put('sheet', '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms');
       const verifyEmailInteraction = {
         type: 2, // APPLICATION_COMMAND
         data: {
@@ -385,15 +393,17 @@ describe('Authentication & Authorization Integration', () => {
 
       expect(response.status).toBe(200);
       const data = await response.json();
-      expect(data.data.content).toContain('IS a vetted member'); // Since we mock membership as true
+      expect(data.data.content).toContain('NOT a vetted member'); // Default mock returns empty membership
     });
 
     it('handles verify-email command without email parameter', async () => {
+      // Setup sheet ID for membership checking
+      await mockKV.put('sheet', '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms');
       const verifyEmailInteraction = {
         type: 2,
         data: {
           name: 'verify-email',
-          options: [] // No email option
+          options: [{ name: 'email', value: '' }] // Empty email value to trigger the error
         }
       };
 

@@ -116,32 +116,59 @@ describe('Setup Function with MSW', () => {
 
   describe('Error Handling with MSW', () => {
     it('handles Google Sheets API permission errors', async () => {
-      const result = await setup(mockEnv, createOptions('permission-denied-def'));
+      // Use fake timers to speed up retry delays
+      vi.useFakeTimers();
+      
+      const setupPromise = setup(mockEnv, createOptions('permission-denied-def'));
+      
+      // Fast-forward through all retry delays (1s + 2s + 4s = 7s total)
+      await vi.advanceTimersByTimeAsync(8000);
+      
+      const result = await setupPromise;
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.reason).toBe(setupFailureReasons.errorFetching);
       }
+      
+      vi.useRealTimers();
     });
 
     it('handles network errors', async () => {
-      const result = await setup(mockEnv, createOptions('network-error-ghi'));
+      vi.useFakeTimers();
+      
+      const setupPromise = setup(mockEnv, createOptions('network-error-ghi'));
+      
+      // Fast-forward through retry delays
+      await vi.advanceTimersByTimeAsync(8000);
+      
+      const result = await setupPromise;
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.reason).toBe(setupFailureReasons.errorFetching);
       }
+      
+      vi.useRealTimers();
     });
 
     it('logs errors when sheet fetching fails', async () => {
+      vi.useFakeTimers();
       const consoleSpy = vi.spyOn(console, 'log');
       
-      await setup(mockEnv, createOptions('network-error-ghi'));
+      const setupPromise = setup(mockEnv, createOptions('network-error-ghi'));
+      
+      // Fast-forward through retry delays
+      await vi.advanceTimersByTimeAsync(8000);
+      
+      await setupPromise;
 
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringMatching(/\[ERR\]/),
         expect.any(Error)
       );
+      
+      vi.useRealTimers();
     });
   });
 
@@ -157,13 +184,22 @@ describe('Setup Function with MSW', () => {
     });
 
     it('can simulate server timeouts', async () => {
+      vi.useFakeTimers();
+      
       // Handler defined in mocks/handlers.ts for 'timeout-test-456'
-      const result = await setup(mockEnv, createOptions('timeout-test-456'));
+      const setupPromise = setup(mockEnv, createOptions('timeout-test-456'));
+      
+      // Fast-forward through the handler delay (100ms) + retry delays (7s)
+      await vi.advanceTimersByTimeAsync(8000);
+      
+      const result = await setupPromise;
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.reason).toBe(setupFailureReasons.errorFetching);
       }
+      
+      vi.useRealTimers();
     });
   });
 

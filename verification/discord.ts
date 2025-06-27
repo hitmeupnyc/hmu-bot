@@ -1,3 +1,5 @@
+import { retry, retryConfigs } from "./lib/retry.js";
+
 export async function fetchEmailFromCode(
   code: string,
   clientId: string,
@@ -14,6 +16,7 @@ export async function fetchEmailFromCode(
         oauthDestination,
       )}`,
     }),
+    retryConfigs.network,
   );
   const data = await res.json();
   const identityRes = await fetch("https://discord.com/api/users/@me", {
@@ -36,31 +39,9 @@ export async function grantRole(token, guildId, roleId, userId) {
         },
       },
     ),
+    retryConfigs.network,
   );
 
   return res;
 }
 
-function retry<T>(
-  fn: () => Promise<T>,
-  retries = 3,
-  delayMs = 1000,
-): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const attempt = (retryCount: number) => {
-      fn()
-        .then(resolve)
-        .catch(async (error) => {
-          if (retryCount <= 0) {
-            reject(error);
-          } else {
-            setTimeout(() => {
-              attempt(retryCount - 1);
-            }, delayMs * Math.pow(2, retries - retryCount));
-          }
-        });
-    };
-
-    attempt(retries);
-  });
-}

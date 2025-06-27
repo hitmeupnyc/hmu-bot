@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { http, HttpResponse } from 'msw';
-import { server } from './mocks/setup';
-import { setup, setupFailureReasons } from './index';
-import { mockEnv } from './fixtures/setup-data';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { http, HttpResponse } from "msw";
+import { server } from "./mocks/setup";
+import { setup, setupFailureReasons } from "./index";
+import { mockEnv } from "./fixtures/setup-data";
 
 // Don't mock the google-sheets module - let MSW intercept the fetch calls
 // vi.mock('./google-sheets');
@@ -26,26 +26,26 @@ const createOptions = (sheetId: string) => [
   },
 ];
 
-describe('Setup Function with MSW', () => {
+describe("Setup Function with MSW", () => {
   beforeEach(() => {
-    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, "log").mockImplementation(() => {});
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  describe('URL Validation', () => {
-    it('extracts document ID from valid Google Sheets URL', async () => {
-      const result = await setup(mockEnv, createOptions('valid-sheet-123'));
+  describe("URL Validation", () => {
+    it("extracts document ID from valid Google Sheets URL", async () => {
+      const result = await setup(mockEnv, createOptions("valid-sheet-123"));
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.data).toEqual(['Email Address', 'Email Address']);
+        expect(result.data).toEqual(["Email Address", "Email Address"]);
       }
     });
 
-    it('rejects invalid URLs', async () => {
+    it("rejects invalid URLs", async () => {
       const invalidOptions = [
         {
           name: "sheet-url" as const,
@@ -73,18 +73,18 @@ describe('Setup Function with MSW', () => {
     });
   });
 
-  describe('Sheet Structure Validation with MSW', () => {
-    it('validates correct sheet structure', async () => {
-      const result = await setup(mockEnv, createOptions('valid-sheet-123'));
+  describe("Sheet Structure Validation with MSW", () => {
+    it("validates correct sheet structure", async () => {
+      const result = await setup(mockEnv, createOptions("valid-sheet-123"));
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.data).toEqual(['Email Address', 'Email Address']);
+        expect(result.data).toEqual(["Email Address", "Email Address"]);
       }
     });
 
-    it('rejects sheets with wrong column headers', async () => {
-      const result = await setup(mockEnv, createOptions('wrong-headers-789'));
+    it("rejects sheets with wrong column headers", async () => {
+      const result = await setup(mockEnv, createOptions("wrong-headers-789"));
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -92,8 +92,8 @@ describe('Setup Function with MSW', () => {
       }
     });
 
-    it('handles empty sheet responses', async () => {
-      const result = await setup(mockEnv, createOptions('empty-sheet-456'));
+    it("handles empty sheet responses", async () => {
+      const result = await setup(mockEnv, createOptions("empty-sheet-456"));
 
       // Empty values array results in empty columnHeadings array
       expect(result.ok).toBe(true);
@@ -102,10 +102,10 @@ describe('Setup Function with MSW', () => {
       }
     });
 
-    it('handles malformed sheet responses', async () => {
-      const result = await setup(mockEnv, createOptions('malformed-data-abc'));
+    it("handles malformed sheet responses", async () => {
+      const result = await setup(mockEnv, createOptions("malformed-data-abc"));
 
-      // flatMap flattens: [null, 'Email Address', 'Extra Column'] 
+      // flatMap flattens: [null, 'Email Address', 'Extra Column']
       // every() fails because null !== 'Email Address'
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -114,68 +114,71 @@ describe('Setup Function with MSW', () => {
     });
   });
 
-  describe('Error Handling with MSW', () => {
-    it('handles Google Sheets API permission errors', async () => {
+  describe("Error Handling with MSW", () => {
+    it("handles Google Sheets API permission errors", async () => {
       // Use fake timers to speed up retry delays
       vi.useFakeTimers();
-      
-      const setupPromise = setup(mockEnv, createOptions('permission-denied-def'));
-      
+
+      const setupPromise = setup(
+        mockEnv,
+        createOptions("permission-denied-def"),
+      );
+
       // Fast-forward through all retry delays (1s + 2s + 4s = 7s total)
       await vi.advanceTimersByTimeAsync(8000);
-      
+
       const result = await setupPromise;
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.reason).toBe(setupFailureReasons.errorFetching);
       }
-      
+
       vi.useRealTimers();
     });
 
-    it('handles network errors', async () => {
+    it("handles network errors", async () => {
       vi.useFakeTimers();
-      
-      const setupPromise = setup(mockEnv, createOptions('network-error-ghi'));
-      
+
+      const setupPromise = setup(mockEnv, createOptions("network-error-ghi"));
+
       // Fast-forward through retry delays
       await vi.advanceTimersByTimeAsync(8000);
-      
+
       const result = await setupPromise;
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.reason).toBe(setupFailureReasons.errorFetching);
       }
-      
+
       vi.useRealTimers();
     });
 
-    it('logs errors when sheet fetching fails', async () => {
+    it("logs errors when sheet fetching fails", async () => {
       vi.useFakeTimers();
-      const consoleSpy = vi.spyOn(console, 'log');
-      
-      const setupPromise = setup(mockEnv, createOptions('network-error-ghi'));
-      
+      const consoleSpy = vi.spyOn(console, "log");
+
+      const setupPromise = setup(mockEnv, createOptions("network-error-ghi"));
+
       // Fast-forward through retry delays
       await vi.advanceTimersByTimeAsync(8000);
-      
+
       await setupPromise;
 
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringMatching(/\[ERR\]/),
-        expect.any(Error)
+        expect.any(Error),
       );
-      
+
       vi.useRealTimers();
     });
   });
 
-  describe('Dynamic Handler Testing', () => {
-    it('can override handlers for specific test scenarios', async () => {
+  describe("Dynamic Handler Testing", () => {
+    it("can override handlers for specific test scenarios", async () => {
       // Handler defined in mocks/handlers.ts for 'custom-test-123'
-      const result = await setup(mockEnv, createOptions('custom-test-123'));
+      const result = await setup(mockEnv, createOptions("custom-test-123"));
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -183,49 +186,52 @@ describe('Setup Function with MSW', () => {
       }
     });
 
-    it('can simulate server timeouts', async () => {
+    it("can simulate server timeouts", async () => {
       vi.useFakeTimers();
-      
+
       // Handler defined in mocks/handlers.ts for 'timeout-test-456'
-      const setupPromise = setup(mockEnv, createOptions('timeout-test-456'));
-      
+      const setupPromise = setup(mockEnv, createOptions("timeout-test-456"));
+
       // Fast-forward through the handler delay (100ms) + retry delays (7s)
       await vi.advanceTimersByTimeAsync(8000);
-      
+
       const result = await setupPromise;
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.reason).toBe(setupFailureReasons.errorFetching);
       }
-      
+
       vi.useRealTimers();
     });
   });
 
-  describe('Request Validation', () => {
-    it('verifies correct API requests are made', async () => {
+  describe("Request Validation", () => {
+    it("verifies correct API requests are made", async () => {
       let requestCount = 0;
       const requestUrls: string[] = [];
 
       // Use dynamic override for request capturing (this is a valid use case for server.use)
       server.use(
-        http.get('https://sheets.googleapis.com/v4/spreadsheets/request-test-789/values/*', ({ request }) => {
-          requestCount++;
-          requestUrls.push(request.url);
-          
-          return HttpResponse.json({
-            values: [['Email Address']]
-          });
-        })
+        http.get(
+          "https://sheets.googleapis.com/v4/spreadsheets/request-test-789/values/*",
+          ({ request }) => {
+            requestCount++;
+            requestUrls.push(request.url);
+
+            return HttpResponse.json({
+              values: [["Email Address"]],
+            });
+          },
+        ),
       );
 
-      await setup(mockEnv, createOptions('request-test-789'));
+      await setup(mockEnv, createOptions("request-test-789"));
 
       expect(requestCount).toBe(2); // Two requests for vetted and private sheets
       expect(requestUrls).toHaveLength(2);
-      expect(requestUrls[0]).toContain('Vetted%20Members!D1');
-      expect(requestUrls[1]).toContain('Private%20Members!D1');
+      expect(requestUrls[0]).toContain("Vetted%20Members!D1");
+      expect(requestUrls[1]).toContain("Private%20Members!D1");
     });
   });
 });

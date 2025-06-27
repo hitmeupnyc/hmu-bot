@@ -1,4 +1,5 @@
 import { getAccessToken } from "./google-auth";
+import { retry } from "./lib/retry";
 
 let accessToken = "";
 let reloadAccessToken = async () => {};
@@ -34,32 +35,13 @@ export async function fetchSheet(id: string, range: string) {
       );
     }
     return output;
+  }, {
+    retries: 3,
+    delayMs: 1000,
+    onRetry: async (error, attempt) => {
+      console.log(`request failed, retry #${attempt}`, error);
+      await reloadAccessToken();
+    }
   });
 }
 
-function retry<T>(
-  fn: () => Promise<T>,
-  retries = 3,
-  delayMs = 1000,
-): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const attempt = (retryCount: number) => {
-      fn()
-        .then(resolve)
-        .catch(async (error) => {
-          console.log(`request failed, retry #${retryCount}`, error);
-          await reloadAccessToken();
-          if (retryCount <= 0) {
-            console.log("request failed, giving up", error);
-            reject(error);
-          } else {
-            setTimeout(() => {
-              attempt(retryCount - 1);
-            }, delayMs * Math.pow(2, retries - retryCount));
-          }
-        });
-    };
-
-    attempt(retries);
-  });
-}

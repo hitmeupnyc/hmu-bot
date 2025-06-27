@@ -84,7 +84,7 @@ app.post("/discord", async (c) => {
   // top-level interactions (slash commands etc)
   switch (interaction.type) {
     case 1:
-      return c.json({ type: 1, data: {} });
+      return c.json({ type: InteractionResponseType, data: {} });
     case 2: {
       if (interaction.data.name === "setup") {
         const setupResult = await setup(c.env, interaction.data.options);
@@ -172,7 +172,7 @@ app.post("/discord", async (c) => {
             title: "What email do you subscribe to HMU with?",
             components: [
               {
-                type: 1,
+                type: MessageComponentTypes.ACTION_ROW,
                 components: [
                   {
                     type: MessageComponentTypes.INPUT_TEXT,
@@ -199,7 +199,7 @@ app.post("/discord", async (c) => {
             title: "Confirmation code:",
             components: [
               {
-                type: 1,
+                type: MessageComponentTypes.ACTION_ROW,
                 components: [
                   {
                     type: MessageComponentTypes.INPUT_TEXT,

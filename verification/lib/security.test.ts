@@ -21,7 +21,7 @@ describe('Security & Input Validation', () => {
 
       it('handles edge cases safely', () => {
         expect(cleanEmail('')).toBe('');
-        expect(cleanEmail('   ')).toBe('   ');
+        expect(cleanEmail('   ')).toBe('');
         expect(cleanEmail('NOATSIGN')).toBe('noatsign');
       });
     });

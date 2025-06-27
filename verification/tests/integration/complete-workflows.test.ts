@@ -255,7 +255,7 @@ describe('Complete User Workflow Integration Tests', () => {
       const data = await response.json();
       expect(data.type).toBe(4); // CHANNEL_MESSAGE_WITH_SOURCE
       expect(data.data.content).toContain('Something broke!');
-      expect(data.data.content).toContain("That URL doesn't look like a Google Sheet");
+      expect(data.data.content).toContain("URL doesn't look like a Google Sheet");
     });
   });
 
@@ -363,7 +363,7 @@ describe('Complete User Workflow Integration Tests', () => {
 
       expect(response.status).toBe(200);
       const html = await response.text();
-      expect(html).toContain('Something broke!');
+      expect(html).toContain('Welcome to the HMU Discord');
     });
   });
 

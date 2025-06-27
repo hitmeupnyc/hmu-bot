@@ -7,6 +7,13 @@ import {
 
 const GUILD_ID = process.env.DISCORD_GUILD_ID;
 
+console.log(
+  `Deploying to server ID '${GUILD_ID}' with token '${process.env.DISCORD_TOKEN.slice(
+    0,
+    5,
+  )}…', app ID '${process.env.DISCORD_APP_ID}'`,
+);
+
 const commands = [
   new SlashCommandBuilder()
     .setName("setup")

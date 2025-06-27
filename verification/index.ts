@@ -15,7 +15,12 @@ import { fetchSheet, init } from "./google-sheets";
 import { fetchEmailFromCode, grantRole } from "./discord";
 import { layout, success } from "./templates";
 import { sendEmail } from "./mailjet";
-import { retrieveSheetId, cleanEmail, sanitizeEmail, getEmailListFromSheetValues } from "./utils";
+import {
+  retrieveSheetId,
+  cleanEmail,
+  sanitizeEmail,
+  getEmailListFromSheetValues,
+} from "./utils";
 import OTP from "otp";
 
 type HonoBindings = {
@@ -69,7 +74,11 @@ app.use("/discord", async (c, next) => {
 app.post("/discord", async (c) => {
   const interaction = await c.req.json();
   console.log(
-    `interaction type: ${interaction.type}. custom_id: ${interaction.data?.custom_id}`,
+    `interaction type: ${interaction.type}. custom_id: ${
+      interaction.data?.custom_id
+    } ${interaction.data?.name} ${interaction.data?.options
+      .map((o) => o.name)
+      .join(", ")}`,
   );
 
   // top-level interactions (slash commands etc)
@@ -281,7 +290,6 @@ app.post("/discord", async (c) => {
           }
 
           if (isVetted) {
-            console.log(`Granting vetted role to user ${userId}`);
             const a = await grantRole(
               c.env.DISCORD_TOKEN,
               c.env.DISCORD_GUILD_ID,
@@ -294,7 +302,6 @@ app.post("/discord", async (c) => {
           }
 
           if (isPrivate) {
-            console.log(`Granting private role to user ${userId}`);
             const a = await grantRole(
               c.env.DISCORD_TOKEN,
               c.env.DISCORD_GUILD_ID,
@@ -360,7 +367,6 @@ app.get("/oauth", async (c) => {
   try {
     const { isVetted, isPrivate } = await checkMembership(c, email);
     if (isVetted) {
-      console.log(`Granting vetted role to user ${userId}`);
       await grantRole(
         c.env.DISCORD_TOKEN,
         c.env.DISCORD_GUILD_ID,
@@ -370,7 +376,6 @@ app.get("/oauth", async (c) => {
     }
 
     if (isPrivate) {
-      console.log(`Granting private role to user ${userId}`);
       await grantRole(
         c.env.DISCORD_TOKEN,
         c.env.DISCORD_GUILD_ID,
@@ -423,9 +428,13 @@ const checkMembership = async (c: any, email: string) => {
   const isPrivate = privateEmails.some((e) =>
     e.toLowerCase().includes(lcEmail),
   );
+  console.log(
+    `[checkMembership] ${email} is ${isVetted ? "vetted" : "not vetted"} and ${
+      isPrivate ? "private" : "not private"
+    }`,
+  );
   return { isVetted, isPrivate };
 };
-
 
 export default app;
 
@@ -499,7 +508,7 @@ export async function setup(
     ]);
 
     const columnHeadings = data.flatMap((d) => d.values.flat());
-    console.log({ columnHeadings });
+    console.log(`[setup] columnHeadings: ${columnHeadings.join(", ")}`);
     if (!columnHeadings.every((h) => h === "Email Address")) {
       return { ok: false, reason: setupFailureReasons.wrongHeadings };
     }
@@ -514,7 +523,6 @@ export async function setup(
     reason: setupFailureReasons.errorFetching,
   };
 }
-
 
 const log = console.log.bind(console);
 console.log = (...args) =>

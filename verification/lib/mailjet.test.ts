@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { vi, describe, it, expect, beforeEach } from "vitest";
 import { server } from "../mocks/setup";
 import { http, HttpResponse } from "msw";
 import { sendEmail } from "./mailjet";

@@ -95,6 +95,113 @@ export const googleSheetsHandlers = [
         // This will be handled by dynamic override in tests for request validation
         return HttpResponse.json(defaultResponse);
         
+      // Membership testing scenarios
+      case 'vetted-only-members':
+        const decodedRange = decodeURIComponent(range as string);
+        if (decodedRange.includes('Vetted Members')) {
+          return HttpResponse.json({
+            ...defaultResponse,
+            values: [
+              ['vetted1@example.com'],
+              ['vetted2@test.org'], 
+              ['alice@company.com']
+            ]
+          });
+        } else if (decodedRange.includes('Private Members')) {
+          return HttpResponse.json({
+            ...defaultResponse,
+            values: []
+          });
+        }
+        return HttpResponse.json(defaultResponse);
+        
+      case 'private-only-members':
+        const decodedRangePrivate = decodeURIComponent(range as string);
+        if (decodedRangePrivate.includes('Vetted Members')) {
+          return HttpResponse.json({
+            ...defaultResponse,
+            values: []
+          });
+        } else if (decodedRangePrivate.includes('Private Members')) {
+          return HttpResponse.json({
+            ...defaultResponse,
+            values: [
+              ['private1@example.com'],
+              ['private2@secret.org'],
+              ['bob@private.com']
+            ]
+          });
+        }
+        return HttpResponse.json(defaultResponse);
+        
+      case 'both-lists-members':
+        const decodedRangeBoth = decodeURIComponent(range as string);
+        const bothEmails = [['both@example.com'], ['shared@test.com']];
+        return HttpResponse.json({
+          ...defaultResponse,
+          values: bothEmails
+        });
+        
+      case 'empty-members':
+        return HttpResponse.json({
+          ...defaultResponse,
+          values: []
+        });
+        
+      case 'mixed-case-members':
+        const decodedRangeMixed = decodeURIComponent(range as string);
+        if (decodedRangeMixed.includes('Vetted Members')) {
+          return HttpResponse.json({
+            ...defaultResponse,
+            values: [
+              ['UPPERCASE@EXAMPLE.COM'],
+              ['lowercase@example.com'], 
+              ['MixedCase@Example.Com'],
+              ['camelCase@gmail.com']
+            ]
+          });
+        }
+        return HttpResponse.json({
+          ...defaultResponse,
+          values: []
+        });
+        
+      case 'malformed-members':
+        const decodedRangeMalformed = decodeURIComponent(range as string);
+        if (decodedRangeMalformed.includes('Vetted Members')) {
+          return HttpResponse.json({
+            ...defaultResponse,
+            values: [
+              [], // Empty row
+              [null], // Null value
+              ['valid@example.com'], // Valid email
+              ['multiple', 'columns', 'here'], // Multiple columns
+              [undefined], // Undefined value
+            ]
+          });
+        }
+        return HttpResponse.json({
+          ...defaultResponse,
+          values: []
+        });
+        
+      case 'missing-values-members':
+        const decodedRangeMissing = decodeURIComponent(range as string);
+        if (decodedRangeMissing.includes('Vetted Members')) {
+          return HttpResponse.json({
+            range: decodedRangeMissing,
+            majorDimension: 'ROWS'
+            // Intentionally missing 'values' property
+          });
+        }
+        return HttpResponse.json({
+          ...defaultResponse,
+          values: [['test@example.com']]
+        });
+        
+      case 'network-error-members':
+        return HttpResponse.error();
+        
       default:
         return HttpResponse.json(defaultResponse);
     }

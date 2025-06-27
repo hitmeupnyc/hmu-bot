@@ -467,6 +467,9 @@ const checkMembership = async (c: any, email: string) => {
   return { isVetted, isPrivate };
 };
 
+// Export for testing
+export { checkMembership };
+
 export default app;
 
 enum ApplicationCommandOptionType {

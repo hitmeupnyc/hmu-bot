@@ -16,8 +16,10 @@ The HMU Discord verification bot now has comprehensive test coverage across all 
 ✅ lib/setup.test.ts          - 12/12 tests passing (Setup & configuration)
 ✅ lib/checkMembership.test.ts - 21/21 tests passing (Core membership logic)
 ✅ lib/mailjet.test.ts        - 17/17 tests passing (Email service integration)
+✅ lib/security.test.ts       - 28/28 tests passing (Input validation & security)
+✅ lib/auth.test.ts           - 21/21 tests passing (Authentication & authorization)
 
-Total: 81/81 tests passing (100% success rate)
+Total: 130/130 tests passing (100% success rate)
 ```
 
 ## Architectural Decisions
@@ -33,6 +35,8 @@ lib/
 ├── setup.ts & setup.test.ts           # Sheet URL validation, KV storage
 ├── checkMembership.ts & checkMembership.test.ts # Core membership validation
 ├── mailjet.ts & mailjet.test.ts       # Email service integration
+├── security.test.ts                   # Input validation & security testing
+├── auth.test.ts                       # Authentication & authorization testing
 └── google-sheets.ts                   # Google Sheets API integration
 ```
 
@@ -142,6 +146,56 @@ lib/
 - ✅ Request/response inspection and content validation
 - ✅ Realistic error simulation with proper HTTP status codes
 - ✅ Template structure verification for consistent user experience
+
+### Security & Input Validation Testing (28 tests)
+
+**Comprehensive Security Coverage:**
+
+- ✅ Email input sanitization (`cleanEmail`, `sanitizeEmail` functions)
+- ✅ URL input validation with XSS attempt handling (`retrieveSheetId`)
+- ✅ SQL injection prevention testing (malicious input handling)
+- ✅ Cross-site scripting (XSS) input validation
+- ✅ Input length validation (extremely long inputs, buffer overflow prevention)
+- ✅ Unicode and encoding handling (international characters, URL encoding)
+- ✅ Format validation edge cases (malformed emails, null bytes, control characters)
+
+**Security Attack Simulation:**
+
+- ✅ XSS payload testing (`<script>`, `javascript:`, `onerror=`)
+- ✅ SQL injection pattern testing (`'; DROP TABLE`, `OR 1=1`)
+- ✅ Path traversal and protocol bypass attempts
+- ✅ HTML entity encoding attack vectors
+- ✅ Null byte injection and CRLF injection testing
+
+### Authentication & Authorization Testing (21 tests)
+
+**Discord Security Integration:**
+
+- ✅ Discord signature verification (Ed25519 cryptographic validation)
+- ✅ Signature header validation (malformed signatures, missing headers)
+- ✅ Timestamp freshness validation (replay attack prevention)
+- ✅ Request body integrity verification
+
+**OTP Session Management:**
+
+- ✅ OTP code generation security (6-digit random codes)
+- ✅ Session expiration handling (TTL-based expiry)
+- ✅ OTP code isolation (per-email separation)
+- ✅ Code reuse prevention (single-use validation)
+- ✅ Concurrent request handling (overwrite behavior)
+
+**Authorization Patterns:**
+
+- ✅ Discord role permission validation
+- ✅ Guild membership verification
+- ✅ Permission error handling (403, 404, 401 responses)
+- ✅ Input sanitization for Discord IDs (user/role/guild validation)
+
+**Session Security:**
+
+- ✅ Secure OTP generation (entropy validation)
+- ✅ Constant-time comparison principles
+- ✅ Timing attack prevention patterns
 
 ## MSW Implementation Best Practices
 
@@ -267,10 +321,10 @@ npm test -- --coverage     # With coverage report
 - ✅ **Phase 2.1**: Discord integration
 - ✅ **Phase 2.2**: Google Sheets integration (via MSW)
 - ✅ **Phase 2.3**: Mailjet email service testing
+- ✅ **Phase 3**: Security & input validation testing
 
 ### Recommended Next Steps
 
-- **Phase 3**: Security & input validation testing
 - **Phase 4**: Integration & E2E testing for complete user workflows
 - **Phase 5**: Performance & reliability testing
 

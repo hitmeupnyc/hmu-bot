@@ -77,6 +77,24 @@ export const googleSheetsHandlers = [
       case 'network-error-ghi':
         return HttpResponse.error();
         
+      case 'custom-test-123':
+        return HttpResponse.json({
+          ...defaultResponse,
+          values: [['Custom Test Column']]
+        });
+        
+      case 'timeout-test-456':
+        // Simulate timeout by delaying then erroring
+        return new Promise(resolve => {
+          setTimeout(() => {
+            resolve(HttpResponse.error());
+          }, 100);
+        });
+        
+      case 'request-test-789':
+        // This will be handled by dynamic override in tests for request validation
+        return HttpResponse.json(defaultResponse);
+        
       default:
         return HttpResponse.json(defaultResponse);
     }

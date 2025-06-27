@@ -147,15 +147,7 @@ describe('Setup Function with MSW', () => {
 
   describe('Dynamic Handler Testing', () => {
     it('can override handlers for specific test scenarios', async () => {
-      // Override the handler for this specific test
-      server.use(
-        http.get('https://sheets.googleapis.com/v4/spreadsheets/custom-test-123/values/*', () => {
-          return HttpResponse.json({
-            values: [['Custom Test Column']]
-          });
-        })
-      );
-
+      // Handler defined in mocks/handlers.ts for 'custom-test-123'
       const result = await setup(mockEnv, createOptions('custom-test-123'));
 
       expect(result.ok).toBe(false);
@@ -165,15 +157,7 @@ describe('Setup Function with MSW', () => {
     });
 
     it('can simulate server timeouts', async () => {
-      // Override with a timeout simulation
-      server.use(
-        http.get('https://sheets.googleapis.com/v4/spreadsheets/timeout-test-456/values/*', async () => {
-          // Simulate a timeout by delaying and then returning an error
-          await new Promise(resolve => setTimeout(resolve, 100));
-          return HttpResponse.error();
-        })
-      );
-
+      // Handler defined in mocks/handlers.ts for 'timeout-test-456'
       const result = await setup(mockEnv, createOptions('timeout-test-456'));
 
       expect(result.ok).toBe(false);
@@ -188,7 +172,7 @@ describe('Setup Function with MSW', () => {
       let requestCount = 0;
       const requestUrls: string[] = [];
 
-      // Override to capture request details
+      // Use dynamic override for request capturing (this is a valid use case for server.use)
       server.use(
         http.get('https://sheets.googleapis.com/v4/spreadsheets/request-test-789/values/*', ({ request }) => {
           requestCount++;

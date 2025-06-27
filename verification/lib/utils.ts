@@ -4,7 +4,7 @@ export const retrieveSheetId = (url: string) => {
 };
 
 export const cleanEmail = (email: string) => {
-  return email.toLowerCase();
+  return email.trim().toLowerCase();
 };
 
 const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;

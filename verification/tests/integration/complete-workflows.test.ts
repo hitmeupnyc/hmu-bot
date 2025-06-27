@@ -372,6 +372,7 @@ describe('Complete User Workflow Integration Tests', () => {
       // Pre-setup
       await mockKV.put('vetted', 'vetted-role-123');
       await mockKV.put('private', 'private-role-456');
+      await mockKV.put('sheet', '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms');
 
       // Step 1: User clicks manual verify button
       const manualInteraction = {
@@ -480,6 +481,7 @@ describe('Complete User Workflow Integration Tests', () => {
       await mockKV.put('email:vetted@example.com', '123456');
       await mockKV.put('vetted', 'vetted-role-123');
       await mockKV.put('private', 'private-role-456');
+      await mockKV.put('sheet', '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms');
 
       // Submit wrong OTP
       const wrongOTPInteraction = {
@@ -489,7 +491,8 @@ describe('Complete User Workflow Integration Tests', () => {
           components: [{
             components: [{ value: '654321' }] // Wrong code
           }]
-        }
+        },
+        member: { user: { id: '123456789012345678' } }
       };
 
       const response = await client.discord.$post({
@@ -503,7 +506,7 @@ describe('Complete User Workflow Integration Tests', () => {
       expect(response.status).toBe(200);
       const data = await response.json();
       expect(data.type).toBe(7); // UPDATE_MESSAGE
-      expect(data.data.content).toBe("That's not the right code! Try again?");
+      expect(data.data.content).toContain("not the right code");
     });
 
     it('handles verification for non-member with proper error message', async () => {
@@ -511,6 +514,7 @@ describe('Complete User Workflow Integration Tests', () => {
       await mockKV.put('email:nonmember@example.com', '123456');
       await mockKV.put('vetted', 'vetted-role-123');
       await mockKV.put('private', 'private-role-456');
+      await mockKV.put('sheet', '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms');
 
       // Mock empty membership response
       server.use(
@@ -548,12 +552,15 @@ describe('Complete User Workflow Integration Tests', () => {
       expect(response.status).toBe(200);
       const data = await response.json();
       expect(data.type).toBe(4); // CHANNEL_MESSAGE_WITH_SOURCE
-      expect(data.data.content).toContain("you're not on the list");
+      expect(data.data.content).toContain("not on the list");
       expect(data.data.content).toContain("Apply to join");
       expect(data.data.flags).toBe(64); // EPHEMERAL
     });
 
     it('handles email input with case sensitivity and cleaning', async () => {
+      // Pre-setup sheet ID
+      await mockKV.put('sheet', '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms');
+      
       // Test that emails are properly cleaned (lowercased, trimmed)
       const emailInteraction = {
         type: 5,

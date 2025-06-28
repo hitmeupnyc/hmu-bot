@@ -167,7 +167,6 @@ describe("Membership Checking Logic Tests", () => {
     });
   });
 
-
   describe("Sheet Fetching Behavior", () => {
     it("fetches both sheets in parallel", async () => {
       const capturedRequests: string[] = [];

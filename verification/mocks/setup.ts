@@ -1,6 +1,6 @@
-import { beforeAll, afterEach, afterAll } from 'vitest';
-import { setupServer } from 'msw/node';
-import { handlers } from './handlers';
+import { beforeAll, afterEach, afterAll } from "vitest";
+import { setupServer } from "msw/node";
+import { handlers } from "./handlers";
 
 // Create MSW server instance
 export const server = setupServer(...handlers);
@@ -10,7 +10,7 @@ beforeAll(() => {
   // Start the server before all tests
   server.listen({
     // Fail tests if there's an unhandled request
-    onUnhandledRequest: 'error',
+    onUnhandledRequest: "error",
   });
 });
 

@@ -189,10 +189,7 @@ describe("Setup Function with MSW", () => {
         ),
       );
 
-      const setupPromise = setupSheet(
-        mockEnv,
-        createOptions("retry-test-789"),
-      );
+      const setupPromise = setupSheet(mockEnv, createOptions("retry-test-789"));
 
       // Fast-forward through retry delays
       await vi.advanceTimersByTimeAsync(8000);

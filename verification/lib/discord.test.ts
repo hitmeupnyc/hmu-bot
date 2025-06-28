@@ -387,7 +387,7 @@ describe("Discord Integration Tests", () => {
       // Verify the actual behavior - successful role assignment
       expect(result.ok).toBe(true);
       expect(result.status).toBe(204);
-      
+
       // Verify correct API endpoint was called
       const requests = server.listHandlers();
       expect(requests).toBeTruthy();

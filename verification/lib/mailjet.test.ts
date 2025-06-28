@@ -324,7 +324,9 @@ describe("Mailjet Email Service", () => {
       );
 
       // Network errors in fetch will throw, so we expect this to reject
-      await expect(sendEmail("test@example.com", testCode, testAuth)).rejects.toThrow();
+      await expect(
+        sendEmail("test@example.com", testCode, testAuth),
+      ).rejects.toThrow();
     });
 
     it("handles malformed JSON responses gracefully", async () => {

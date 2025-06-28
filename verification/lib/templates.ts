@@ -60,4 +60,3 @@ export const success = () => {
 <p>Welcome to the HMU Discord ✨ You're all set, you can close this window.</p>
 `);
 };
-

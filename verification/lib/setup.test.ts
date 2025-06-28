@@ -29,7 +29,7 @@ const createOptions = (sheetId: string) => [
 
 describe("Setup Function with MSW", () => {
   beforeEach(() => {
-    vi.spyOn(console, "log").mockImplementation(() => {});
+    // Test setup - no console mocking needed
   });
 
   afterEach(() => {
@@ -174,24 +174,37 @@ describe("Setup Function with MSW", () => {
       vi.useRealTimers();
     });
 
-    it("logs errors when sheet fetching fails", async () => {
+    it("handles retries with exponential backoff for network errors", async () => {
       vi.useFakeTimers();
-      const consoleSpy = vi.spyOn(console, "log");
+      let requestCount = 0;
+
+      // Track the number of requests made during retries
+      server.use(
+        http.get(
+          "https://sheets.googleapis.com/v4/spreadsheets/retry-test-789/values/*",
+          () => {
+            requestCount++;
+            return HttpResponse.error();
+          },
+        ),
+      );
 
       const setupPromise = setupSheet(
         mockEnv,
-        createOptions("network-error-ghi"),
+        createOptions("retry-test-789"),
       );
 
       // Fast-forward through retry delays
       await vi.advanceTimersByTimeAsync(8000);
 
-      await setupPromise;
+      const result = await setupPromise;
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringMatching(/\[ERR\]/),
-        expect.any(Error),
-      );
+      // Verify the function attempted retries (should be 8 total attempts: 2 fetchSheet calls × 4 attempts each)
+      expect(requestCount).toBe(8);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.reason).toBe(setupFailureReasons.errorFetching);
+      }
 
       vi.useRealTimers();
     });

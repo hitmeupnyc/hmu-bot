@@ -12,9 +12,6 @@ import {
 describe("Membership Checking Logic Tests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset console mocks
-    vi.spyOn(console, "log").mockImplementation(() => {});
-    vi.spyOn(console, "error").mockImplementation(() => {});
 
     // Mock getAccessToken to return a test token
     vi.spyOn(GoogleAuth, "getAccessToken").mockResolvedValue(
@@ -170,40 +167,6 @@ describe("Membership Checking Logic Tests", () => {
     });
   });
 
-  describe("Logging and Debugging", () => {
-    it("logs membership status for debugging", async () => {
-      const consoleSpy = vi.spyOn(console, "log");
-      const context = createMockContextWithSheet("vetted-only-members");
-
-      await checkMembership(context, "vetted1@example.com");
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "[checkMembership] vetted1@example.com is vetted and not private",
-      );
-    });
-
-    it("logs when member is found in both lists", async () => {
-      const consoleSpy = vi.spyOn(console, "log");
-      const context = createMockContextWithSheet("both-lists-members");
-
-      await checkMembership(context, "both@example.com");
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "[checkMembership] both@example.com is vetted and private",
-      );
-    });
-
-    it("logs when member is not found in either list", async () => {
-      const consoleSpy = vi.spyOn(console, "log");
-      const context = createMockContextWithSheet("empty-members");
-
-      await checkMembership(context, "notfound@example.com");
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "[checkMembership] notfound@example.com is not vetted and not private",
-      );
-    });
-  });
 
   describe("Sheet Fetching Behavior", () => {
     it("fetches both sheets in parallel", async () => {

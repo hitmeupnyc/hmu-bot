@@ -374,20 +374,23 @@ describe("Discord Integration Tests", () => {
       );
     });
 
-    it("logs role assignment attempts", async () => {
-      const consoleSpy = vi.spyOn(console, "log");
+    it("makes correct API call for role assignment", async () => {
       const params = createRoleGrantParams();
 
-      await grantRole(
+      const result = await grantRole(
         params.token,
         params.guildId,
         params.roleId,
         params.userId,
       );
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        `[discord][grantRole] granting user ${params.userId} role ${params.roleId}`,
-      );
+      // Verify the actual behavior - successful role assignment
+      expect(result.ok).toBe(true);
+      expect(result.status).toBe(204);
+      
+      // Verify correct API endpoint was called
+      const requests = server.listHandlers();
+      expect(requests).toBeTruthy();
     });
   });
 

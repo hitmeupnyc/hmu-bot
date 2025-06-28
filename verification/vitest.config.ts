@@ -5,6 +5,8 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['./mocks/setup.ts'],
+    // Suppress console output globally during tests
+    silent: true,
   },
   resolve: {
     extensions: ['.ts', '.js'],

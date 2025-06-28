@@ -8,20 +8,6 @@
 
 The HMU Discord verification bot now has comprehensive test coverage across all critical functionality with a modern, maintainable testing architecture. The implementation successfully combines MSW (Mock Service Worker) for realistic HTTP request testing with traditional mocking for internal business logic.
 
-### Test Results Overview
-
-```
-✅ lib/utils.test.ts          - 9/9 tests passing   (Utility functions)
-✅ lib/discord.test.ts        - 22/22 tests passing (Discord integration)
-✅ lib/setup.test.ts          - 12/12 tests passing (Setup & configuration)
-✅ lib/checkMembership.test.ts - 21/21 tests passing (Core membership logic)
-✅ lib/mailjet.test.ts        - 17/17 tests passing (Email service integration)
-✅ lib/security.test.ts       - 28/28 tests passing (Input validation & security)
-✅ lib/auth.test.ts           - 21/21 tests passing (Authentication & authorization)
-
-Total: 130/130 tests passing (100% success rate)
-```
-
 ## Architectural Decisions
 
 ### 1. Modular Code Organization
@@ -70,132 +56,6 @@ lib/
 - `mocks/setup.ts` - Global MSW server configuration
 - `mocks/handlers.ts` - Comprehensive HTTP request handlers
 - `fixtures/` - Test data for different scenarios
-
-## Implementation Highlights
-
-### Discord Integration Testing (22 tests)
-
-**Comprehensive OAuth Flow Coverage:**
-
-- ✅ Valid/invalid authorization codes with realistic error responses
-- ✅ Token exchange with proper request parameter validation
-- ✅ User data retrieval with email verification status
-- ✅ Role assignment with permission error handling
-- ✅ Retry mechanism with exponential backoff using timer mocking
-- ✅ Rate limiting scenarios with proper HTTP status codes
-
-**Key Technical Achievements:**
-
-- Realistic HTTP request/response simulation
-- Proper error destructuring behavior testing (undefined vs empty string returns)
-- Dynamic MSW handler overrides for test-specific scenarios
-- Timer mocking for retry logic validation
-
-### Setup Function Testing (12 tests)
-
-**Google Sheets Integration:**
-
-- ✅ URL validation for various Google Sheets formats
-- ✅ Sheet structure validation (checking for required columns)
-- ✅ KV storage operations for configuration persistence
-- ✅ Error handling for network failures and invalid responses
-- ✅ Flexible parameter handling (both `name` and `custom_id` formats)
-
-### Membership Logic Testing (21 tests)
-
-**Core Business Logic:**
-
-- ✅ Email membership validation across vetted/private lists
-- ✅ Case-insensitive email matching
-- ✅ Malformed data handling (null, undefined, empty responses)
-- ✅ Google Sheets authentication and request validation
-- ✅ Error scenarios with proper exception handling
-
-**Advanced Scenarios:**
-
-- ✅ Substring matching behavior (using `.includes()` logic)
-- ✅ Parallel sheet fetching validation
-- ✅ Authentication header verification
-- ✅ Complex data structure handling
-
-### Utility Function Testing (9 tests)
-
-**Foundation Layer:**
-
-- ✅ Email processing (`cleanEmail`, `sanitizeEmail`)
-- ✅ URL parsing (`retrieveSheetId`)
-- ✅ Data transformation (`getEmailListFromSheetValues`)
-- ✅ Edge case handling for malformed inputs
-
-### Mailjet Email Service Testing (17 tests)
-
-**Email Service Integration:**
-
-- ✅ Email sending with authentication validation (Basic auth encoding)
-- ✅ Request structure validation (headers, body, Mailjet API format)
-- ✅ Email template consistency (From, Subject, TextPart formatting)
-- ✅ OTP code integration and message content verification
-- ✅ Error handling (401, 403, 429, 500 HTTP responses)
-- ✅ Email format validation (multiple valid email formats)
-- ✅ Rate limiting and server error response simulation
-- ✅ Response data structure verification (Messages, Status, UUID)
-
-**Key Technical Achievements:**
-
-- ✅ MSW response body consumption handling (fixed double-parsing issues)
-- ✅ Request/response inspection and content validation
-- ✅ Realistic error simulation with proper HTTP status codes
-- ✅ Template structure verification for consistent user experience
-
-### Security & Input Validation Testing (28 tests)
-
-**Comprehensive Security Coverage:**
-
-- ✅ Email input sanitization (`cleanEmail`, `sanitizeEmail` functions)
-- ✅ URL input validation with XSS attempt handling (`retrieveSheetId`)
-- ✅ SQL injection prevention testing (malicious input handling)
-- ✅ Cross-site scripting (XSS) input validation
-- ✅ Input length validation (extremely long inputs, buffer overflow prevention)
-- ✅ Unicode and encoding handling (international characters, URL encoding)
-- ✅ Format validation edge cases (malformed emails, null bytes, control characters)
-
-**Security Attack Simulation:**
-
-- ✅ XSS payload testing (`<script>`, `javascript:`, `onerror=`)
-- ✅ SQL injection pattern testing (`'; DROP TABLE`, `OR 1=1`)
-- ✅ Path traversal and protocol bypass attempts
-- ✅ HTML entity encoding attack vectors
-- ✅ Null byte injection and CRLF injection testing
-
-### Authentication & Authorization Testing (21 tests)
-
-**Discord Security Integration:**
-
-- ✅ Discord signature verification (Ed25519 cryptographic validation)
-- ✅ Signature header validation (malformed signatures, missing headers)
-- ✅ Timestamp freshness validation (replay attack prevention)
-- ✅ Request body integrity verification
-
-**OTP Session Management:**
-
-- ✅ OTP code generation security (6-digit random codes)
-- ✅ Session expiration handling (TTL-based expiry)
-- ✅ OTP code isolation (per-email separation)
-- ✅ Code reuse prevention (single-use validation)
-- ✅ Concurrent request handling (overwrite behavior)
-
-**Authorization Patterns:**
-
-- ✅ Discord role permission validation
-- ✅ Guild membership verification
-- ✅ Permission error handling (403, 404, 401 responses)
-- ✅ Input sanitization for Discord IDs (user/role/guild validation)
-
-**Session Security:**
-
-- ✅ Secure OTP generation (entropy validation)
-- ✅ Constant-time comparison principles
-- ✅ Timing attack prevention patterns
 
 ## MSW Implementation Best Practices
 
@@ -247,32 +107,6 @@ server.use(
 );
 ```
 
-## Critical Implementation Lessons
-
-### 1. Function Export Strategy
-
-- **Challenge**: Tests expected `setup` function but code had `setupSheet`
-- **Solution**: Unified function exports with flexible parameter handling
-- **Pattern**: Support both Discord modal (`custom_id`) and slash command (`name`) formats
-
-### 2. Error Behavior Understanding
-
-- **Discovery**: Discord OAuth failures return `undefined` values, not empty strings
-- **Impact**: Adjusted test expectations to match actual destructuring behavior
-- **Pattern**: HTTP failures ≠ exceptions; test both error paths and success paths
-
-### 3. Google Sheets Authentication
-
-- **Requirement**: MSW tests need proper Google auth initialization
-- **Solution**: Call `init('test-private-key')` in test setup
-- **Pattern**: External service clients require initialization even in mocked environments
-
-### 4. Context Structure Requirements
-
-- **Challenge**: Functions expect `{ env: {...} }` context, not direct env objects
-- **Solution**: Helper functions `createMockContextWithSheet()` for proper structure
-- **Pattern**: Maintain production-like object shapes in tests
-
 ## Development Workflow Integration
 
 ### Running Tests
@@ -296,22 +130,6 @@ npm test -- --coverage     # With coverage report
 2. **Mock issues**: Verify function exports and import paths
 3. **Context issues**: Ensure proper object structure with helper functions
 4. **Timer issues**: Use `vi.useFakeTimers()` for retry/timeout testing
-
-## Quality Metrics Achieved
-
-### Coverage Targets
-
-- ✅ **Unit Tests**: 100% of critical business logic functions
-- ✅ **Integration Tests**: All external service interactions
-- ✅ **Error Scenarios**: Comprehensive edge case coverage
-- ✅ **Security Paths**: Input validation and sanitization
-
-### Test Quality Indicators
-
-- ✅ **Fast execution**: <1 second total test time
-- ✅ **Deterministic**: No flaky or timing-dependent tests
-- ✅ **Maintainable**: Clear test organization and naming
-- ✅ **Comprehensive**: Both happy path and error scenarios
 
 ## Future Considerations
 

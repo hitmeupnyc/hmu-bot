@@ -33,7 +33,7 @@ class DatabaseService {
                 console.log('✅ Database already initialized, skipping schema creation');
                 return;
             }
-            const schemaPath = path_1.default.join(__dirname, '../../../schema.sql');
+            const schemaPath = path_1.default.join(__dirname, '../../schema.sql');
             if (!fs_1.default.existsSync(schemaPath)) {
                 throw new Error(`Schema file not found at ${schemaPath}`);
             }

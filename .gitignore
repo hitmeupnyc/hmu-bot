@@ -8,3 +8,5 @@ yarn.lock
 .wrangler
 google-service-account-keys.json
 .dev.vars
+playwright-report
+test-results

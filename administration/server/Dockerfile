@@ -1,15 +1,21 @@
 FROM node:20-alpine
 
+# Install build dependencies for native modules
+RUN apk add --no-cache python3 make g++
+
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files from server directory
+COPY server/package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies (this will build native modules in the container)
+RUN npm ci
 
-# Copy source code
-COPY . .
+# Copy server source code
+COPY server/ .
+
+# Copy schema from root
+COPY schema.sql ./schema.sql
 
 # Build the application
 RUN npm run build

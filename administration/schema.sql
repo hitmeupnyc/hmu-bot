@@ -72,60 +72,6 @@ CREATE TABLE events (
     FOREIGN KEY (created_by_member_id) REFERENCES members (id)
 );
 
--- POST-MVP: Facilities management
-/*
-CREATE TABLE facilities (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    description TEXT,
-    floor_number INTEGER,
-    capacity INTEGER,
-    facility_type TEXT, -- 'room', 'equipment', 'space', etc.
-    floor_plan_image_url TEXT,
-    layout_config_json TEXT, -- JSON for layout management
-    access_requirements TEXT, -- JSON array of membership requirements
-    flags INTEGER DEFAULT 3, -- Bitfield: 1=active, 2=bookable
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
--- Event-facility assignments
-CREATE TABLE event_facilities (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    event_id INTEGER NOT NULL,
-    facility_id INTEGER NOT NULL,
-    setup_notes TEXT,
-    layout_override_json TEXT, -- specific layout for this event
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (event_id) REFERENCES events (id),
-    FOREIGN KEY (facility_id) REFERENCES facilities (id),
-    UNIQUE(event_id, facility_id)
-);
-
--- Runbooks/checklists
-CREATE TABLE runbooks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    description TEXT,
-    checklist_items_json TEXT NOT NULL, -- JSON array of checklist items
-    applicable_event_types TEXT, -- JSON array of event types this applies to
-    applicable_facilities TEXT, -- JSON array of facility IDs this applies to
-    flags INTEGER DEFAULT 1, -- Bitfield: 1=active
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
--- Event runbook assignments
-CREATE TABLE event_runbooks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    event_id INTEGER NOT NULL,
-    runbook_id INTEGER NOT NULL,
-    completion_status_json TEXT, -- JSON tracking which items are complete
-    assigned_to_member_id INTEGER,
-    notes TEXT,
-    FOREIGN KEY (event_id) REFERENCES events (id),
-    FOREIGN KEY (runbook_id) REFERENCES runbooks (id),
-    FOREIGN KEY (assigned_to_member_id) REFERENCES members (id)
-);
-*/
 
 -- Member event attendance
 CREATE TABLE event_attendance (
@@ -141,62 +87,7 @@ CREATE TABLE event_attendance (
     UNIQUE(event_id, member_id)
 );
 
--- POST-MVP: Attendance source lookup table
-/*
-CREATE TABLE attendance_sources (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
-    description TEXT,
-    sort_order INTEGER DEFAULT 0,
-    flags INTEGER DEFAULT 1, -- Bitfield: 1=active
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-*/
 
--- POST-MVP: Grievance system
-/*
--- User-configurable options for grievances
-CREATE TABLE grievance_severity_levels (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
-    description TEXT,
-    sort_order INTEGER DEFAULT 0,
-    flags INTEGER DEFAULT 1, -- Bitfield: 1=active
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE grievance_statuses (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
-    description TEXT,
-    sort_order INTEGER DEFAULT 0,
-    flags INTEGER DEFAULT 1, -- Bitfield: 1=active, 2=default
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
--- Grievance system
-CREATE TABLE grievances (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    reported_member_id INTEGER NOT NULL,
-    reporter_member_id INTEGER,
-    incident_date DATE NOT NULL,
-    incident_description TEXT NOT NULL,
-    severity_level_id INTEGER,
-    status_id INTEGER NOT NULL,
-    resolution_notes TEXT,
-    resolved_by_member_id INTEGER,
-    resolved_at DATETIME,
-    flags INTEGER DEFAULT 0, -- Bitfield: 1=federated
-    external_case_reference TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (reported_member_id) REFERENCES members (id),
-    FOREIGN KEY (reporter_member_id) REFERENCES members (id),
-    FOREIGN KEY (resolved_by_member_id) REFERENCES members (id),
-    FOREIGN KEY (severity_level_id) REFERENCES grievance_severity_levels (id),
-    FOREIGN KEY (status_id) REFERENCES grievance_statuses (id)
-);
-*/
 
 -- External system integrations tracking
 CREATE TABLE external_integrations (
@@ -211,34 +102,7 @@ CREATE TABLE external_integrations (
     UNIQUE(member_id, system_name, external_id)
 );
 
--- POST-MVP: Newsletter subscriptions
-/*
-CREATE TABLE newsletter_subscriptions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    member_id INTEGER NOT NULL,
-    newsletter_name TEXT NOT NULL,
-    flags INTEGER DEFAULT 1, -- Bitfield: 1=subscribed
-    subscription_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    unsubscription_date DATETIME,
-    FOREIGN KEY (member_id) REFERENCES members (id),
-    UNIQUE(member_id, newsletter_name)
-);
-*/
 
--- POST-MVP: Audit log for important changes
-/*
-CREATE TABLE audit_log (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    table_name TEXT NOT NULL,
-    record_id INTEGER NOT NULL,
-    action TEXT NOT NULL, -- 'INSERT', 'UPDATE', 'DELETE'
-    old_values_json TEXT,
-    new_values_json TEXT,
-    changed_by_member_id INTEGER,
-    changed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (changed_by_member_id) REFERENCES members (id)
-);
-*/
 
 -- Indexes for performance
 CREATE INDEX idx_members_email ON members(email);
@@ -249,7 +113,3 @@ CREATE INDEX idx_event_attendance_member ON event_attendance(member_id);
 CREATE INDEX idx_external_integrations_lookup ON external_integrations(member_id, system_name);
 CREATE INDEX idx_member_memberships_payment_status ON member_memberships(payment_status_id);
 
--- POST-MVP indexes (commented out with their tables)
--- CREATE INDEX idx_grievances_status ON grievances(status_id, reported_member_id);
--- CREATE INDEX idx_event_attendance_source ON event_attendance(attendance_source_id);
--- CREATE INDEX idx_grievances_severity ON grievances(severity_level_id);

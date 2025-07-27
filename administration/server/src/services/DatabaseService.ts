@@ -29,8 +29,21 @@ export class DatabaseService {
 
   public initialize(): void {
     try {
+      // Check if database is already initialized
+      const tables = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+      
+      if (tables.length > 0) {
+        console.log('✅ Database already initialized, skipping schema creation');
+        return;
+      }
+
       // Read and execute schema
       const schemaPath = path.join(__dirname, '../../../schema.sql');
+      
+      if (!fs.existsSync(schemaPath)) {
+        throw new Error(`Schema file not found at ${schemaPath}`);
+      }
+      
       const schema = fs.readFileSync(schemaPath, 'utf8');
       
       // Split by semicolon and execute each statement
@@ -38,7 +51,7 @@ export class DatabaseService {
       
       for (const statement of statements) {
         if (statement.trim()) {
-          this.db.exec(statement);
+          this.db.exec(statement + ';');
         }
       }
       

@@ -89,6 +89,21 @@ CREATE TABLE event_attendance (
 
 
 
+-- Sync operation tracking
+CREATE TABLE sync_operations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    platform TEXT NOT NULL, -- 'eventbrite', 'patreon', 'klaviyo'
+    operation_type TEXT NOT NULL, -- 'webhook', 'bulk_sync', 'manual'
+    external_id TEXT,
+    member_id INTEGER,
+    status TEXT NOT NULL, -- 'pending', 'success', 'failed', 'conflict'
+    payload_json TEXT,
+    error_message TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    processed_at DATETIME,
+    FOREIGN KEY (member_id) REFERENCES members (id)
+);
+
 -- External system integrations tracking
 CREATE TABLE external_integrations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -112,4 +127,5 @@ CREATE INDEX idx_events_datetime ON events(start_datetime, end_datetime);
 CREATE INDEX idx_event_attendance_member ON event_attendance(member_id);
 CREATE INDEX idx_external_integrations_lookup ON external_integrations(member_id, system_name);
 CREATE INDEX idx_member_memberships_payment_status ON member_memberships(payment_status_id);
+CREATE INDEX idx_sync_operations_status ON sync_operations(platform, status);
 

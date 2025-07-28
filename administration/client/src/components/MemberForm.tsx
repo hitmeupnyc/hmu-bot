@@ -19,9 +19,34 @@ export function MemberForm({ member, onSubmit, onCancel, isLoading = false }: Me
     is_professional_affiliate: member ? !!(member.flags & 2) : false,
   });
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.first_name.trim()) {
+      newErrors.first_name = 'First name is required';
+    }
+
+    if (!formData.last_name.trim()) {
+      newErrors.last_name = 'Last name is required';
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    if (validateForm()) {
+      onSubmit(formData);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -46,8 +71,15 @@ export function MemberForm({ member, onSubmit, onCancel, isLoading = false }: Me
             required
             value={formData.first_name}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+              errors.first_name 
+                ? 'border-red-300 focus:ring-red-500' 
+                : 'border-gray-300 focus:ring-blue-500'
+            }`}
           />
+          {errors.first_name && (
+            <p className="text-red-600 text-sm mt-1">{errors.first_name}</p>
+          )}
         </div>
 
         <div>
@@ -61,8 +93,15 @@ export function MemberForm({ member, onSubmit, onCancel, isLoading = false }: Me
             required
             value={formData.last_name}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+              errors.last_name 
+                ? 'border-red-300 focus:ring-red-500' 
+                : 'border-gray-300 focus:ring-blue-500'
+            }`}
           />
+          {errors.last_name && (
+            <p className="text-red-600 text-sm mt-1">{errors.last_name}</p>
+          )}
         </div>
 
         <div>
@@ -90,8 +129,15 @@ export function MemberForm({ member, onSubmit, onCancel, isLoading = false }: Me
             required
             value={formData.email}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+              errors.email 
+                ? 'border-red-300 focus:ring-red-500' 
+                : 'border-gray-300 focus:ring-blue-500'
+            }`}
           />
+          {errors.email && (
+            <p className="text-red-600 text-sm mt-1">{errors.email}</p>
+          )}
         </div>
 
         <div>

@@ -36,7 +36,7 @@ test.describe('Club Management System', () => {
     await page.getByRole('link', { name: 'Events' }).click();
     
     // Should be on events page
-    await expect(page.getByRole('heading', { name: 'Events' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Events', level: 1 })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Create Event' })).toBeVisible();
   });
 
@@ -47,7 +47,7 @@ test.describe('Club Management System', () => {
     await page.getByRole('link', { name: 'Settings' }).click();
     
     // Should be on settings page
-    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Settings', level: 1 })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Configure Eventbrite' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Configure Patreon' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Configure Klaviyo' })).toBeVisible();

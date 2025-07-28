@@ -74,6 +74,47 @@ export type MemberFlags = {
   professional_affiliate: boolean;
 };
 
+// Event types
+export interface Event {
+  id: number;
+  name: string;
+  description?: string;
+  start_datetime: string;
+  end_datetime: string;
+  flags: number;
+  eventbrite_id?: string;
+  eventbrite_url?: string;
+  max_capacity?: number;
+  required_membership_types?: string;
+  created_by_member_id?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventAttendance {
+  id: number;
+  event_id: number;
+  member_id: number;
+  checked_in_at?: string;
+  checked_out_at?: string;
+  attendance_source: string;
+  notes?: string;
+}
+
+export interface CreateEventRequest {
+  name: string;
+  description?: string;
+  start_datetime: string;
+  end_datetime: string;
+  is_public?: boolean;
+  max_capacity?: number;
+  required_membership_types?: number[];
+}
+
+export interface UpdateEventRequest extends Partial<CreateEventRequest> {
+  id: number;
+}
+
 // Form types
 export interface MemberFormData {
   first_name: string;
@@ -83,4 +124,13 @@ export interface MemberFormData {
   pronouns: string;
   sponsor_notes: string;
   is_professional_affiliate: boolean;
+}
+
+export interface EventFormData {
+  name: string;
+  description: string;
+  start_datetime: string;
+  end_datetime: string;
+  is_public: boolean;
+  max_capacity: string;
 }

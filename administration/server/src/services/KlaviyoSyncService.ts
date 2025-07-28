@@ -30,13 +30,25 @@ export class KlaviyoSyncService extends BaseSyncService {
 
   constructor() {
     super();
-    // TODO: Fix Klaviyo API client initialization
-    this.client = {
-      Profiles: {
-        getProfiles: () => Promise.resolve({ data: [], links: {} }),
-        createOrUpdateProfile: () => Promise.resolve({})
-      }
-    };
+    if (!process.env.KLAVIYO_API_KEY) {
+      console.warn('KLAVIYO_API_KEY not configured - Klaviyo sync will be disabled');
+      // Stub client for when API key is not configured
+      this.client = {
+        Profiles: {
+          getProfiles: () => Promise.resolve({ data: [], links: {} }),
+          createOrUpdateProfile: () => Promise.resolve({})
+        }
+      };
+    } else {
+      // TODO: Fix Klaviyo API client initialization once library issue is resolved
+      // This should be: this.client = new Klaviyo.ApiClient({ apiKey: process.env.KLAVIYO_API_KEY });
+      this.client = {
+        Profiles: {
+          getProfiles: () => Promise.resolve({ data: [], links: {} }),
+          createOrUpdateProfile: () => Promise.resolve({})
+        }
+      };
+    }
   }
 
   /**

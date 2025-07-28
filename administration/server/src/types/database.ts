@@ -9,6 +9,7 @@ export interface Database {
   event_attendance: EventAttendanceTable;
   sync_operations: SyncOperationsTable;
   external_integrations: ExternalIntegrationsTable;
+  audit_log: AuditLogTable;
 }
 
 export interface MembersTable {
@@ -104,4 +105,17 @@ export interface ExternalIntegrationsTable {
   external_data_json: string | null;
   last_synced_at: string | null;
   flags: Generated<number>;
+}
+
+export interface AuditLogTable {
+  id: Generated<number>;
+  entity_type: string;
+  entity_id: number | null;
+  action: string;
+  user_session_id: string | null;
+  user_ip: string | null;
+  old_values_json: string | null;
+  new_values_json: string | null;
+  metadata_json: string | null;
+  created_at: Generated<string>;
 }

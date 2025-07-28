@@ -19,6 +19,7 @@
     "db:seed": "tsx src/scripts/seed.ts"
   },
   "dependencies": {
+    "@types/uuid": "^10.0.0",
     "axios": "^1.11.0",
     "bcrypt": "^5.1.1",
     "better-sqlite3": "^9.2.2",
@@ -36,6 +37,7 @@
     "morgan": "^1.10.0",
     "patreon": "^0.4.1",
     "redis": "^4.6.12",
+    "uuid": "^11.1.0",
     "winston": "^3.17.0"
   },
   "devDependencies": {

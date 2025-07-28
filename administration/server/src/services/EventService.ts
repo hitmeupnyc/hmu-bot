@@ -15,10 +15,11 @@ export class EventService {
     const offset = (page - 1) * limit;
 
     let whereClause = 'WHERE (flags & 1) = 1'; // Only active events
-    const params: any[] = [limit, offset];
+    const countParams: any[] = [];
+    const selectParams: any[] = [];
 
     if (upcoming) {
-      whereClause += ' AND start_datetime > datetime("now")';
+      whereClause += " AND start_datetime > datetime('now')";
     }
 
     const countQuery = `SELECT COUNT(*) as total FROM events ${whereClause}`;
@@ -29,8 +30,11 @@ export class EventService {
       LIMIT ? OFFSET ?
     `;
 
-    const countResult = this.dbService.prepare(countQuery).get() as { total: number };
-    const events = this.dbService.prepare(selectQuery).all(params) as Event[];
+    // Add limit and offset to select params
+    selectParams.push(...countParams, limit, offset);
+
+    const countResult = this.dbService.prepare(countQuery).get(...countParams) as { total: number };
+    const events = this.dbService.prepare(selectQuery).all(...selectParams) as Event[];
 
     const total = countResult.total;
     const totalPages = Math.ceil(total / limit);

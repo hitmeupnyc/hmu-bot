@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { DatabaseService } from './DatabaseService';
+import { BaseSyncService } from './BaseSyncService';
 import { Member, SyncOperation, ExternalIntegration, Event } from '../types';
 
 export interface EventbriteAttendee {
@@ -69,11 +69,11 @@ export interface EventbriteWebhookPayload {
   };
 }
 
-export class EventbriteSyncService {
+export class EventbriteSyncService extends BaseSyncService {
   private client: AxiosInstance;
-  private db: DatabaseService;
 
   constructor() {
+    super();
     this.client = axios.create({
       baseURL: 'https://www.eventbriteapi.com/v3',
       headers: {
@@ -81,7 +81,6 @@ export class EventbriteSyncService {
         'Content-Type': 'application/json',
       },
     });
-    this.db = DatabaseService.getInstance();
   }
 
   /**
@@ -192,13 +191,13 @@ export class EventbriteSyncService {
     let member: Member;
 
     if (existingMember) {
-      member = await this.updateExistingMember(existingMember, attendee);
+      member = await this.updateExistingMemberFromAttendee(existingMember, attendee);
     } else {
       member = await this.createMemberFromAttendee(attendee);
     }
 
     // Update external integration
-    await this.upsertExternalIntegration(member.id, attendee);
+    await this.upsertExternalIntegrationForAttendee(member.id, attendee);
 
     // Record event attendance if we have the event in our system
     const localEvent = await this.findEventByEventbriteId(eventId);
@@ -221,6 +220,13 @@ export class EventbriteSyncService {
     } else {
       return await this.createEventFromEventbrite(eventData);
     }
+  }
+
+  /**
+   * Bulk sync implementation (required by base class)
+   */
+  async bulkSync(organizerId?: string): Promise<{ synced: number; errors: number }> {
+    return await this.bulkSyncEvents(organizerId);
   }
 
   /**
@@ -324,11 +330,6 @@ export class EventbriteSyncService {
   }
 
   // Private helper methods
-  private async findMemberByEmail(email: string): Promise<Member | null> {
-    const stmt = this.db.db.prepare('SELECT * FROM members WHERE email = ?');
-    const member = stmt.get(email) as Member | undefined;
-    return member || null;
-  }
 
   private async findEventByEventbriteId(eventbriteId: string): Promise<Event | null> {
     const stmt = this.db.db.prepare('SELECT * FROM events WHERE eventbrite_id = ?');
@@ -336,71 +337,34 @@ export class EventbriteSyncService {
     return event || null;
   }
 
-  private async updateExistingMember(existingMember: Member, attendee: EventbriteAttendee): Promise<Member> {
-    const updateData: Partial<Member> = {};
-
-    // Only update if Eventbrite has data and local data is missing
-    if (attendee.profile.first_name && !existingMember.first_name) {
-      updateData.first_name = attendee.profile.first_name;
-    }
-    if (attendee.profile.last_name && !existingMember.last_name) {
-      updateData.last_name = attendee.profile.last_name;
-    }
-
-    if (Object.keys(updateData).length > 0) {
-      updateData.updated_at = new Date().toISOString();
-
-      const setClause = Object.keys(updateData).map(key => `${key} = ?`).join(', ');
-      const values = Object.values(updateData);
-
-      const stmt = this.db.db.prepare(`UPDATE members SET ${setClause} WHERE id = ?`);
-      stmt.run(...values, existingMember.id);
-    }
-
-    // Return updated member
-    const stmt = this.db.db.prepare('SELECT * FROM members WHERE id = ?');
-    return stmt.get(existingMember.id) as Member;
+  private async updateExistingMemberFromAttendee(existingMember: Member, attendee: EventbriteAttendee): Promise<Member> {
+    const updates = {
+      first_name: attendee.profile.first_name,
+      last_name: attendee.profile.last_name
+    };
+    
+    return await this.updateExistingMember(existingMember, updates);
   }
 
   private async createMemberFromAttendee(attendee: EventbriteAttendee): Promise<Member> {
-    const memberData = {
+    return await this.createBaseMember({
       first_name: attendee.profile.first_name || 'Unknown',
       last_name: attendee.profile.last_name || 'User',
       email: attendee.profile.email,
-      flags: 1, // Active by default
-      date_added: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-    const stmt = this.db.db.prepare(`
-      INSERT INTO members (first_name, last_name, email, flags, date_added, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    const result = stmt.run(
-      memberData.first_name,
-      memberData.last_name,
-      memberData.email,
-      memberData.flags,
-      memberData.date_added,
-      memberData.created_at,
-      memberData.updated_at
-    );
-
-    return this.db.db.prepare('SELECT * FROM members WHERE id = ?').get(result.lastInsertRowid) as Member;
+      flags: 1 // Active by default
+    });
   }
 
   private async createEventFromEventbrite(eventData: EventbriteEvent): Promise<Event> {
     const eventRecord = {
       name: eventData.name.text,
-      description: eventData.description?.text || null,
+      description: eventData.description?.text || undefined,
       start_datetime: eventData.start.utc,
       end_datetime: eventData.end.utc,
       flags: 3, // Active and public by default
       eventbrite_id: eventData.id,
       eventbrite_url: eventData.url,
-      max_capacity: eventData.capacity || null,
+      max_capacity: eventData.capacity || undefined,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -412,13 +376,13 @@ export class EventbriteSyncService {
 
     const result = stmt.run(
       eventRecord.name,
-      eventRecord.description,
+      eventRecord.description || null,
       eventRecord.start_datetime,
       eventRecord.end_datetime,
       eventRecord.flags,
       eventRecord.eventbrite_id,
       eventRecord.eventbrite_url,
-      eventRecord.max_capacity,
+      eventRecord.max_capacity || null,
       eventRecord.created_at,
       eventRecord.updated_at
     );
@@ -429,11 +393,11 @@ export class EventbriteSyncService {
   private async updateExistingEvent(existingEvent: Event, eventData: EventbriteEvent): Promise<Event> {
     const updateData: Partial<Event> = {
       name: eventData.name.text,
-      description: eventData.description?.text || null,
+      description: eventData.description?.text || undefined,
       start_datetime: eventData.start.utc,
       end_datetime: eventData.end.utc,
       eventbrite_url: eventData.url,
-      max_capacity: eventData.capacity || null,
+      max_capacity: eventData.capacity || undefined,
       updated_at: new Date().toISOString()
     };
 
@@ -461,52 +425,11 @@ export class EventbriteSyncService {
     );
   }
 
-  private async upsertExternalIntegration(memberId: number, attendee: EventbriteAttendee): Promise<void> {
-    const stmt = this.db.db.prepare(`
-      INSERT OR REPLACE INTO external_integrations 
-      (member_id, system_name, external_id, external_data_json, last_synced_at, flags)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
-
-    stmt.run(
-      memberId,
-      'eventbrite',
-      attendee.id,
-      JSON.stringify(attendee),
-      new Date().toISOString(),
-      1 // Active
-    );
+  private async upsertExternalIntegrationForAttendee(memberId: number, attendee: EventbriteAttendee): Promise<void> {
+    await this.upsertExternalIntegration(memberId, 'eventbrite', attendee.id, attendee, 1);
   }
 
-  private async createSyncOperation(data: Omit<SyncOperation, 'id' | 'created_at'>): Promise<SyncOperation> {
-    const stmt = this.db.db.prepare(`
-      INSERT INTO sync_operations (platform, operation_type, external_id, member_id, status, payload_json, error_message, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `);
 
-    const result = stmt.run(
-      data.platform,
-      data.operation_type,
-      data.external_id,
-      data.member_id || null,
-      data.status,
-      data.payload_json,
-      data.error_message || null,
-      new Date().toISOString()
-    );
-
-    return this.db.db.prepare('SELECT * FROM sync_operations WHERE id = ?').get(result.lastInsertRowid) as SyncOperation;
-  }
-
-  private async updateSyncOperation(id: number, status: string, message?: string, memberId?: number): Promise<void> {
-    const stmt = this.db.db.prepare(`
-      UPDATE sync_operations 
-      SET status = ?, error_message = ?, member_id = ?, processed_at = ?
-      WHERE id = ?
-    `);
-
-    stmt.run(status, message || null, memberId || null, new Date().toISOString(), id);
-  }
 
   private extractIdFromUrl(url: string): string | undefined {
     const match = url.match(/\/(\d+)\/?$/);

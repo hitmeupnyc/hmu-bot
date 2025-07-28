@@ -1,5 +1,5 @@
 import patreon from 'patreon';
-import { DatabaseService } from './DatabaseService';
+import { BaseSyncService } from './BaseSyncService';
 import { Member, SyncOperation, ExternalIntegration, MemberMembership } from '../types';
 import crypto from 'crypto';
 
@@ -69,18 +69,17 @@ export interface PatreonWebhookPayload {
   included?: Array<PatreonUser | PatreonPledge | PatreonReward>;
 }
 
-export class PatreonSyncService {
+export class PatreonSyncService extends BaseSyncService {
   private patreonAPI: any;
   private patreonOAuth: any;
-  private db: DatabaseService;
 
   constructor() {
+    super();
     const clientId = process.env.PATREON_CLIENT_ID || '';
     const clientSecret = process.env.PATREON_CLIENT_SECRET || '';
     
     this.patreonAPI = patreon.patreon;
     this.patreonOAuth = patreon.oauth(clientId, clientSecret);
-    this.db = DatabaseService.getInstance();
   }
 
   /**
@@ -136,13 +135,13 @@ export class PatreonSyncService {
     let member: Member;
 
     if (existingMember) {
-      member = await this.updateExistingMember(existingMember, patron);
+      member = await this.updateExistingMemberFromPatron(existingMember, patron);
     } else {
       member = await this.createMemberFromPatron(patron);
     }
 
     // Update external integration
-    await this.upsertExternalIntegration(member.id, patron);
+    await this.upsertExternalIntegrationForPatron(member.id, patron);
 
     // Process any included pledges for this patron
     const patronPledges = included?.filter(item => 
@@ -292,71 +291,26 @@ export class PatreonSyncService {
     const secret = process.env.PATREON_WEBHOOK_SECRET;
     if (!secret) return false;
 
-    const expectedSignature = crypto
-      .createHmac('md5', secret)
-      .update(payload)
-      .digest('hex');
-
-    return signature === expectedSignature;
+    return this.verifyMD5Signature(payload, signature, secret);
   }
 
-  private async findMemberByEmail(email: string): Promise<Member | null> {
-    const stmt = this.db.db.prepare('SELECT * FROM members WHERE email = ?');
-    const member = stmt.get(email) as Member | undefined;
-    return member || null;
-  }
 
-  private async updateExistingMember(existingMember: Member, patron: PatreonUser): Promise<Member> {
-    const updateData: Partial<Member> = {};
-
-    // Only update if Patreon has data and local data is missing
-    if (patron.attributes.first_name && !existingMember.first_name) {
-      updateData.first_name = patron.attributes.first_name;
-    }
-    if (patron.attributes.last_name && !existingMember.last_name) {
-      updateData.last_name = patron.attributes.last_name;
-    }
-
-    if (Object.keys(updateData).length > 0) {
-      updateData.updated_at = new Date().toISOString();
-
-      const setClause = Object.keys(updateData).map(key => `${key} = ?`).join(', ');
-      const values = Object.values(updateData);
-
-      const stmt = this.db.db.prepare(`UPDATE members SET ${setClause} WHERE id = ?`);
-      stmt.run(...values, existingMember.id);
-    }
-
-    return this.db.db.prepare('SELECT * FROM members WHERE id = ?').get(existingMember.id) as Member;
+  private async updateExistingMemberFromPatron(existingMember: Member, patron: PatreonUser): Promise<Member> {
+    const updates = {
+      first_name: patron.attributes.first_name,
+      last_name: patron.attributes.last_name
+    };
+    
+    return await this.updateExistingMember(existingMember, updates);
   }
 
   private async createMemberFromPatron(patron: PatreonUser): Promise<Member> {
-    const memberData = {
+    return await this.createBaseMember({
       first_name: patron.attributes.first_name || 'Unknown',
       last_name: patron.attributes.last_name || 'Patron',
       email: patron.attributes.email,
-      flags: patron.attributes.patron_status === 'active_patron' ? 3 : 1, // Active + Professional if active patron
-      date_added: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-    const stmt = this.db.db.prepare(`
-      INSERT INTO members (first_name, last_name, email, flags, date_added, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    const result = stmt.run(
-      memberData.first_name,
-      memberData.last_name,
-      memberData.email,
-      memberData.flags,
-      memberData.date_added,
-      memberData.created_at,
-      memberData.updated_at
-    );
-
-    return this.db.db.prepare('SELECT * FROM members WHERE id = ?').get(result.lastInsertRowid) as Member;
+      flags: patron.attributes.patron_status === 'active_patron' ? 3 : 1 // Active + Professional if active patron
+    });
   }
 
   private async determineMembershipType(pledge: PatreonPledge, reward?: PatreonReward): Promise<number | null> {
@@ -397,64 +351,10 @@ export class PatreonSyncService {
     }
   }
 
-  private async updateMemberFlag(memberId: number, flag: number, value: boolean): Promise<void> {
-    const member = this.db.db.prepare('SELECT flags FROM members WHERE id = ?').get(memberId) as { flags: number };
-    
-    let newFlags = member.flags;
-    if (value) {
-      newFlags |= flag; // Set flag
-    } else {
-      newFlags &= ~flag; // Unset flag
-    }
 
-    const stmt = this.db.db.prepare('UPDATE members SET flags = ?, updated_at = ? WHERE id = ?');
-    stmt.run(newFlags, new Date().toISOString(), memberId);
+  private async upsertExternalIntegrationForPatron(memberId: number, patron: PatreonUser): Promise<void> {
+    await this.upsertExternalIntegration(memberId, 'patreon', patron.id, patron, 1);
   }
 
-  private async upsertExternalIntegration(memberId: number, patron: PatreonUser): Promise<void> {
-    const stmt = this.db.db.prepare(`
-      INSERT OR REPLACE INTO external_integrations 
-      (member_id, system_name, external_id, external_data_json, last_synced_at, flags)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
 
-    stmt.run(
-      memberId,
-      'patreon',
-      patron.id,
-      JSON.stringify(patron),
-      new Date().toISOString(),
-      1 // Active
-    );
-  }
-
-  private async createSyncOperation(data: Omit<SyncOperation, 'id' | 'created_at'>): Promise<SyncOperation> {
-    const stmt = this.db.db.prepare(`
-      INSERT INTO sync_operations (platform, operation_type, external_id, member_id, status, payload_json, error_message, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    const result = stmt.run(
-      data.platform,
-      data.operation_type,
-      data.external_id,
-      data.member_id || null,
-      data.status,
-      data.payload_json,
-      data.error_message || null,
-      new Date().toISOString()
-    );
-
-    return this.db.db.prepare('SELECT * FROM sync_operations WHERE id = ?').get(result.lastInsertRowid) as SyncOperation;
-  }
-
-  private async updateSyncOperation(id: number, status: string, message?: string, memberId?: number): Promise<void> {
-    const stmt = this.db.db.prepare(`
-      UPDATE sync_operations 
-      SET status = ?, error_message = ?, member_id = ?, processed_at = ?
-      WHERE id = ?
-    `);
-
-    stmt.run(status, message || null, memberId || null, new Date().toISOString(), id);
-  }
 }

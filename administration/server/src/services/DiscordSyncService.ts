@@ -1,7 +1,6 @@
-import { Client, GatewayIntentBits, Guild, GuildMember, User, Role } from 'discord.js';
-import { DatabaseService } from './DatabaseService';
+import { Client, GatewayIntentBits, Guild, GuildMember, PartialGuildMember, User, Role } from 'discord.js';
+import { BaseSyncService } from './BaseSyncService';
 import { Member, SyncOperation, ExternalIntegration } from '../types';
-import crypto from 'crypto';
 
 export interface DiscordUser {
   id: string;
@@ -34,12 +33,12 @@ export interface DiscordWebhookPayload {
   old_member?: Partial<DiscordGuildMember>;
 }
 
-export class DiscordSyncService {
+export class DiscordSyncService extends BaseSyncService {
   private client: Client;
-  private db: DatabaseService;
   private guildId: string;
 
   constructor() {
+    super();
     this.client = new Client({
       intents: [
         GatewayIntentBits.Guilds,
@@ -49,7 +48,6 @@ export class DiscordSyncService {
       ]
     });
     
-    this.db = DatabaseService.getInstance();
     this.guildId = process.env.DISCORD_GUILD_ID || '';
     
     this.setupEventListeners();
@@ -81,10 +79,12 @@ export class DiscordSyncService {
     });
 
     this.client.on('guildMemberRemove', async (member) => {
+      if (member.partial) return; // Skip partial members
       await this.handleMemberLeave(member);
     });
 
     this.client.on('guildMemberUpdate', async (oldMember, newMember) => {
+      if (oldMember.partial || newMember.partial) return; // Skip partial members
       await this.handleMemberUpdate(oldMember, newMember);
     });
 
@@ -216,7 +216,7 @@ export class DiscordSyncService {
     }
 
     // Update external integration
-    await this.upsertExternalIntegration(localMember.id, member);
+    await this.upsertExternalIntegrationForMember(localMember.id, member);
 
     // Check roles for membership/professional affiliate status
     await this.updateMemberStatusFromRoles(localMember.id, member);
@@ -352,43 +352,17 @@ export class DiscordSyncService {
 
   // Private helper methods
   private async findMemberByDiscordId(discordId: string): Promise<Member | null> {
-    const stmt = this.db.db.prepare(`
-      SELECT m.* FROM members m
-      JOIN external_integrations ei ON m.id = ei.member_id
-      WHERE ei.system_name = 'discord' AND ei.external_id = ? AND ei.flags & 1 = 1
-    `);
-    const member = stmt.get(discordId) as Member | undefined;
-    return member || null;
+    return await this.findMemberByExternalId('discord', discordId);
   }
 
   private async createMemberFromDiscordUser(member: GuildMember): Promise<Member> {
     // Since Discord doesn't provide email by default, we create a placeholder
-    const memberData = {
+    return await this.createBaseMember({
       first_name: member.user.globalName || member.user.username || 'Discord',
       last_name: 'User',
-      email: `discord_${member.user.id}@placeholder.local`, // Placeholder email
-      flags: 1, // Active by default
-      date_added: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-    const stmt = this.db.db.prepare(`
-      INSERT INTO members (first_name, last_name, email, flags, date_added, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    const result = stmt.run(
-      memberData.first_name,
-      memberData.last_name,
-      memberData.email,
-      memberData.flags,
-      memberData.date_added,
-      memberData.created_at,
-      memberData.updated_at
-    );
-
-    return this.db.db.prepare('SELECT * FROM members WHERE id = ?').get(result.lastInsertRowid) as Member;
+      email: this.generatePlaceholderEmail('discord', member.user.id),
+      flags: 1 // Active by default
+    });
   }
 
   private async updateMemberStatusFromRoles(memberId: number, member: GuildMember): Promise<void> {
@@ -404,79 +378,18 @@ export class DiscordSyncService {
     }
   }
 
-  private async updateMemberFlag(memberId: number, flag: number, value: boolean): Promise<void> {
-    const member = this.db.db.prepare('SELECT flags FROM members WHERE id = ?').get(memberId) as { flags: number };
-    
-    let newFlags = member.flags;
-    if (value) {
-      newFlags |= flag; // Set flag
-    } else {
-      newFlags &= ~flag; // Unset flag
-    }
 
-    const stmt = this.db.db.prepare('UPDATE members SET flags = ?, updated_at = ? WHERE id = ?');
-    stmt.run(newFlags, new Date().toISOString(), memberId);
+  private async upsertExternalIntegrationForMember(memberId: number, member: GuildMember): Promise<void> {
+    const externalData = {
+      user: member.user,
+      nickname: member.nickname,
+      roles: member.roles.cache.map(role => ({ id: role.id, name: role.name })),
+      joined_at: member.joinedAt?.toISOString()
+    };
+
+    await this.upsertExternalIntegration(memberId, 'discord', member.user.id, externalData, 1);
   }
 
-  private async upsertExternalIntegration(memberId: number, member: GuildMember): Promise<void> {
-    const stmt = this.db.db.prepare(`
-      INSERT OR REPLACE INTO external_integrations 
-      (member_id, system_name, external_id, external_data_json, last_synced_at, flags)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
 
-    stmt.run(
-      memberId,
-      'discord',
-      member.user.id,
-      JSON.stringify({
-        user: member.user,
-        nickname: member.nickname,
-        roles: member.roles.cache.map(role => ({ id: role.id, name: role.name })),
-        joined_at: member.joinedAt?.toISOString()
-      }),
-      new Date().toISOString(),
-      1 // Active
-    );
-  }
 
-  private async deactivateExternalIntegration(memberId: number, systemName: string): Promise<void> {
-    const stmt = this.db.db.prepare(`
-      UPDATE external_integrations 
-      SET flags = flags & ~1, last_synced_at = ?
-      WHERE member_id = ? AND system_name = ?
-    `);
-
-    stmt.run(new Date().toISOString(), memberId, systemName);
-  }
-
-  private async createSyncOperation(data: Omit<SyncOperation, 'id' | 'created_at'>): Promise<SyncOperation> {
-    const stmt = this.db.db.prepare(`
-      INSERT INTO sync_operations (platform, operation_type, external_id, member_id, status, payload_json, error_message, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    const result = stmt.run(
-      data.platform,
-      data.operation_type,
-      data.external_id,
-      data.member_id || null,
-      data.status,
-      data.payload_json,
-      data.error_message || null,
-      new Date().toISOString()
-    );
-
-    return this.db.db.prepare('SELECT * FROM sync_operations WHERE id = ?').get(result.lastInsertRowid) as SyncOperation;
-  }
-
-  private async updateSyncOperation(id: number, status: string, message?: string, memberId?: number): Promise<void> {
-    const stmt = this.db.db.prepare(`
-      UPDATE sync_operations 
-      SET status = ?, error_message = ?, member_id = ?, processed_at = ?
-      WHERE id = ?
-    `);
-
-    stmt.run(status, message || null, memberId || null, new Date().toISOString(), id);
-  }
 }

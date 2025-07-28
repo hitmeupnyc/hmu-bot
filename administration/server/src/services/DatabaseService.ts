@@ -4,7 +4,7 @@ import fs from 'fs';
 
 export class DatabaseService {
   private static instance: DatabaseService;
-  private db: Database.Database;
+  private _db: Database.Database;
 
   private constructor() {
     const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../data/club.db');
@@ -15,9 +15,9 @@ export class DatabaseService {
       fs.mkdirSync(dbDir, { recursive: true });
     }
 
-    this.db = new Database(dbPath);
-    this.db.pragma('journal_mode = WAL');
-    this.db.pragma('foreign_keys = ON');
+    this._db = new Database(dbPath);
+    this._db.pragma('journal_mode = WAL');
+    this._db.pragma('foreign_keys = ON');
   }
 
   public static getInstance(): DatabaseService {
@@ -27,10 +27,14 @@ export class DatabaseService {
     return DatabaseService.instance;
   }
 
+  public get db(): Database.Database {
+    return this._db;
+  }
+
   public initialize(): void {
     try {
       // Check if database is already initialized
-      const tables = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+      const tables = this._db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
       
       if (tables.length > 0) {
         console.log('✅ Database already initialized, skipping schema creation');
@@ -51,7 +55,7 @@ export class DatabaseService {
       
       for (const statement of statements) {
         if (statement.trim()) {
-          this.db.exec(statement + ';');
+          this._db.exec(statement + ';');
         }
       }
       
@@ -63,19 +67,19 @@ export class DatabaseService {
   }
 
   public getDatabase(): Database.Database {
-    return this.db;
+    return this._db;
   }
 
   public close(): void {
-    this.db.close();
+    this._db.close();
   }
 
   // Utility methods for common operations
   public prepare(sql: string): Database.Statement {
-    return this.db.prepare(sql);
+    return this._db.prepare(sql);
   }
 
   public transaction<T>(fn: () => T): T {
-    return this.db.transaction(fn)();
+    return this._db.transaction(fn)();
   }
 }

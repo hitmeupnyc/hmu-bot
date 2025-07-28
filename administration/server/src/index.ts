@@ -8,6 +8,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { memberRoutes } from './routes/memberRoutes';
 import { eventRoutes } from './routes/eventRoutes';
 import { webhookRoutes } from './routes/webhookRoutes';
+import { klaviyoRoutes } from './routes/klaviyoRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -37,6 +38,7 @@ dbService.initialize();
 app.use('/api/members', memberRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/webhooks', webhookRoutes);
+app.use('/api/klaviyo', klaviyoRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

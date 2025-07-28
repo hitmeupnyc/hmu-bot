@@ -1,0 +1,156 @@
+# Club Management System
+
+A modern web application for managing club members and events with external integrations support.
+
+## 🚀 Quick Start
+
+### One Command Setup
+```bash
+npm run setup && npm run dev:simple
+```
+
+That's it! The application will be running at:
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:3000
+
+## 📋 Available Commands
+
+### Development
+```bash
+# Start everything (recommended for active development)
+npm run dev                # Starts server + client + watch tests
+
+# Start just the app (lighter, no tests)
+npm run dev:simple         # Starts server + client only
+
+# Manual control (if you prefer)
+npm run dev:server         # Backend only (port 3000)
+npm run dev:client         # Frontend only (port 5173)
+```
+
+### Setup & Installation
+```bash
+npm run setup              # Install all dependencies
+npm run setup:server       # Install server dependencies only  
+npm run setup:client       # Install client dependencies only
+npm run setup:tests        # Install test dependencies only
+```
+
+### Testing
+```bash
+npm test                   # Run e2e tests once
+npm run test:e2e           # Same as above
+npm run test:server        # Run server tests
+npm run test:client        # Run client tests
+```
+
+### Production
+```bash
+npm run build              # Build for production
+npm start                  # Start production server
+```
+
+### Utilities
+```bash
+npm run lint               # Lint all code
+npm run typecheck          # Check TypeScript types
+npm run clean              # Remove all node_modules
+npm run reset              # Clean + fresh install
+```
+
+### Docker (Alternative)
+```bash
+npm run docker:up          # Start with Docker Compose
+npm run docker:down        # Stop Docker services
+```
+
+## 🛠 Tech Stack
+
+- **Backend**: Node.js + TypeScript + Express + SQLite
+- **Frontend**: React + TypeScript + Vite + Tailwind CSS  
+- **Testing**: Playwright (E2E)
+- **Database**: SQLite with better-sqlite3
+
+## 📁 Project Structure
+
+```
+administration/
+├── server/           # Backend API
+├── client/           # React frontend  
+├── tests/            # E2E tests
+├── data/             # SQLite database
+├── notes/            # Development notes
+└── package.json      # Root scripts
+```
+
+## 🔧 Development Workflow
+
+1. **First time setup**:
+   ```bash
+   npm run setup
+   ```
+
+2. **Daily development**:
+   ```bash
+   npm run dev:simple
+   ```
+
+3. **Before committing**:
+   ```bash
+   npm run lint && npm run typecheck && npm test
+   ```
+
+## 📊 Features
+
+### ✅ Implemented (MVP)
+- **Member Management**: Full CRUD with search, pagination, validation
+- **Event Management**: Full CRUD with filtering, date validation  
+- **Form Validation**: Client-side with error handling
+- **Professional Affiliates**: Flag-based membership types
+- **Responsive Design**: Works on all devices
+
+### 🔄 Architecture Ready For
+- **Webhook Integrations**: Eventbrite, Patreon, Klaviyo
+- **External API Sync**: Member data synchronization
+- **Audit Logging**: Track all changes
+- **Advanced Permissions**: Role-based access
+
+## 🗄 Database
+
+The system uses SQLite with a well-designed schema supporting:
+- Members with bitfield flags (active, professional_affiliate)
+- Events with capacity and public/private settings
+- External integrations tracking
+- Sync operations logging
+
+## 🧪 Testing
+
+E2E tests cover:
+- Navigation and UI interactions
+- Member CRUD operations
+- Event management
+- Form validation
+- API endpoints
+
+## 🤝 Contributing
+
+1. Make changes to your feature
+2. Test locally: `npm run dev:simple`
+3. Run tests: `npm test`
+4. Lint: `npm run lint`
+5. Commit with descriptive message
+
+## 📝 Notes
+
+Development notes and architecture decisions are in `/notes/` directory.
+
+## 🔗 URLs
+
+- **App**: http://localhost:5173
+- **API**: http://localhost:3000
+- **Health Check**: http://localhost:3000/health
+- **API Docs**: http://localhost:3000/api/members, /api/events
+
+---
+
+**Ready for production deployment! 🎉**

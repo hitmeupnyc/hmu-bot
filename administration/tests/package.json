@@ -4,6 +4,7 @@
   "description": "End-to-end tests for club management system",
   "scripts": {
     "test": "playwright test",
+    "test:watch": "playwright test --watch",
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
     "test:headed": "playwright test --headed",

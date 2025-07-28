@@ -1,5 +1,9 @@
 import Bull from 'bull';
 import { logSyncOperation } from '../utils/logger';
+import { KlaviyoSyncService } from './KlaviyoSyncService';
+import { EventbriteSyncService } from './EventbriteSyncService';
+import { PatreonSyncService } from './PatreonSyncService';
+import { DiscordSyncService } from './DiscordSyncService';
 
 // Job types for different sync operations
 export interface SyncJobData {
@@ -211,25 +215,20 @@ class JobSchedulerService {
   }
 
   private async executeSyncOperation(platform: string, operationType: string, payload: any, externalId?: string) {
-    // Import services dynamically to avoid circular dependencies
     switch (platform) {
       case 'klaviyo': {
-        const { KlaviyoSyncService } = await import('./KlaviyoSyncService');
         const service = new KlaviyoSyncService();
         return await service.bulkSync();
       }
       case 'eventbrite': {
-        const { EventbriteSyncService } = await import('./EventbriteSyncService');
         const service = new EventbriteSyncService();
         return await service.bulkSync(payload.organizationId);
       }
       case 'patreon': {
-        const { PatreonSyncService } = await import('./PatreonSyncService');
         const service = new PatreonSyncService();
         return await service.bulkSync(payload.campaignId);
       }
       case 'discord': {
-        const { DiscordSyncService } = await import('./DiscordSyncService');
         const service = new DiscordSyncService();
         await service.initialize();
         return await service.bulkSync();
@@ -240,20 +239,16 @@ class JobSchedulerService {
   }
 
   private async executeWebhookProcessing(platform: string, eventType: string, payload: any, signature?: string) {
-    // Import and execute webhook handlers
     switch (platform) {
       case 'klaviyo': {
-        const { KlaviyoSyncService } = await import('./KlaviyoSyncService');
         const service = new KlaviyoSyncService();
         return await service.handleWebhook(payload);
       }
       case 'eventbrite': {
-        const { EventbriteSyncService } = await import('./EventbriteSyncService');
         const service = new EventbriteSyncService();
         return await service.handleWebhook(payload);
       }
       case 'patreon': {
-        const { PatreonSyncService } = await import('./PatreonSyncService');
         const service = new PatreonSyncService();
         return await service.handleWebhook(payload, signature || '');
       }

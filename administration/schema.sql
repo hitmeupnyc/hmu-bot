@@ -128,4 +128,3 @@ CREATE INDEX idx_event_attendance_member ON event_attendance(member_id);
 CREATE INDEX idx_external_integrations_lookup ON external_integrations(member_id, system_name);
 CREATE INDEX idx_member_memberships_payment_status ON member_memberships(payment_status_id);
 CREATE INDEX idx_sync_operations_status ON sync_operations(platform, status);
-

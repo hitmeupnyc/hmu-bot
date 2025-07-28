@@ -10,3 +10,8 @@ google-service-account-keys.json
 .dev.vars
 playwright-report
 test-results
+
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal

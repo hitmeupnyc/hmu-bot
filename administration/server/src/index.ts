@@ -14,6 +14,7 @@ import { klaviyoRoutes } from './routes/klaviyoRoutes';
 import { eventbriteRoutes } from './routes/eventbriteRoutes';
 import { patreonRoutes } from './routes/patreonRoutes';
 import { discordRoutes } from './routes/discordRoutes';
+import { applicationRoutes } from './routes/applicationRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -58,6 +59,7 @@ app.use('/api/klaviyo', klaviyoRoutes);
 app.use('/api/eventbrite', eventbriteRoutes);
 app.use('/api/patreon', patreonRoutes);
 app.use('/api/discord', discordRoutes);
+app.use('/api/applications', applicationRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

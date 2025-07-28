@@ -156,3 +156,25 @@ export type EventFlags = {
   active: boolean;
   public: boolean;
 };
+
+export interface ApplicationFormData {
+  name: string;
+  pronouns: string;
+  preferred_name: string;
+  email: string;
+  social_urls: {
+    primary: string;
+    secondary: string;
+    tertiary: string;
+  };
+  birth_year: number;
+  referral_source: string;
+  sponsor_name: string;
+  sponsor_email_confirmation: boolean;
+  referral_details: string;
+  kinky_experience: string;
+  self_description: string;
+  consent_understanding: string;
+  additional_info: string;
+  consent_policy_agreement: 'yes' | 'questions';
+}

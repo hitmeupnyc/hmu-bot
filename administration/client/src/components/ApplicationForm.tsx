@@ -134,7 +134,7 @@ export function ApplicationForm({ onSubmit, isLoading = false }: ApplicationForm
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2">
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-              Name * <span className="text-gray-500 text-xs">(First and last, real name please!)</span>
+              Your Name * <span className="text-gray-500 text-xs">(First and last, real name please!)</span>
             </label>
             <input
               type="text"

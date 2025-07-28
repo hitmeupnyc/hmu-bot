@@ -28,6 +28,7 @@
     "jsonwebtoken": "^9.0.2",
     "klaviyo-api": "^19.0.0",
     "morgan": "^1.10.0",
+    "patreon": "^0.4.1",
     "redis": "^4.6.12"
   },
   "devDependencies": {

@@ -5,7 +5,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { MigrationProvider } from '../services/MigrationProvider';
-import type { Database as DatabaseSchema } from '../types/database';
+import type { DB as DatabaseSchema } from '../types/database';
 
 const TEST_DB_PATH = path.join(__dirname, '../../../data/test.db');
 

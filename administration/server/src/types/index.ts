@@ -98,15 +98,6 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
   };
 }
 
-// Webhook types
-export interface WebhookPayload {
-  platform: 'eventbrite' | 'patreon' | 'klaviyo';
-  event_type: string;
-  data: any;
-  timestamp: string;
-  signature?: string;
-}
-
 // Sync operation types
 export interface SyncOperation {
   id: number;

@@ -4,7 +4,8 @@ import {
   Member, 
   CreateMemberRequest, 
   UpdateMemberRequest, 
-  MemberMembership 
+  MemberMembership, 
+  MemberFlags
 } from '../types';
 
 export class MemberService {
@@ -192,7 +193,7 @@ export class MemberService {
     `).all(memberId);
   }
 
-  private buildMemberFlags(flags: { active: boolean; professional_affiliate: boolean }): number {
+  private buildMemberFlags(flags: MemberFlags): number {
     let result = 0;
     if (flags.active) result |= 1;
     if (flags.professional_affiliate) result |= 2;

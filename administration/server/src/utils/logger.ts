@@ -99,45 +99,7 @@ export const logSyncOperation = {
   },
 };
 
-// Webhook logging helpers
-export const logWebhook = {
-  received: (platform: string, eventType: string, payload?: any) => {
-    logger.info('Webhook received', {
-      platform,
-      eventType,
-      payloadSize: JSON.stringify(payload).length,
-      stage: 'received',
-    });
-  },
-
-  verified: (platform: string, eventType: string) => {
-    logger.debug('Webhook signature verified', {
-      platform,
-      eventType,
-      stage: 'verified',
-    });
-  },
-
-  verificationFailed: (platform: string, reason: string) => {
-    logger.warn('Webhook signature verification failed', {
-      platform,
-      reason,
-      stage: 'verification_failed',
-    });
-  },
-
-  processed: (platform: string, eventType: string, result: any) => {
-    logger.info('Webhook processed', {
-      platform,
-      eventType,
-      result,
-      stage: 'processed',
-    });
-  },
-};
-
-// API integration logging helpers
-export const logApiCall = {
+const logApiCall = {
   started: (platform: string, endpoint: string, method: string = 'GET') => {
     logger.debug('API call started', {
       platform,

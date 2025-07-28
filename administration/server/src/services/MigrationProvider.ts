@@ -1,13 +1,13 @@
 import { FileMigrationProvider, Migrator } from 'kysely';
 import { promises as fs } from 'fs';
 import path from 'path';
-import type { Database } from '../types/database';
+import type { DB } from '../types/database';
 import { Kysely } from 'kysely';
 
 export class MigrationProvider {
   private migrator: Migrator;
 
-  constructor(db: Kysely<Database>) {
+  constructor(db: Kysely<DB>) {
     this.migrator = new Migrator({
       db,
       provider: new FileMigrationProvider({

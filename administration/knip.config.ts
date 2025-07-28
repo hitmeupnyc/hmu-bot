@@ -13,11 +13,6 @@ const config: KnipConfig = {
       // React client workspace
       entry: [
         'src/main.tsx',
-        'src/**/*.test.{ts,tsx}',
-        'vite.config.ts',
-        'vitest.config.ts',
-        'tailwind.config.js',
-        'postcss.config.js',
       ],
       project: ['src/**/*.{ts,tsx}', '*.{ts,js}'],
       ignore: ['dist/**', 'node_modules/**'],
@@ -25,11 +20,9 @@ const config: KnipConfig = {
     'server': {
       // Node.js server workspace
       entry: [
-        'src/index.ts',
         'src/**/*.test.ts',
         'src/scripts/*.ts',
         'kysely.config.ts',
-        'vitest.config.ts',
       ],
       project: ['src/**/*.ts', '*.ts'],
       ignore: ['dist/**', 'node_modules/**'],
@@ -38,7 +31,6 @@ const config: KnipConfig = {
       // E2E tests workspace
       entry: [
         'e2e/**/*.spec.ts',
-        'playwright.config.ts',
         'global-setup.ts',
       ],
       project: ['**/*.ts'],

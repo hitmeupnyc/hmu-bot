@@ -2,7 +2,7 @@ import { Kysely, SqliteDialect } from 'kysely';
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import type { Database as DatabaseSchema } from '../types/database';
+import type { DB as DatabaseSchema } from '../types/database';
 import { MigrationProvider } from './MigrationProvider';
 
 export class DatabaseService {

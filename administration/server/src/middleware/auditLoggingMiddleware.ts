@@ -103,10 +103,7 @@ function matchRoute(path: string): RouteConfig | null {
   return null;
 }
 
-/**
- * Pre-request middleware to capture initial state for updates/deletes
- */
-export const auditPreMiddleware = (req: Request, res: Response, next: NextFunction) => {
+const auditPreMiddleware = (req: Request, res: Response, next: NextFunction) => {
   req._auditStartTime = Date.now();
   
   const config = matchRoute(req.path);
@@ -141,10 +138,7 @@ export const auditPreMiddleware = (req: Request, res: Response, next: NextFuncti
   }
 };
 
-/**
- * Post-request middleware to log the audit entry
- */
-export const auditPostMiddleware = (req: Request, res: Response, next: NextFunction) => {
+const auditPostMiddleware = (req: Request, res: Response, next: NextFunction) => {
   // Only log successful operations (2xx status codes)
   if (res.statusCode < 200 || res.statusCode >= 300) {
     return next();

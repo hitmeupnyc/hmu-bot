@@ -1,6 +1,6 @@
 import { DatabaseService } from './DatabaseService';
 import { AppError } from '../middleware/errorHandler';
-import { Event, CreateEventRequest, EventAttendance } from '../types';
+import { Event, CreateEventRequest, EventAttendance, EventFlags } from '../types';
 
 export class EventService {
   private db = DatabaseService.getInstance().getDatabase();
@@ -129,7 +129,7 @@ export class EventService {
     ).get(result.lastInsertRowid) as EventAttendance;
   }
 
-  private buildEventFlags(flags: { active: boolean; public: boolean }): number {
+  private buildEventFlags(flags: EventFlags): number {
     let result = 0;
     if (flags.active) result |= 1;
     if (flags.public) result |= 2;

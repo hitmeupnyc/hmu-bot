@@ -20,11 +20,18 @@ export default defineConfig({
     },
   ],
 
+  // Set up test database before running tests
+  globalSetup: './global-setup.ts',
+
   webServer: [
     {
-      command: 'cd ../server && npm run dev',
+      command: 'cd ../server && DATABASE_PATH=../data/test.db npm run dev',
       port: 3000,
       reuseExistingServer: !process.env.CI,
+      env: {
+        DATABASE_PATH: '../data/test.db',
+        NODE_ENV: 'test'
+      }
     },
     {
       command: 'cd ../client && npm run dev',

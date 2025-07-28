@@ -139,12 +139,13 @@ test.describe('Member CRUD Operations', () => {
     // Modal should open
     await expect(page.getByText('Add New Member')).toBeVisible();
     
-    // Fill out the form
-    await page.getByLabel('First Name *').fill('Alice');
-    await page.getByLabel('Last Name *').fill('Johnson');
-    await page.getByLabel('Preferred Name').fill('Ali');
-    await page.getByLabel('Email *').fill('alice.johnson@example.com');
-    await page.getByLabel('Pronouns').fill('she/they');
+    // Fill out the form with unique email
+    const timestamp = Date.now();
+    await page.getByLabel('First Name *').fill('Test');
+    await page.getByLabel('Last Name *').fill('Member');
+    await page.getByLabel('Preferred Name').fill('Testy');
+    await page.getByLabel('Email *').fill(`test.member.${timestamp}@example.com`);
+    await page.getByLabel('Pronouns').fill('they/them');
     await page.getByLabel('Sponsor Notes').fill('Test member created via UI');
     await page.getByLabel('Professional Affiliate').check();
     
@@ -153,14 +154,14 @@ test.describe('Member CRUD Operations', () => {
     
     // Modal should close and member should appear in the list
     await expect(page.getByText('Add New Member')).not.toBeVisible();
-    await expect(page.getByText('Ali (Alice) Johnson')).toBeVisible();
-    await expect(page.getByText('alice.johnson@example.com')).toBeVisible();
-    await expect(page.getByText('she/they')).toBeVisible();
+    await expect(page.getByText('Testy (Test) Member')).toBeVisible();
+    await expect(page.getByText(`test.member.${timestamp}@example.com`)).toBeVisible();
+    await expect(page.getByText('they/them')).toBeVisible();
     
-    // Should show both Active and Professional badges for Alice
-    const aliceRow = page.locator('tr', { hasText: 'Ali (Alice) Johnson' });
-    await expect(aliceRow.getByText('Active')).toBeVisible();
-    await expect(aliceRow.getByText('Professional')).toBeVisible();
+    // Should show both Active and Professional badges
+    const memberRow = page.locator('tr', { hasText: 'Testy (Test) Member' });
+    await expect(memberRow.getByText('Active')).toBeVisible();
+    await expect(memberRow.getByText('Professional')).toBeVisible();
   });
 
   test('should edit an existing member', async ({ page }) => {
@@ -197,17 +198,17 @@ test.describe('Member CRUD Operations', () => {
     await page.getByPlaceholder('Search members...').fill('Alice');
     
     // Should filter results - Alice should be visible
-    await expect(page.getByText('Alice')).toBeVisible();
+    await expect(page.getByRole('link', { name: /Alice/ })).toBeVisible();
     
     // Johnny should not be visible when searching for Alice
-    await expect(page.getByText('Johnny')).not.toBeVisible();
+    await expect(page.getByRole('link', { name: /Johnny/ })).not.toBeVisible();
     
     // Clear search
     await page.getByPlaceholder('Search members...').fill('');
     
     // All members should be visible again
-    await expect(page.getByText('Alice')).toBeVisible();
-    await expect(page.getByText('Johnny')).toBeVisible();
+    await expect(page.getByRole('link', { name: /Alice/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Johnny/ })).toBeVisible();
   });
 
   test('should delete a member with confirmation', async ({ page }) => {
@@ -225,6 +226,9 @@ test.describe('Member CRUD Operations', () => {
     // Find a member row and click delete button (second button)
     const memberRow = page.locator('tbody tr').last();
     await memberRow.locator('button').last().click(); // Delete button
+    
+    // Wait for the member to be removed from the UI
+    await page.waitForTimeout(1000); // Give time for the delete request to complete
     
     // Should have one fewer member
     await expect(page.locator('tbody tr')).toHaveCount(initialRows - 1);

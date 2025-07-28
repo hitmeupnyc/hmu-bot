@@ -18,7 +18,8 @@
     "db:migrate:down": "kysely migrate down",
     "db:migrate:latest": "kysely migrate latest",
     "db:migrate:list": "kysely migrate list",
-    "db:seed": "tsx src/scripts/seed.ts"
+    "db:seed": "tsx src/scripts/seed.ts",
+    "db:setup-test": "tsx src/scripts/setup-test-db.ts"
   },
   "dependencies": {
     "@types/uuid": "^10.0.0",

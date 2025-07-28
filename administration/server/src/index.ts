@@ -11,6 +11,7 @@ import { webhookRoutes } from './routes/webhookRoutes';
 import { klaviyoRoutes } from './routes/klaviyoRoutes';
 import { eventbriteRoutes } from './routes/eventbriteRoutes';
 import { patreonRoutes } from './routes/patreonRoutes';
+import { discordRoutes } from './routes/discordRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -43,6 +44,7 @@ app.use('/api/webhooks', webhookRoutes);
 app.use('/api/klaviyo', klaviyoRoutes);
 app.use('/api/eventbrite', eventbriteRoutes);
 app.use('/api/patreon', patreonRoutes);
+app.use('/api/discord', discordRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

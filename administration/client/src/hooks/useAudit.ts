@@ -34,18 +34,3 @@ export function useMemberAuditLog(memberId: number, enabled = true) {
   });
 }
 
-/**
- * Hook to fetch general audit log entries
- */
-export function useAuditLog(entityType = 'member', limit = 50) {
-  return useQuery({
-    queryKey: ['audit', entityType, limit],
-    queryFn: async (): Promise<AuditLogEntry[]> => {
-      const response = await api.get<AuditResponse>('/audit', {
-        params: { entity_type: entityType, limit }
-      });
-      return response.data.data;
-    },
-    staleTime: 30 * 1000, // 30 seconds
-  });
-}

@@ -4,7 +4,6 @@ import {
   Member, 
   CreateMemberRequest, 
   UpdateMemberRequest, 
-  PaginatedResponse,
   MemberMembership 
 } from '../types';
 

@@ -5,14 +5,14 @@
   "main": "index.js",
   "workspaces": [
     "server",
-    "client", 
+    "client",
     "tests"
   ],
   "packageManager": "npm@10.5.0",
   "scripts": {
     "dev": "turbo run dev --parallel",
     "dev:server": "turbo run dev --filter=club-management-server",
-    "dev:client": "turbo run dev --filter=club-management-client", 
+    "dev:client": "turbo run dev --filter=club-management-client",
     "dev:tests": "turbo run test:watch --filter=club-management-tests",
     "dev:simple": "turbo run dev --filter=club-management-server --filter=club-management-client --parallel",
     "setup": "npm install",
@@ -31,11 +31,13 @@
     "typecheck": "turbo run typecheck",
     "typecheck:server": "turbo run typecheck --filter=club-management-server",
     "typecheck:client": "turbo run typecheck --filter=club-management-client",
+    "deadcode": "knip",
+    "deadcode:production": "knip --production",
     "clean": "turbo run clean && rm -rf node_modules",
     "reset": "npm run clean && npm run setup",
-    "docker:build": "docker-compose build",
-    "docker:up": "docker-compose up",
-    "docker:down": "docker-compose down"
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up",
+    "docker:down": "docker compose down"
   },
   "keywords": [
     "club",
@@ -47,7 +49,9 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "concurrently": "^8.2.2",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-unused-imports": "^4.1.4",
+    "knip": "^5.62.0",
     "turbo": "^2.5.5"
   }
 }

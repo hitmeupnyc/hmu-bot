@@ -1,6 +1,5 @@
-import Klaviyo from 'klaviyo-api';
 import { BaseSyncService } from './BaseSyncService';
-import { Member, SyncOperation, ExternalIntegration } from '../types';
+import { Member } from '../types';
 
 export interface KlaviyoProfile {
   id: string;

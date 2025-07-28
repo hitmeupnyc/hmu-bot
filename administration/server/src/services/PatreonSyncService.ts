@@ -1,8 +1,8 @@
 import patreon from 'patreon';
 import { BaseSyncService } from './BaseSyncService';
-import { Member, SyncOperation, ExternalIntegration, MemberMembership } from '../types';
+import { Member } from '../types';
 import crypto from 'crypto';
-import { logSyncOperation, logApiCall } from '../utils/logger';
+import { logSyncOperation } from '../utils/logger';
 
 export interface PatreonUser {
   id: string;

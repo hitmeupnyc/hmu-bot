@@ -5,23 +5,23 @@ A modern web application for managing club members and events with external inte
 ## 🚀 Quick Start
 
 ### One Command Setup
+
 ```bash
 npm run setup && npm run dev:simple
 ```
 
 That's it! The application will be running at:
+
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:3000
 
 ## 📋 Available Commands
 
 ### Development (Powered by Turborepo)
+
 ```bash
 # Start everything (recommended for active development)
 npm run dev                # Starts server + client in parallel
-
-# Start just the app (lighter, no tests)
-npm run dev:simple         # Starts server + client only
 
 # Manual control (if you prefer)
 npm run dev:server         # Backend only (port 3000)
@@ -29,11 +29,13 @@ npm run dev:client         # Frontend only (port 5173)
 ```
 
 ### Setup & Installation
+
 ```bash
 npm run setup              # Install all dependencies via workspaces
 ```
 
 ### Testing
+
 ```bash
 npm test                   # Run e2e tests once
 npm run test:e2e           # Same as above
@@ -42,12 +44,14 @@ npm run test:client        # Run client tests
 ```
 
 ### Production
+
 ```bash
 npm run build              # Build for production
 npm start                  # Start production server
 ```
 
 ### Utilities
+
 ```bash
 npm run lint               # Lint all code
 npm run typecheck          # Check TypeScript types
@@ -56,6 +60,7 @@ npm run reset              # Clean + fresh install
 ```
 
 ### Docker (Alternative)
+
 ```bash
 npm run docker:up          # Start with Docker Compose
 npm run docker:down        # Stop Docker services
@@ -65,7 +70,7 @@ npm run docker:down        # Stop Docker services
 
 - **Monorepo**: Turborepo with npm workspaces
 - **Backend**: Node.js + TypeScript + Express + SQLite
-- **Frontend**: React + TypeScript + Vite + Tailwind CSS  
+- **Frontend**: React + TypeScript + Vite + Tailwind CSS
 - **Testing**: Playwright (E2E)
 - **Database**: SQLite with better-sqlite3
 
@@ -74,7 +79,7 @@ npm run docker:down        # Stop Docker services
 ```
 administration/
 ├── server/           # Backend API
-├── client/           # React frontend  
+├── client/           # React frontend
 ├── tests/            # E2E tests
 ├── data/             # SQLite database
 ├── notes/            # Development notes
@@ -84,54 +89,31 @@ administration/
 ## 🔧 Development Workflow
 
 1. **First time setup**:
-   ```bash
-   npm run setup
-   ```
+
+```bash
+npm run setup
+```
 
 2. **Daily development**:
-   ```bash
-   npm run dev:simple
-   ```
+
+```bash
+npm run dev:simple
+```
 
 3. **Before committing**:
-   ```bash
-   npm run lint && npm run typecheck && npm test
-   ```
 
-## ⚡ Turborepo Benefits
-
-- **Parallel Execution**: Server and client start simultaneously
-- **Smart Caching**: Only rebuilds what changed
-- **Clear Output**: Prefixed logs for each workspace
-- **Dependency Management**: Automatic workspace dependency resolution
-- **Faster CI/CD**: Built-in task orchestration
-
-## 📊 Features
-
-### ✅ Implemented (MVP)
-- **Member Management**: Full CRUD with search, pagination, validation
-- **Event Management**: Full CRUD with filtering, date validation  
-- **Form Validation**: Client-side with error handling
-- **Professional Affiliates**: Flag-based membership types
-- **Responsive Design**: Works on all devices
-
-### 🔄 Architecture Ready For
-- **Webhook Integrations**: Eventbrite, Patreon, Klaviyo
-- **External API Sync**: Member data synchronization
-- **Audit Logging**: Track all changes
-- **Advanced Permissions**: Role-based access
+```bash
+npm run lint && npm run typecheck && npm test
+```
 
 ## 🗄 Database
 
-The system uses SQLite with a well-designed schema supporting:
-- Members with bitfield flags (active, professional_affiliate)
-- Events with capacity and public/private settings
-- External integrations tracking
-- Sync operations logging
+The system uses SQLite.
 
 ## 🧪 Testing
 
 E2E tests cover:
+
 - Navigation and UI interactions
 - Member CRUD operations
 - Event management

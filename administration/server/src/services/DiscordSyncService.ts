@@ -1,7 +1,7 @@
-import { Client, GatewayIntentBits, Guild, GuildMember, PartialGuildMember, User, Role } from 'discord.js';
+import { Client, GatewayIntentBits, GuildMember } from 'discord.js';
 import { BaseSyncService } from './BaseSyncService';
-import { Member, SyncOperation, ExternalIntegration } from '../types';
-import { logConnection, logSyncOperation, logWebhook } from '../utils/logger';
+import { Member } from '../types';
+import { logConnection, logSyncOperation } from '../utils/logger';
 
 export interface DiscordUser {
   id: string;

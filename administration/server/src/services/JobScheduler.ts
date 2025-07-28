@@ -320,4 +320,3 @@ class JobSchedulerService {
 
 // Export singleton instance
 export const jobScheduler = new JobSchedulerService();
-export default jobScheduler;

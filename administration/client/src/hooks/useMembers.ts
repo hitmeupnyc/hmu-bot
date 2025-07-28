@@ -31,7 +31,7 @@ interface GetMembersParams {
 }
 
 // Query key factory for consistent cache management
-export const memberKeys = {
+const memberKeys = {
   all: ['members'] as const,
   lists: () => [...memberKeys.all, 'list'] as const,
   list: (params: GetMembersParams) => [...memberKeys.lists(), params] as const,

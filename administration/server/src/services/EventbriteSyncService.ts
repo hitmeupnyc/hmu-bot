@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { BaseSyncService } from './BaseSyncService';
-import { Member, SyncOperation, ExternalIntegration, Event } from '../types';
+import { Member, Event } from '../types';
 
 export interface EventbriteAttendee {
   id: string;

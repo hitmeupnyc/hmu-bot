@@ -1,6 +1,7 @@
 import { Client, GatewayIntentBits, Guild, GuildMember, PartialGuildMember, User, Role } from 'discord.js';
 import { BaseSyncService } from './BaseSyncService';
 import { Member, SyncOperation, ExternalIntegration } from '../types';
+import { logConnection, logSyncOperation, logWebhook } from '../utils/logger';
 
 export interface DiscordUser {
   id: string;
@@ -63,7 +64,10 @@ export class DiscordSyncService extends BaseSyncService {
     }
 
     await this.client.login(token);
-    console.log(`Discord bot logged in as ${this.client.user?.tag}`);
+    logConnection.established('discord', { 
+      botTag: this.client.user?.tag,
+      guildId: this.guildId 
+    });
   }
 
   /**
@@ -71,25 +75,44 @@ export class DiscordSyncService extends BaseSyncService {
    */
   private setupEventListeners(): void {
     this.client.on('ready', () => {
-      console.log(`Discord bot ready! Logged in as ${this.client.user?.tag}`);
+      logConnection.established('discord', { 
+        botTag: this.client.user?.tag,
+        guilds: this.client.guilds.cache.size
+      });
     });
 
     this.client.on('guildMemberAdd', async (member) => {
-      await this.handleMemberJoin(member);
+      try {
+        await this.handleMemberJoin(member);
+      } catch (error) {
+        logSyncOperation.failed('discord', 'member_join', error as Error, member.user.id);
+      }
     });
 
     this.client.on('guildMemberRemove', async (member) => {
       if (member.partial) return; // Skip partial members
-      await this.handleMemberLeave(member);
+      try {
+        await this.handleMemberLeave(member);
+      } catch (error) {
+        logSyncOperation.failed('discord', 'member_leave', error as Error, member.user.id);
+      }
     });
 
     this.client.on('guildMemberUpdate', async (oldMember, newMember) => {
       if (oldMember.partial || newMember.partial) return; // Skip partial members
-      await this.handleMemberUpdate(oldMember, newMember);
+      try {
+        await this.handleMemberUpdate(oldMember, newMember);
+      } catch (error) {
+        logSyncOperation.failed('discord', 'member_update', error as Error, newMember.user.id);
+      }
+    });
+
+    this.client.on('disconnect', () => {
+      logConnection.lost('discord', 'Client disconnected');
     });
 
     this.client.on('error', (error) => {
-      console.error('Discord client error:', error);
+      logConnection.lost('discord', error.message);
     });
   }
 
@@ -218,7 +241,7 @@ export class DiscordSyncService extends BaseSyncService {
     // Update external integration
     await this.upsertExternalIntegrationForMember(localMember.id, member);
 
-    // Check roles for membership/professional affiliate status
+    // Check roles for membership status (placeholder logic)
     await this.updateMemberStatusFromRoles(localMember.id, member);
 
     await this.updateSyncOperation(syncOperationId, 'success', 'Discord member synced', localMember.id);
@@ -236,16 +259,26 @@ export class DiscordSyncService extends BaseSyncService {
     const professionalRoleIds = process.env.DISCORD_PROFESSIONAL_ROLE_IDS?.split(',') || [];
     const memberRoleIds = process.env.DISCORD_MEMBER_ROLE_IDS?.split(',') || [];
 
-    // Check for professional affiliate role changes
+    // Check for special role changes (placeholder logic)
+    const specialRoleIds = process.env.DISCORD_SPECIAL_ROLE_IDS?.split(',') || [];
+    
     for (const role of addedRoles.values()) {
-      if (professionalRoleIds.includes(role.id)) {
-        await this.updateMemberFlag(localMember.id, 2, true); // Set professional affiliate
+      if (specialRoleIds.includes(role.id)) {
+        await this.updateMemberFlag(localMember.id, 2, true); // Set special status flag
+        logSyncOperation.success('discord', 'role_added', localMember.id.toString(), localMember.id, {
+          roleId: role.id,
+          roleName: role.name
+        });
       }
     }
 
     for (const role of removedRoles.values()) {
-      if (professionalRoleIds.includes(role.id)) {
-        await this.updateMemberFlag(localMember.id, 2, false); // Unset professional affiliate
+      if (specialRoleIds.includes(role.id)) {
+        await this.updateMemberFlag(localMember.id, 2, false); // Unset special status flag
+        logSyncOperation.success('discord', 'role_removed', localMember.id.toString(), localMember.id, {
+          roleId: role.id,
+          roleName: role.name
+        });
       }
     }
   }
@@ -366,15 +399,23 @@ export class DiscordSyncService extends BaseSyncService {
   }
 
   private async updateMemberStatusFromRoles(memberId: number, member: GuildMember): Promise<void> {
-    const professionalRoleIds = process.env.DISCORD_PROFESSIONAL_ROLE_IDS?.split(',') || [];
+    // Placeholder: Configure role mappings based on your club's needs
+    const specialRoleIds = process.env.DISCORD_SPECIAL_ROLE_IDS?.split(',') || [];
     
-    // Check if member has any professional roles
-    const hasProfessionalRole = member.roles.cache.some(role => 
-      professionalRoleIds.includes(role.id)
+    // Example: Check if member has any special roles that should update their status
+    const hasSpecialRole = member.roles.cache.some(role => 
+      specialRoleIds.includes(role.id)
     );
 
-    if (hasProfessionalRole) {
-      await this.updateMemberFlag(memberId, 2, true); // Set professional affiliate
+    if (hasSpecialRole) {
+      // Placeholder: Update member flags based on your business logic
+      // Example: Set flag bit 2 for special status
+      await this.updateMemberFlag(memberId, 2, true);
+      
+      logSyncOperation.success('discord', 'status_update', member.user.id, memberId, {
+        specialRole: true,
+        roleCount: member.roles.cache.size
+      });
     }
   }
 

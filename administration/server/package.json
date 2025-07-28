@@ -18,7 +18,7 @@
     "axios": "^1.11.0",
     "bcrypt": "^5.1.1",
     "better-sqlite3": "^9.2.2",
-    "bull": "^4.12.2",
+    "bull": "^4.16.5",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "discord.js": "^14.21.0",
@@ -30,7 +30,8 @@
     "klaviyo-api": "^19.0.0",
     "morgan": "^1.10.0",
     "patreon": "^0.4.1",
-    "redis": "^4.6.12"
+    "redis": "^4.6.12",
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

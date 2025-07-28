@@ -173,14 +173,14 @@ router.get('/members/:discordId', asyncHandler(async (req, res) => {
 
 // POST /api/discord/setup - Setup Discord bot configuration
 router.post('/setup', asyncHandler(async (req, res) => {
-  const { guild_id, professional_role_ids, member_role_ids } = req.body;
+  const { guild_id, special_role_ids, member_role_ids } = req.body;
   
   if (!guild_id) {
     return res.status(400).json({ 
       error: 'guild_id required',
       example: {
         guild_id: '123456789012345678',
-        professional_role_ids: ['role1', 'role2'],
+        special_role_ids: ['role1', 'role2'],
         member_role_ids: ['role3', 'role4']
       }
     });
@@ -193,13 +193,13 @@ router.post('/setup', asyncHandler(async (req, res) => {
     message: 'Discord setup configuration',
     data: {
       guild_id,
-      professional_role_ids: professional_role_ids || [],
+      special_role_ids: special_role_ids || [],
       member_role_ids: member_role_ids || [],
       note: 'Update your environment variables with these values'
     },
     environment_variables: {
       DISCORD_GUILD_ID: guild_id,
-      DISCORD_PROFESSIONAL_ROLE_IDS: (professional_role_ids || []).join(','),
+      DISCORD_SPECIAL_ROLE_IDS: (special_role_ids || []).join(','),
       DISCORD_MEMBER_ROLE_IDS: (member_role_ids || []).join(',')
     }
   });

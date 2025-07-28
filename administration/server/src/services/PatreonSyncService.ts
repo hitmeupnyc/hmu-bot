@@ -2,6 +2,7 @@ import patreon from 'patreon';
 import { BaseSyncService } from './BaseSyncService';
 import { Member, SyncOperation, ExternalIntegration, MemberMembership } from '../types';
 import crypto from 'crypto';
+import { logSyncOperation, logApiCall } from '../utils/logger';
 
 export interface PatreonUser {
   id: string;
@@ -204,9 +205,13 @@ export class PatreonSyncService extends BaseSyncService {
       await this.updateMemberMembership(memberId, membershipTypeId, pledge);
     }
 
-    // Update professional affiliate status if this is a higher tier
-    if (pledge.attributes.amount_cents >= 1000) { // $10+ = professional affiliate
-      await this.updateMemberFlag(memberId, 2, true); // Set professional affiliate flag
+    // Placeholder: Update member status based on pledge amount
+    if (pledge.attributes.amount_cents >= 1000) { // $10+ gets special status
+      await this.updateMemberFlag(memberId, 2, true); // Set special status flag
+      logSyncOperation.success('patreon', 'status_upgrade', pledge.id, memberId, {
+        pledgeAmount: pledge.attributes.amount_cents,
+        tier: 'special'
+      });
     }
   }
 
@@ -305,22 +310,31 @@ export class PatreonSyncService extends BaseSyncService {
   }
 
   private async createMemberFromPatron(patron: PatreonUser): Promise<Member> {
+    // Placeholder: Determine initial member flags based on your business logic
+    const baseFlags = 1; // Active by default
+    const statusFlags = patron.attributes.patron_status === 'active_patron' ? 2 : 0; // Add status flag for active patrons
+    
     return await this.createBaseMember({
       first_name: patron.attributes.first_name || 'Unknown',
       last_name: patron.attributes.last_name || 'Patron',
       email: patron.attributes.email,
-      flags: patron.attributes.patron_status === 'active_patron' ? 3 : 1 // Active + Professional if active patron
+      flags: baseFlags | statusFlags
     });
   }
 
   private async determineMembershipType(pledge: PatreonPledge, reward?: PatreonReward): Promise<number | null> {
-    // This is a simplified mapping - you would create proper membership types
-    // based on your Patreon reward tiers
+    // Placeholder: Configure membership tiers based on your club's structure
     const amount = pledge.attributes.amount_cents;
     
-    if (amount >= 2500) return 3; // Premium tier ($25+)
-    if (amount >= 1000) return 2; // Professional tier ($10+)
-    if (amount >= 500) return 1;  // Basic tier ($5+)
+    // Example tier mapping - customize for your club
+    if (amount >= 2500) return 3; // Tier 3 ($25+)
+    if (amount >= 1000) return 2; // Tier 2 ($10+)
+    if (amount >= 500) return 1;  // Tier 1 ($5+)
+    
+    logSyncOperation.success('patreon', 'tier_determination', pledge.id, undefined, {
+      pledgeAmount: amount,
+      determinedTier: amount >= 2500 ? 3 : amount >= 1000 ? 2 : amount >= 500 ? 1 : null
+    });
     
     return null; // Below minimum tier
   }

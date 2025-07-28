@@ -5,8 +5,10 @@ import { asyncHandler } from '../middleware/errorHandler';
 const router = Router();
 const discordService = new DiscordSyncService();
 
-// Initialize Discord bot on startup
-discordService.initialize().catch(console.error);
+// Initialize Discord bot on startup (only if token is configured)
+if (process.env.DISCORD_BOT_TOKEN) {
+  discordService.initialize().catch(console.error);
+}
 
 // Discord webhook signature verification middleware
 const verifyDiscordSignature = (req: any, res: any, next: any) => {

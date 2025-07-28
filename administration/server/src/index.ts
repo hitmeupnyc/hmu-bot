@@ -7,6 +7,8 @@ import { DatabaseService } from './services/DatabaseService';
 import jobScheduler from './services/JobScheduler';
 import logger from './utils/logger';
 import { errorHandler } from './middleware/errorHandler';
+import { auditMiddleware } from './middleware/auditMiddleware';
+import { auditMiddleware as globalAuditMiddleware } from './middleware/auditLoggingMiddleware';
 import { memberRoutes } from './routes/memberRoutes';
 import { eventRoutes } from './routes/eventRoutes';
 import { webhookRoutes } from './routes/webhookRoutes';
@@ -36,6 +38,9 @@ app.use(morgan('combined'));
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Global audit middleware
+app.use(globalAuditMiddleware);
 
 // Initialize database
 const dbService = DatabaseService.getInstance();

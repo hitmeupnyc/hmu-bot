@@ -18,7 +18,6 @@ declare global {
  */
 export const auditMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const sessionId = req.headers['x-session-id'] as string || 
-                   req.session?.id || 
                    uuidv4();
   
   const userIp = req.ip || 

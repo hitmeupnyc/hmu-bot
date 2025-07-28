@@ -9,7 +9,8 @@
     "test:debug": "playwright test --debug",
     "test:headed": "playwright test --headed",
     "report": "playwright show-report",
-    "install": "playwright install"
+    "install": "playwright install",
+    "clean": "rm -rf node_modules test-results playwright-report"
   },
   "devDependencies": {
     "@playwright/test": "^1.40.1",

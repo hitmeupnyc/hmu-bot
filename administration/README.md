@@ -15,10 +15,10 @@ That's it! The application will be running at:
 
 ## 📋 Available Commands
 
-### Development
+### Development (Powered by Turborepo)
 ```bash
 # Start everything (recommended for active development)
-npm run dev                # Starts server + client + watch tests
+npm run dev                # Starts server + client in parallel
 
 # Start just the app (lighter, no tests)
 npm run dev:simple         # Starts server + client only
@@ -30,10 +30,7 @@ npm run dev:client         # Frontend only (port 5173)
 
 ### Setup & Installation
 ```bash
-npm run setup              # Install all dependencies
-npm run setup:server       # Install server dependencies only  
-npm run setup:client       # Install client dependencies only
-npm run setup:tests        # Install test dependencies only
+npm run setup              # Install all dependencies via workspaces
 ```
 
 ### Testing
@@ -66,6 +63,7 @@ npm run docker:down        # Stop Docker services
 
 ## 🛠 Tech Stack
 
+- **Monorepo**: Turborepo with npm workspaces
 - **Backend**: Node.js + TypeScript + Express + SQLite
 - **Frontend**: React + TypeScript + Vite + Tailwind CSS  
 - **Testing**: Playwright (E2E)
@@ -99,6 +97,14 @@ administration/
    ```bash
    npm run lint && npm run typecheck && npm test
    ```
+
+## ⚡ Turborepo Benefits
+
+- **Parallel Execution**: Server and client start simultaneously
+- **Smart Caching**: Only rebuilds what changed
+- **Clear Output**: Prefixed logs for each workspace
+- **Dependency Management**: Automatic workspace dependency resolution
+- **Faster CI/CD**: Built-in task orchestration
 
 ## 📊 Features
 

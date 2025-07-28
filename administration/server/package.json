@@ -18,7 +18,7 @@
     "db:migrate:down": "kysely migrate down",
     "db:migrate:latest": "kysely migrate latest",
     "db:migrate:list": "kysely migrate list",
-    "db:seed": "tsx src/scripts/seed.ts",
+    "db:seed": "kysely seed run",
     "db:setup-test": "tsx src/scripts/setup-test-db.ts",
     "db:codegen": "kysely-codegen --dialect sqlite --url ./data/club.db --out-file ./src/types/database.ts"
   },

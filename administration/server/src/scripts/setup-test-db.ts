@@ -4,9 +4,12 @@ import { Kysely, SqliteDialect } from 'kysely';
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import { MigrationProvider } from '../services/MigrationProvider';
 import type { DB as DatabaseSchema } from '../types/database';
 
+const execAsync = promisify(exec);
 const TEST_DB_PATH = path.join(__dirname, '../../../data/test.db');
 
 async function setupTestDatabase() {
@@ -42,115 +45,44 @@ async function setupTestDatabase() {
     const migrationProvider = new MigrationProvider(db);
     await migrationProvider.migrateToLatest();
 
-    // Seed test data
+    // Close database connection before running seeds
+    await db.destroy();
+    sqliteDb.close();
+
+    // Seed test data using Kysely seed functionality
     console.log('🌱 Seeding test data...');
-    await seedTestData(db);
+    await runSeeds();
 
     console.log('✅ Test database setup complete!');
     console.log(`📍 Database location: ${TEST_DB_PATH}`);
     
   } catch (error) {
     console.error('❌ Test database setup failed:', error);
-    throw error;
-  } finally {
     await db.destroy();
     sqliteDb.close();
+    throw error;
   }
 }
 
-async function seedTestData(db: Kysely<DatabaseSchema>) {
-  // Insert payment statuses
-  await db.insertInto('payment_statuses').values([
-    { name: 'Paid', description: 'Payment completed', sort_order: 1, flags: 1 },
-    { name: 'Pending', description: 'Payment pending', sort_order: 2, flags: 1 },
-    { name: 'Failed', description: 'Payment failed', sort_order: 3, flags: 1 },
-  ]).execute();
-
-  // Insert membership types
-  await db.insertInto('membership_types').values([
-    { 
-      name: 'Standard', 
-      description: 'Standard membership', 
-      price_cents: 5000, 
-      flags: 3, // active + recurring
-      benefits_json: JSON.stringify(['Access to events', 'Community Discord'])
-    },
-    { 
-      name: 'Professional', 
-      description: 'Professional affiliate membership', 
-      price_cents: 2500, 
-      flags: 3,
-      benefits_json: JSON.stringify(['Professional networking', 'Event discounts'])
-    },
-  ]).execute();
-
-  // Insert test members
-  const memberIds = await db.insertInto('members').values([
-    {
-      first_name: 'Alice',
-      last_name: 'Johnson', 
-      preferred_name: 'Ali',
-      email: 'alice.johnson@example.com',
-      pronouns: 'she/they',
-      sponsor_notes: 'Active community member',
-      flags: 1, // active
-    },
-    {
-      first_name: 'Johnny',
-      last_name: 'Smith',
-      preferred_name: 'Johnny',
-      email: 'johnny.smith@example.com', 
-      pronouns: 'he/him',
-      sponsor_notes: 'New member',
-      flags: 1, // active
-    },
-    {
-      first_name: 'Sarah',
-      last_name: 'Wilson',
-      preferred_name: 'Sarah',
-      email: 'sarah.wilson@example.com',
-      pronouns: 'she/her',
-      sponsor_notes: 'Professional affiliate',
-      flags: 3, // active + professional affiliate
-    }
-  ]).returning('id').execute();
-
-  // Insert member memberships
-  for (const member of memberIds) {
-    await db.insertInto('member_memberships').values({
-      member_id: member.id,
-      membership_type_id: 1, // Standard membership
-      start_date: '2024-01-01',
-      payment_status_id: 1, // Paid
-    }).execute();
+async function runSeeds() {
+  try {
+    // Set DATABASE_PATH to point to test database for seeding
+    const env = { 
+      ...process.env, 
+      DATABASE_PATH: TEST_DB_PATH 
+    };
+    
+    const { stdout, stderr } = await execAsync('npx kysely seed run', { 
+      cwd: path.join(__dirname, '..', '..'),
+      env 
+    });
+    
+    if (stdout) console.log(stdout);
+    if (stderr) console.error(stderr);
+  } catch (error: any) {
+    console.error('Failed to run seeds:', error.message);
+    throw error;
   }
-
-  // Insert test events
-  await db.insertInto('events').values([
-    {
-      name: 'Community Meetup',
-      description: 'Monthly community gathering',
-      start_datetime: '2024-12-15T19:00:00Z',
-      end_datetime: '2024-12-15T22:00:00Z',
-      flags: 3, // active + public
-      max_capacity: 50,
-      created_by_member_id: memberIds[0].id,
-    },
-    {
-      name: 'Workshop: Introduction to Kink',
-      description: 'Educational workshop for newcomers',
-      start_datetime: '2024-12-20T18:00:00Z', 
-      end_datetime: '2024-12-20T21:00:00Z',
-      flags: 3, // active + public
-      max_capacity: 25,
-      created_by_member_id: memberIds[0].id,
-    },
-  ]).execute();
-
-  console.log(`  • Added ${memberIds.length} test members`);
-  console.log('  • Added 2 payment statuses');
-  console.log('  • Added 2 membership types'); 
-  console.log('  • Added 2 test events');
 }
 
 // Run the setup if this script is executed directly

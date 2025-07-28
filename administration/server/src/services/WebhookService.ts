@@ -4,6 +4,7 @@ import crypto from 'crypto';
 
 export class WebhookService {
   private db = DatabaseService.getInstance().getDatabase();
+  private dbService = DatabaseService.getInstance();
 
   public async handleEventbriteWebhook(payload: any, headers: Record<string, any>): Promise<void> {
     // Verify webhook signature
@@ -108,7 +109,7 @@ export class WebhookService {
   private async queueWebhookProcessing(platform: string, payload: any): Promise<void> {
     // For now, just log the sync operation to the database
     // In production, this would use Redis/Bull for proper queue management
-    const stmt = this.db.prepare(`
+    const stmt = this.dbService.prepare(`
       INSERT INTO sync_operations (platform, operation_type, payload_json, status)
       VALUES (?, ?, ?, ?)
     `);

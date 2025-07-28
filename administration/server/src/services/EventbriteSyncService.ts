@@ -332,7 +332,7 @@ export class EventbriteSyncService extends BaseSyncService {
   // Private helper methods
 
   private async findEventByEventbriteId(eventbriteId: string): Promise<Event | null> {
-    const stmt = this.db.db.prepare('SELECT * FROM events WHERE eventbrite_id = ?');
+    const stmt = this.db.prepare('SELECT * FROM events WHERE eventbrite_id = ?');
     const event = stmt.get(eventbriteId) as Event | undefined;
     return event || null;
   }
@@ -369,7 +369,7 @@ export class EventbriteSyncService extends BaseSyncService {
       updated_at: new Date().toISOString()
     };
 
-    const stmt = this.db.db.prepare(`
+    const stmt = this.db.prepare(`
       INSERT INTO events (name, description, start_datetime, end_datetime, flags, eventbrite_id, eventbrite_url, max_capacity, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
@@ -387,7 +387,7 @@ export class EventbriteSyncService extends BaseSyncService {
       eventRecord.updated_at
     );
 
-    return this.db.db.prepare('SELECT * FROM events WHERE id = ?').get(result.lastInsertRowid) as Event;
+    return this.db.prepare('SELECT * FROM events WHERE id = ?').get(result.lastInsertRowid) as Event;
   }
 
   private async updateExistingEvent(existingEvent: Event, eventData: EventbriteEvent): Promise<Event> {
@@ -404,14 +404,14 @@ export class EventbriteSyncService extends BaseSyncService {
     const setClause = Object.keys(updateData).map(key => `${key} = ?`).join(', ');
     const values = Object.values(updateData);
 
-    const stmt = this.db.db.prepare(`UPDATE events SET ${setClause} WHERE id = ?`);
+    const stmt = this.db.prepare(`UPDATE events SET ${setClause} WHERE id = ?`);
     stmt.run(...values, existingEvent.id);
 
-    return this.db.db.prepare('SELECT * FROM events WHERE id = ?').get(existingEvent.id) as Event;
+    return this.db.prepare('SELECT * FROM events WHERE id = ?').get(existingEvent.id) as Event;
   }
 
   private async recordEventAttendance(memberId: number, eventId: number, attendee: EventbriteAttendee): Promise<void> {
-    const stmt = this.db.db.prepare(`
+    const stmt = this.db.prepare(`
       INSERT OR REPLACE INTO event_attendance (event_id, member_id, checked_in_at, attendance_source, notes)
       VALUES (?, ?, ?, ?, ?)
     `);

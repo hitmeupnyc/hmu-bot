@@ -89,7 +89,7 @@ async function getMemberById(id: number): Promise<Member | null> {
   // This is a temporary implementation - should use MemberService
   const { DatabaseService } = await import('../services/DatabaseService');
   const db = DatabaseService.getInstance();
-  const stmt = db.db.prepare('SELECT * FROM members WHERE id = ?');
+  const stmt = db.prepare('SELECT * FROM members WHERE id = ?');
   const result = stmt.get(id) as Member | undefined;
   return result || null;
 }

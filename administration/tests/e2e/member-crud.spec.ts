@@ -1,6 +1,91 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Member CRUD Operations', () => {
+  test('should submit public application form', async ({ page }) => {
+    await page.goto('/apply');
+    
+    // Fill out basic information
+    await page.getByLabel('Name *').fill('Jane Smith');
+    await page.getByLabel('Pronouns').fill('she/her');
+    await page.getByLabel('Preferred Name').fill('Janie');
+    await page.getByLabel('Email Address *').fill('jane.smith@example.com');
+    await page.getByLabel('Birth Year *').fill('1990');
+    
+    // Fill out social media URLs (optional)
+    await page.getByLabel('Primary URL').fill('https://fetlife.com/users/janesmith');
+    
+    // Fill out referral information
+    await page.getByLabel('Referral Source *').selectOption('Friend/Word of mouth');
+    
+    // Fill out sponsor information
+    await page.getByLabel('Sponsor Name *').fill('Alice Johnson');
+    await page.getByLabel('Can you ask your sponsor to email us directly? *').check();
+    
+    // Fill out experience questionnaires
+    await page.getByLabel('Describe your experience with kinky/sexy events *').fill('I have attended several community events and am familiar with kink practices.');
+    await page.getByLabel('Tell us about yourself *').fill('I am a creative professional interested in exploring the community.');
+    await page.getByLabel('Describe your understanding of consent *').fill('Consent is ongoing, enthusiastic agreement that can be withdrawn at any time.');
+    
+    // Optional additional info
+    await page.getByLabel('Additional Information (Optional)').fill('Looking forward to learning more about the community.');
+    
+    // Consent policy agreement
+    await page.getByLabel('Yes! I agree to the consent policy').check();
+    
+    // Submit the form
+    await page.getByRole('button', { name: 'Submit Application' }).click();
+    
+    // Should show success or redirect (implementation dependent)
+    await expect(page.getByText('Application submitted')).toBeVisible();
+  });
+
+  test('should validate required fields in application form', async ({ page }) => {
+    await page.goto('/apply');
+    
+    // Try to submit without filling required fields
+    await page.getByRole('button', { name: 'Submit Application' }).click();
+    
+    // Should show validation errors
+    await expect(page.getByText('Name is required')).toBeVisible();
+    await expect(page.getByText('Email is required')).toBeVisible();
+    await expect(page.getByText('Please tell us how you heard about us')).toBeVisible();
+    await expect(page.getByText('Sponsor name is required')).toBeVisible();
+    await expect(page.getByText('Please describe your experience with kinky/sexy events')).toBeVisible();
+    await expect(page.getByText('Please tell us about yourself')).toBeVisible();
+    await expect(page.getByText('Please describe your understanding of consent')).toBeVisible();
+  });
+
+  test('should show conditional fields based on referral source', async ({ page }) => {
+    await page.goto('/apply');
+    
+    // Select 'Other' as referral source
+    await page.getByLabel('Referral Source *').selectOption('Other');
+    
+    // Should show explanation field
+    await expect(page.getByLabel('Please explain how you heard about us *')).toBeVisible();
+    
+    // Select 'Event attendee' as referral source
+    await page.getByLabel('Referral Source *').selectOption('Event attendee');
+    
+    // Should show event name field
+    await expect(page.getByLabel('Which event did you attend? *')).toBeVisible();
+  });
+
+  test('should validate age requirement', async ({ page }) => {
+    await page.goto('/apply');
+    
+    // Try to enter birth year that makes person under 21
+    const currentYear = new Date().getFullYear();
+    const underageYear = currentYear - 20;
+    
+    await page.getByLabel('Birth Year *').fill(underageYear.toString());
+    await page.getByLabel('Name *').fill('Test User'); // Fill another field to trigger validation
+    
+    await page.getByRole('button', { name: 'Submit Application' }).click();
+    
+    // Should show age validation error
+    await expect(page.getByText('You must be 21 or older to apply')).toBeVisible();
+  });
   test('should create a new member through the UI', async ({ page }) => {
     await page.goto('/');
     

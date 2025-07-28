@@ -4,6 +4,7 @@ import { Event, CreateEventRequest, EventAttendance } from '../types';
 
 export class EventService {
   private db = DatabaseService.getInstance().getDatabase();
+  private dbService = DatabaseService.getInstance();
 
   public async getEvents(options: {
     page: number;
@@ -28,8 +29,8 @@ export class EventService {
       LIMIT ? OFFSET ?
     `;
 
-    const countResult = this.db.prepare(countQuery).get() as { total: number };
-    const events = this.db.prepare(selectQuery).all(params) as Event[];
+    const countResult = this.dbService.prepare(countQuery).get() as { total: number };
+    const events = this.dbService.prepare(selectQuery).all(params) as Event[];
 
     const total = countResult.total;
     const totalPages = Math.ceil(total / limit);
@@ -46,7 +47,7 @@ export class EventService {
   }
 
   public async getEventById(id: number): Promise<Event> {
-    const event = this.db.prepare(
+    const event = this.dbService.prepare(
       'SELECT * FROM events WHERE id = ? AND (flags & 1) = 1'
     ).get(id) as Event | undefined;
 
@@ -63,7 +64,7 @@ export class EventService {
       public: data.is_public !== false
     });
 
-    const stmt = this.db.prepare(`
+    const stmt = this.dbService.prepare(`
       INSERT INTO events (
         name, description, start_datetime, end_datetime, flags, 
         max_capacity, required_membership_types
@@ -86,7 +87,7 @@ export class EventService {
   public async getEventAttendance(eventId: number): Promise<EventAttendance[]> {
     await this.getEventById(eventId); // Ensure event exists
 
-    return this.db.prepare(`
+    return this.dbService.prepare(`
       SELECT ea.*, m.first_name, m.last_name, m.email
       FROM event_attendance ea
       JOIN members m ON ea.member_id = m.id
@@ -99,7 +100,7 @@ export class EventService {
     await this.getEventById(eventId); // Ensure event exists
     
     // Check if member exists
-    const member = this.db.prepare(
+    const member = this.dbService.prepare(
       'SELECT id FROM members WHERE id = ? AND (flags & 1) = 1'
     ).get(memberId);
 
@@ -108,7 +109,7 @@ export class EventService {
     }
 
     // Check if already checked in
-    const existingAttendance = this.db.prepare(
+    const existingAttendance = this.dbService.prepare(
       'SELECT id FROM event_attendance WHERE event_id = ? AND member_id = ?'
     ).get(eventId, memberId);
 
@@ -116,14 +117,14 @@ export class EventService {
       throw new AppError('Member already checked in to this event', 409);
     }
 
-    const stmt = this.db.prepare(`
+    const stmt = this.dbService.prepare(`
       INSERT INTO event_attendance (event_id, member_id, checked_in_at, attendance_source)
       VALUES (?, ?, datetime('now'), 'manual')
     `);
 
     const result = stmt.run(eventId, memberId);
 
-    return this.db.prepare(
+    return this.dbService.prepare(
       'SELECT * FROM event_attendance WHERE id = ?'
     ).get(result.lastInsertRowid) as EventAttendance;
   }

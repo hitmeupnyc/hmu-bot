@@ -4,7 +4,7 @@ async function seed() {
   console.log('🌱 Seeding database with initial data...');
   
   try {
-    const db = DatabaseService.getInstance().getDatabase();
+    const dbService = DatabaseService.getInstance();
     
     // Seed payment statuses
     const paymentStatuses = [
@@ -14,7 +14,7 @@ async function seed() {
       { name: 'failed', description: 'Payment failed', sort_order: 4 }
     ];
 
-    const insertPaymentStatus = db.prepare(`
+    const insertPaymentStatus = dbService.prepare(`
       INSERT OR IGNORE INTO payment_statuses (name, description, sort_order, flags)
       VALUES (?, ?, ?, 1)
     `);
@@ -48,7 +48,7 @@ async function seed() {
       }
     ];
 
-    const insertMembershipType = db.prepare(`
+    const insertMembershipType = dbService.prepare(`
       INSERT OR IGNORE INTO membership_types (name, description, price_cents, flags, benefits_json)
       VALUES (?, ?, ?, ?, ?)
     `);

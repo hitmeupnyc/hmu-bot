@@ -79,8 +79,15 @@ export class PatreonSyncService extends BaseSyncService {
     const clientId = process.env.PATREON_CLIENT_ID || '';
     const clientSecret = process.env.PATREON_CLIENT_SECRET || '';
     
-    this.patreonAPI = patreon.patreon;
-    this.patreonOAuth = patreon.oauth(clientId, clientSecret);
+    // Temporarily disable Patreon API to avoid build errors
+    if (patreon && patreon.patreon) {
+      this.patreonAPI = patreon.patreon;
+      this.patreonOAuth = patreon.oauth(clientId, clientSecret);
+    } else {
+      console.warn('Patreon API not configured properly - sync will be disabled');
+      this.patreonAPI = null as any;
+      this.patreonOAuth = null as any;
+    }
   }
 
   /**
@@ -341,7 +348,7 @@ export class PatreonSyncService extends BaseSyncService {
 
   private async updateMemberMembership(memberId: number, membershipTypeId: number, pledge: PatreonPledge): Promise<void> {
     // End any existing active memberships
-    const endExistingStmt = this.db.db.prepare(`
+    const endExistingStmt = this.db.prepare(`
       UPDATE member_memberships 
       SET end_date = ? 
       WHERE member_id = ? AND end_date IS NULL
@@ -350,7 +357,7 @@ export class PatreonSyncService extends BaseSyncService {
 
     // Create new membership if pledge is active
     if (!pledge.attributes.declined_since) {
-      const insertStmt = this.db.db.prepare(`
+      const insertStmt = this.db.prepare(`
         INSERT INTO member_memberships (member_id, membership_type_id, start_date, external_payment_reference, created_at)
         VALUES (?, ?, ?, ?, ?)
       `);

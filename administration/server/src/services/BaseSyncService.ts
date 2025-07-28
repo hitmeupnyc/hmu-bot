@@ -13,7 +13,7 @@ export abstract class BaseSyncService {
    * Create a new sync operation record
    */
   protected async createSyncOperation(data: Omit<SyncOperation, 'id' | 'created_at'>): Promise<SyncOperation> {
-    const stmt = this.db.db.prepare(`
+    const stmt = this.db.prepare(`
       INSERT INTO sync_operations (platform, operation_type, external_id, member_id, status, payload_json, error_message, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
@@ -29,14 +29,14 @@ export abstract class BaseSyncService {
       new Date().toISOString()
     );
 
-    return this.db.db.prepare('SELECT * FROM sync_operations WHERE id = ?').get(result.lastInsertRowid) as SyncOperation;
+    return this.db.prepare('SELECT * FROM sync_operations WHERE id = ?').get(result.lastInsertRowid) as SyncOperation;
   }
 
   /**
    * Update an existing sync operation
    */
   protected async updateSyncOperation(id: number, status: string, message?: string, memberId?: number): Promise<void> {
-    const stmt = this.db.db.prepare(`
+    const stmt = this.db.prepare(`
       UPDATE sync_operations 
       SET status = ?, error_message = ?, member_id = ?, processed_at = ?
       WHERE id = ?
@@ -49,7 +49,7 @@ export abstract class BaseSyncService {
    * Find member by email
    */
   protected async findMemberByEmail(email: string): Promise<Member | null> {
-    const stmt = this.db.db.prepare('SELECT * FROM members WHERE email = ?');
+    const stmt = this.db.prepare('SELECT * FROM members WHERE email = ?');
     const member = stmt.get(email) as Member | undefined;
     return member || null;
   }
@@ -58,7 +58,7 @@ export abstract class BaseSyncService {
    * Update member flags using bitwise operations
    */
   protected async updateMemberFlag(memberId: number, flag: number, value: boolean): Promise<void> {
-    const member = this.db.db.prepare('SELECT flags FROM members WHERE id = ?').get(memberId) as { flags: number };
+    const member = this.db.prepare('SELECT flags FROM members WHERE id = ?').get(memberId) as { flags: number };
     
     let newFlags = member.flags;
     if (value) {
@@ -67,7 +67,7 @@ export abstract class BaseSyncService {
       newFlags &= ~flag; // Unset flag
     }
 
-    const stmt = this.db.db.prepare('UPDATE members SET flags = ?, updated_at = ? WHERE id = ?');
+    const stmt = this.db.prepare('UPDATE members SET flags = ?, updated_at = ? WHERE id = ?');
     stmt.run(newFlags, new Date().toISOString(), memberId);
   }
 
@@ -91,11 +91,11 @@ export abstract class BaseSyncService {
       const setClause = Object.keys(updateData).map(key => `${key} = ?`).join(', ');
       const values = Object.values(updateData);
 
-      const stmt = this.db.db.prepare(`UPDATE members SET ${setClause} WHERE id = ?`);
+      const stmt = this.db.prepare(`UPDATE members SET ${setClause} WHERE id = ?`);
       stmt.run(...values, existingMember.id);
     }
 
-    return this.db.db.prepare('SELECT * FROM members WHERE id = ?').get(existingMember.id) as Member;
+    return this.db.prepare('SELECT * FROM members WHERE id = ?').get(existingMember.id) as Member;
   }
 
   /**
@@ -108,7 +108,7 @@ export abstract class BaseSyncService {
     externalData: any,
     flags: number = 1 // Active by default
   ): Promise<void> {
-    const stmt = this.db.db.prepare(`
+    const stmt = this.db.prepare(`
       INSERT OR REPLACE INTO external_integrations 
       (member_id, system_name, external_id, external_data_json, last_synced_at, flags)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -128,7 +128,7 @@ export abstract class BaseSyncService {
    * Deactivate external integration (set flags to inactive)
    */
   protected async deactivateExternalIntegration(memberId: number, systemName: string): Promise<void> {
-    const stmt = this.db.db.prepare(`
+    const stmt = this.db.prepare(`
       UPDATE external_integrations 
       SET flags = flags & ~1, last_synced_at = ?
       WHERE member_id = ? AND system_name = ?
@@ -141,7 +141,7 @@ export abstract class BaseSyncService {
    * Find member by external integration
    */
   protected async findMemberByExternalId(systemName: string, externalId: string): Promise<Member | null> {
-    const stmt = this.db.db.prepare(`
+    const stmt = this.db.prepare(`
       SELECT m.* FROM members m
       JOIN external_integrations ei ON m.id = ei.member_id
       WHERE ei.system_name = ? AND ei.external_id = ? AND ei.flags & 1 = 1
@@ -204,7 +204,7 @@ export abstract class BaseSyncService {
       updated_at: new Date().toISOString()
     };
 
-    const stmt = this.db.db.prepare(`
+    const stmt = this.db.prepare(`
       INSERT INTO members (first_name, last_name, email, flags, date_added, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
@@ -219,7 +219,7 @@ export abstract class BaseSyncService {
       data.updated_at
     );
 
-    return this.db.db.prepare('SELECT * FROM members WHERE id = ?').get(result.lastInsertRowid) as Member;
+    return this.db.prepare('SELECT * FROM members WHERE id = ?').get(result.lastInsertRowid) as Member;
   }
 
   /**

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { PencilIcon, TrashIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, TrashIcon, ArrowLeftIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { useMember, useUpdateMember, useDeleteMember } from '../hooks/useMembers';
+import { useMemberAuditLog } from '../hooks/useAudit';
 import { MemberFormData } from '../types';
 import { Modal } from '../components/Modal';
 import { MemberForm } from '../components/MemberForm';
@@ -13,6 +14,7 @@ export function MemberDetails() {
 
   const memberId = parseInt(id || '0', 10);
   const { data: member, isLoading, error } = useMember(memberId, !!id);
+  const { data: auditLog, isLoading: auditLoading } = useMemberAuditLog(memberId, !!id);
   const updateMember = useUpdateMember();
   const deleteMember = useDeleteMember();
 
@@ -199,12 +201,74 @@ export function MemberDetails() {
         </div>
       </div>
 
-      {/* Activity History Placeholder */}
+      {/* Activity History */}
       <div className="mt-6 bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Activity History</h2>
-        <p className="text-gray-500 text-sm">
-          Activity history and audit logs will be displayed here in a future update.
-        </p>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <ClockIcon className="h-5 w-5 mr-2" />
+          Activity History
+        </h2>
+        
+        {auditLoading ? (
+          <div className="text-gray-500 text-sm">Loading activity history...</div>
+        ) : !auditLog || auditLog.length === 0 ? (
+          <div className="text-gray-500 text-sm">No activity recorded yet.</div>
+        ) : (
+          <div className="space-y-4">
+            {auditLog.map((entry) => (
+              <div key={entry.id} className="border-l-4 border-blue-200 pl-4 py-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      entry.action === 'create' ? 'bg-green-100 text-green-800' :
+                      entry.action === 'update' ? 'bg-yellow-100 text-yellow-800' :
+                      entry.action === 'delete' ? 'bg-red-100 text-red-800' :
+                      entry.action === 'view' ? 'bg-blue-100 text-blue-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {entry.action.charAt(0).toUpperCase() + entry.action.slice(1)}
+                    </span>
+                    <span className="text-sm text-gray-600">
+                      {new Date(entry.created_at).toLocaleString()}
+                    </span>
+                  </div>
+                  <span className="text-xs text-gray-400">
+                    Session: {entry.user_session_id.slice(0, 8)}... | IP: {entry.user_ip}
+                  </span>
+                </div>
+                
+                {entry.action === 'update' && entry.oldValues && entry.newValues && (
+                  <div className="mt-2 text-sm">
+                    <div className="text-gray-600 mb-1">Changes made:</div>
+                    <div className="bg-gray-50 rounded p-2 space-y-1">
+                      {Object.keys(entry.newValues).map((key) => {
+                        const oldValue = entry.oldValues?.[key];
+                        const newValue = entry.newValues?.[key];
+                        
+                        if (oldValue !== newValue && key !== 'id' && key !== 'updated_at') {
+                          return (
+                            <div key={key} className="text-xs">
+                              <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>
+                              <span className="text-red-600 line-through ml-1">{String(oldValue || '(empty)')}</span>
+                              <span className="mx-1">→</span>
+                              <span className="text-green-600">{String(newValue || '(empty)')}</span>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
+                  </div>
+                )}
+                
+                {entry.action === 'create' && entry.newValues && (
+                  <div className="mt-2 text-sm">
+                    <div className="text-gray-600">Member created with initial data</div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Edit Modal */}

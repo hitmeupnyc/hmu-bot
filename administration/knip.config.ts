@@ -66,19 +66,6 @@ const config: KnipConfig = {
     
     // Database migrations (essential infrastructure)
     '**/migrations/**',
-    
-    // Security utilities (webhook verification)
-    '**/utils/webhookVerification.ts',
-    
-    // Service classes that may be used in future (complete implementations)
-    '**/services/memberService.ts',
-    
-    // Test utilities and mock functions
-    '**/test/utils.ts',
-    '**/test/utils.tsx',
-    
-    // Development and testing infrastructure
-    '**/middleware/auditLoggingMiddleware.ts',
   ],
   
   // Plugin configurations

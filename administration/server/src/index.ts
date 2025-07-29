@@ -68,11 +68,57 @@ app.use('/api/applications', applicationRoutes);
 app.use('/api/audit', auditRoutes);
 
 // Health check
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
+app.get('/health', async (req, res) => {
+  try {
+    // Check database connectivity
+    const db = DatabaseService.getInstance();
+    await db.getDatabase().selectFrom('payment_statuses').select('id').limit(1).execute();
+    
+    res.json({ 
+      status: 'healthy', 
+      timestamp: new Date().toISOString(),
+      version: process.env.npm_package_version || '1.0.0',
+      database: 'connected',
+      environment: process.env.NODE_ENV || 'development'
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: 'Database connection failed',
+      database: 'disconnected'
+    });
+  }
+});
+
+// Environment check endpoint
+app.get('/health/env', (req, res) => {
+  const requiredVars = ['DATABASE_PATH', 'JWT_SECRET'];
+  const optionalVars = ['KLAVIYO_API_KEY', 'DISCORD_BOT_TOKEN', 'EVENTBRITE_API_TOKEN', 'PATREON_CLIENT_ID'];
+  
+  const env = {
+    required: {} as Record<string, boolean>,
+    optional: {} as Record<string, boolean>,
+    issues: [] as string[]
+  };
+  
+  requiredVars.forEach(varName => {
+    const exists = !!process.env[varName];
+    env.required[varName] = exists;
+    if (!exists) {
+      env.issues.push(`Missing required environment variable: ${varName}`);
+    }
+  });
+  
+  optionalVars.forEach(varName => {
+    env.optional[varName] = !!process.env[varName];
+  });
+  
+  const hasIssues = env.issues.length > 0;
+  res.status(hasIssues ? 422 : 200).json({
+    status: hasIssues ? 'configuration_issues' : 'ok',
     timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || '1.0.0'
+    environment: env
   });
 });
 

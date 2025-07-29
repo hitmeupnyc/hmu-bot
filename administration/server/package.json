@@ -16,7 +16,7 @@
     "db:migrate": "kysely migrate",
     "db:migrate:up": "kysely migrate up",
     "db:migrate:down": "kysely migrate down",
-    "db:migrate:latest": "kysely migrate latest",
+    "db:migrate:latest": "mkdir -p data && kysely migrate latest",
     "db:migrate:list": "kysely migrate list",
     "db:seed": "kysely seed run",
     "db:setup-test": "tsx src/scripts/setup-test-db.ts",

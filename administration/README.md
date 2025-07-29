@@ -4,16 +4,19 @@ A modern web application for managing club members and events with external inte
 
 ## 🚀 Quick Start
 
+> 👨‍💻 **New Developer?** See [DEV_QUICK_START.md](DEV_QUICK_START.md) for fastest setup
+
 ### One Command Setup
 
 ```bash
-npm run setup && npm run dev:simple
+npm run setup && npm run dev
 ```
 
 That's it! The application will be running at:
 
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:3000
+- **Health Check**: http://localhost:3000/health
 
 ## 📋 Available Commands
 

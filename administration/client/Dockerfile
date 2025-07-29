@@ -1,31 +1,20 @@
 # Build stage
 FROM node:20-alpine AS builder
-
-# Install dependencies for node-gyp (if needed)
 RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
+RUN npm install -g turbo@^2
+COPY . .
 
-# Copy package files
-COPY package.json .
-# FIXME: This is broken because Turborepo/monorepo design does funky things with lockfiles. It puts the lockfile in the root, which includes the lockfile for the server dependencies as well.
-# COPY package-lock.json .
+# Generate a partial monorepo with a pruned lockfile for the client workspace
+RUN turbo prune club-management-client --docker
 
+# Change to out directory and install dependencies
+WORKDIR /app/out
+RUN npm ci --frozen-lockfile
 
-# Install dependencies with clean npm cache
-RUN npm install
-
-# Copy source code
-COPY src/ ./src/
-
-COPY tsconfig.json .
-COPY vite.config.ts .
-COPY tailwind.config.js .
-COPY postcss.config.js .
-COPY index.html .
-
-# Build the application
-RUN npm run build
+# Build the project
+RUN npm run build --filter=club-management-client
 
 # Production stage
 FROM nginx:alpine AS production
@@ -40,10 +29,10 @@ RUN apk add --no-cache --upgrade && \
 #     adduser -S -D -H -u 1001 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx
 
 # Copy built assets from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/client/dist /usr/share/nginx/html
 
 # Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY client/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Set proper permissions
 RUN chown -R nginx:nginx /usr/share/nginx/html && \

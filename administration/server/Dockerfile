@@ -1,26 +1,20 @@
 # Build stage
 FROM node:20-alpine AS builder
-
-# Install dependencies for node-gyp and native modules
 RUN apk add --no-cache libc6-compat python3 make g++
 
 WORKDIR /app
+RUN npm install -g turbo@^2
+COPY . .
 
-# Copy package files first for better layer caching
-COPY package.json ./
-# FIXME: This is broken because Turborepo/monorepo design does funky things with lockfiles. It puts the lockfile in the root, which includes the lockfile for the server dependencies as well.
-# COPY package-lock.json ./
+# Generate a partial monorepo with a pruned lockfile for the server workspace
+RUN turbo prune club-management-server --docker
 
-# Install dependencies with clean npm cache
-RUN npm install
+# Change to out directory and install dependencies
+WORKDIR /app/out
+RUN npm ci --frozen-lockfile
 
-# Copy source code and config files
-COPY tsconfig.json ./
-COPY kysely.config.ts ./
-COPY src/ ./src/
-
-# Build the application
-RUN npm run build
+# Build the project
+RUN npm run build --filter=club-management-server
 
 # Production stage
 FROM node:20-alpine AS production
@@ -36,13 +30,8 @@ RUN addgroup -g 1001 -S nodejs && \
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json ./
-
-RUN npm install
-
-# Copy built application from builder stage
-COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
+# Copy everything from builder (includes node_modules with all deps)
+COPY --from=builder --chown=nodejs:nodejs /app/ ./
 
 # Create data directory with proper permissions
 RUN mkdir -p /app/data && \
@@ -60,4 +49,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3000/health || exit 1
 
 # Start the application
-CMD ["npm", "start"]
+CMD ["npm", "run", "start", "--workspace=club-management-server"]

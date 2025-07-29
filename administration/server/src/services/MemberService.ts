@@ -1,4 +1,5 @@
 import { DatabaseService } from './DatabaseService';
+import { AuditService } from './AuditService';
 import { AppError } from '../middleware/errorHandler';
 import { 
   Member, 
@@ -11,6 +12,7 @@ import {
 export class MemberService {
   private db = DatabaseService.getInstance().getDatabase();
   private dbService = DatabaseService.getInstance();
+  private auditService = AuditService.getInstance();
 
   public async getMembers(options: {
     page: number;
@@ -54,13 +56,28 @@ export class MemberService {
     };
   }
 
-  public async getMemberById(id: number): Promise<Member> {
+  private async getMemberByIdInternal(id: number): Promise<Member> {
     const member = this.dbService.prepare(
       'SELECT * FROM members WHERE id = ? AND (flags & 1) = 1'
     ).get(id) as Member | undefined;
 
     if (!member) {
       throw new AppError('Member not found', 404);
+    }
+
+    return member;
+  }
+
+  public async getMemberById(id: number, auditInfo?: { sessionId: string; userIp: string }): Promise<Member> {
+    const member = await this.getMemberByIdInternal(id);
+
+    // Log member view event
+    if (auditInfo) {
+      await this.auditService.logMemberView(
+        id,
+        auditInfo.sessionId,
+        auditInfo.userIp
+      );
     }
 
     return member;
@@ -98,11 +115,11 @@ export class MemberService {
       flags
     );
 
-    return this.getMemberById(result.lastInsertRowid as number);
+    return this.getMemberByIdInternal(result.lastInsertRowid as number);
   }
 
-  public async updateMember(data: UpdateMemberRequest): Promise<Member> {
-    const existingMember = await this.getMemberById(data.id);
+  public async updateMember(data: UpdateMemberRequest, auditInfo?: { sessionId: string; userIp: string }): Promise<Member> {
+    const existingMember = await this.getMemberByIdInternal(data.id);
 
     // Check if email is being changed and if it conflicts
     if (data.email && data.email !== existingMember.email) {
@@ -154,11 +171,25 @@ export class MemberService {
 
     stmt.run(...values);
 
-    return this.getMemberById(data.id);
+    // Get the updated member data (without logging another view event)
+    const updatedMember = await this.getMemberByIdInternal(data.id);
+
+    // Log member update event
+    if (auditInfo) {
+      await this.auditService.logMemberUpdate(
+        data.id,
+        existingMember,
+        updatedMember,
+        auditInfo.sessionId,
+        auditInfo.userIp
+      );
+    }
+
+    return updatedMember;
   }
 
   public async deleteMember(id: number): Promise<void> {
-    const member = await this.getMemberById(id);
+    const member = await this.getMemberByIdInternal(id);
 
     // Soft delete by setting active flag to false
     const flags = member.flags & ~1; // Clear active bit
@@ -169,7 +200,7 @@ export class MemberService {
   }
 
   public async getMemberMemberships(memberId: number): Promise<MemberMembership[]> {
-    await this.getMemberById(memberId); // Ensure member exists
+    await this.getMemberByIdInternal(memberId); // Ensure member exists
 
     return this.dbService.prepare(`
       SELECT mm.*, mt.name as membership_name, ps.name as payment_status_name
@@ -182,7 +213,7 @@ export class MemberService {
   }
 
   public async getMemberEvents(memberId: number): Promise<any[]> {
-    await this.getMemberById(memberId); // Ensure member exists
+    await this.getMemberByIdInternal(memberId); // Ensure member exists
 
     return this.dbService.prepare(`
       SELECT e.*, ea.checked_in_at, ea.checked_out_at, ea.attendance_source

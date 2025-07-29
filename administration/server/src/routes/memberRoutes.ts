@@ -28,7 +28,7 @@ router.get('/', asyncHandler(async (req, res) => {
 // GET /api/members/:id - Get single member
 router.get('/:id', asyncHandler(async (req, res) => {
   const id = parseInt(req.params.id);
-  const member = await memberService.getMemberById(id);
+  const member = await memberService.getMemberById(id, req.auditInfo);
   
   res.json({
     success: true,
@@ -53,7 +53,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
   const id = parseInt(req.params.id);
   const updateData: UpdateMemberRequest = { ...req.body, id };
   
-  const member = await memberService.updateMember(updateData);
+  const member = await memberService.updateMember(updateData, req.auditInfo);
   
   res.json({
     success: true,

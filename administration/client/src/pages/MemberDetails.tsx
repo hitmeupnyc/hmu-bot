@@ -8,6 +8,7 @@ import { MemberFormData } from '../types';
 import { Modal } from '../components/Modal';
 import { MemberForm } from '../components/MemberForm';
 import { api } from '../lib/api';
+import { getAccessLevelName, getAccessLevelColor } from '../utils/authorization';
 
 export function MemberDetails() {
   const { id } = useParams<{ id: string }>();
@@ -89,7 +90,7 @@ export function MemberDetails() {
     const isProfessional = member.flags & 2;
     
     return (
-      <div className="flex space-x-1">
+      <div className="flex flex-wrap gap-1">
         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
           isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
         }`}>
@@ -100,6 +101,11 @@ export function MemberDetails() {
             Professional
           </span>
         )}
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+          getAccessLevelColor(member.access_level || 1)
+        }`}>
+          {getAccessLevelName(member.access_level || 1)}
+        </span>
       </div>
     );
   };

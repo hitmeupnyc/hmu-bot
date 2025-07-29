@@ -9,6 +9,7 @@ export interface Member {
   sponsor_notes?: string;
   date_added: string;
   flags: number;
+  access_level: number;
   created_at: string;
   updated_at: string;
 }

@@ -1,5 +1,6 @@
 import { useMembers } from '../hooks/useMembers';
 import { useEvents } from '../hooks/useEvents';
+import { getAccessLevelName, getAccessLevelColor } from '../utils/authorization';
 
 export function Dashboard() {
   const { data: membersData, isLoading: membersLoading } = useMembers({ limit: 1000 });
@@ -66,7 +67,7 @@ export function Dashboard() {
                     </p>
                     <p className="text-sm text-gray-500">{member.email}</p>
                   </div>
-                  <div className="flex space-x-1">
+                  <div className="flex flex-wrap gap-1">
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                       member.flags & 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     }`}>
@@ -77,6 +78,11 @@ export function Dashboard() {
                         Pro
                       </span>
                     )}
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      getAccessLevelColor(member.access_level || 1)
+                    }`}>
+                      {getAccessLevelName(member.access_level || 1)}
+                    </span>
                   </div>
                 </div>
               ))}

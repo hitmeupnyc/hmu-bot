@@ -1,22 +1,38 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { PencilIcon, TrashIcon, ArrowLeftIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { useMutation } from '@tanstack/react-query';
+import { PencilIcon, TrashIcon, ArrowLeftIcon, ClockIcon, ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
 import { useMember, useUpdateMember, useDeleteMember } from '../hooks/useMembers';
 import { useMemberAuditLog } from '../hooks/useAudit';
 import { MemberFormData } from '../types';
 import { Modal } from '../components/Modal';
 import { MemberForm } from '../components/MemberForm';
+import { api } from '../lib/api';
 
 export function MemberDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [noteContent, setNoteContent] = useState('');
 
   const memberId = parseInt(id || '0', 10);
   const { data: member, isLoading, error } = useMember(memberId, !!id);
-  const { data: auditLog, isLoading: auditLoading } = useMemberAuditLog(memberId, !!id);
+  const { data: auditLog, isLoading: auditLoading, refetch: refetchAuditLog } = useMemberAuditLog(memberId, !!id);
   const updateMember = useUpdateMember();
   const deleteMember = useDeleteMember();
+
+  const addNoteMutation = useMutation({
+    mutationFn: async ({ content }: { content: string }) => {
+      const response = await api.post(`/members/${memberId}/notes`, { content, tags: [] });
+      return response.data;
+    },
+    onSuccess: () => {
+      // Refetch audit log to show the new note
+      refetchAuditLog();
+      // Reset form
+      setNoteContent('');
+    },
+  });
 
   const handleUpdateMember = async (formData: MemberFormData) => {
     try {
@@ -44,6 +60,21 @@ export function MemberDetails() {
     } catch (error) {
       console.error('Failed to delete member:', error);
       alert('Failed to delete member. Please try again.');
+    }
+  };
+
+  const handleSubmitNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!noteContent.trim()) {
+      return;
+    }
+
+    try {
+      await addNoteMutation.mutateAsync({ content: noteContent.trim() });
+    } catch (error) {
+      console.error('Failed to add note:', error);
+      alert('Failed to add note. Please try again.');
     }
   };
 
@@ -201,6 +232,43 @@ export function MemberDetails() {
         </div>
       </div>
 
+      {/* Notes Section */}
+      <div className="mt-6 bg-white shadow rounded-lg p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <ChatBubbleLeftIcon className="h-5 w-5 mr-2" />
+          Notes
+        </h2>
+        
+        <form onSubmit={handleSubmitNote} className="mb-6">
+          <div className="space-y-3">
+            <div>
+              <label htmlFor="noteContent" className="block text-sm font-medium text-gray-700 mb-2">
+                Add Note
+              </label>
+              <textarea
+                id="noteContent"
+                rows={2}
+                value={noteContent}
+                onChange={(e) => setNoteContent(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Add a note about this member..."
+                disabled={addNoteMutation.isPending}
+              />
+            </div>
+            
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={!noteContent.trim() || addNoteMutation.isPending}
+                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {addNoteMutation.isPending ? 'Adding...' : 'Add Note'}
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
       {/* Activity History */}
       <div className="mt-6 bg-white shadow rounded-lg p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
@@ -223,6 +291,7 @@ export function MemberDetails() {
                       entry.action === 'update' ? 'bg-yellow-100 text-yellow-800' :
                       entry.action === 'delete' ? 'bg-red-100 text-red-800' :
                       entry.action === 'view' ? 'bg-blue-100 text-blue-800' :
+                      entry.action === 'note' ? 'bg-purple-100 text-purple-800' :
                       'bg-gray-100 text-gray-800'
                     }`}>
                       {entry.action.charAt(0).toUpperCase() + entry.action.slice(1)}
@@ -263,6 +332,14 @@ export function MemberDetails() {
                 {entry.action === 'create' && entry.newValues && (
                   <div className="mt-2 text-sm">
                     <div className="text-gray-600">Member created with initial data</div>
+                  </div>
+                )}
+                
+                {entry.action === 'note' && entry.metadata && (
+                  <div className="mt-2 text-sm">
+                    <div className="bg-purple-50 rounded p-3 border-l-2 border-purple-200">
+                      <div className="text-gray-800 whitespace-pre-wrap">{entry.metadata.content}</div>
+                    </div>
                   </div>
                 )}
               </div>

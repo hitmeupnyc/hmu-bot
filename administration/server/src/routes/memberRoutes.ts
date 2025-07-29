@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import { MemberService } from '../services/MemberService';
+import { AuditService } from '../services/AuditService';
 import { asyncHandler } from '../middleware/errorHandler';
 import { auditMiddleware } from '../middleware/auditMiddleware';
 import { CreateMemberRequest, UpdateMemberRequest } from '../types';
 
 const router = Router();
 const memberService = new MemberService();
+const auditService = AuditService.getInstance();
 
 // Apply audit middleware to all routes
 router.use(auditMiddleware);
@@ -93,6 +95,36 @@ router.get('/:id/events', asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: events
+  });
+}));
+
+// POST /api/members/:id/notes - Add a note to a member
+router.post('/:id/notes', asyncHandler(async (req, res) => {
+  const id = parseInt(req.params.id);
+  const { content, tags = [] } = req.body;
+  
+  if (!content || typeof content !== 'string' || content.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Note content is required'
+    });
+  }
+
+  // Verify member exists
+  await memberService.getMemberById(id);
+  
+  // Log the note
+  await auditService.logMemberNote(
+    id,
+    content.trim(),
+    Array.isArray(tags) ? tags : [],
+    req.auditInfo?.sessionId,
+    req.auditInfo?.userIp
+  );
+  
+  res.status(201).json({
+    success: true,
+    message: 'Note added successfully'
   });
 }));
 

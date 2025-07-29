@@ -3,7 +3,7 @@ import { DatabaseService } from './DatabaseService';
 export interface AuditLogEntry {
   entityType: string;
   entityId?: number;
-  action: 'create' | 'update' | 'delete' | 'view' | 'search';
+  action: 'create' | 'update' | 'delete' | 'view' | 'search' | 'note';
   userSessionId?: string;
   userIp?: string;
   oldValues?: Record<string, any>;
@@ -151,5 +151,43 @@ export class AuditService {
       newValues: row.new_values_json ? JSON.parse(row.new_values_json) : null,
       metadata: row.metadata_json ? JSON.parse(row.metadata_json) : null,
     }));
+  }
+
+  /**
+   * Log a note/comment event
+   */
+  async logNote(
+    entityType: string,
+    entityId: number,
+    noteContent: string,
+    tags: string[] = [],
+    sessionId?: string,
+    userIp?: string
+  ): Promise<void> {
+    await this.logEvent({
+      entityType,
+      entityId,
+      action: 'note',
+      userSessionId: sessionId,
+      userIp,
+      metadata: {
+        content: noteContent,
+        tags,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  }
+
+  /**
+   * Log a member note event
+   */
+  async logMemberNote(
+    memberId: number,
+    noteContent: string,
+    tags: string[] = [],
+    sessionId?: string,
+    userIp?: string
+  ): Promise<void> {
+    await this.logNote('member', memberId, noteContent, tags, sessionId, userIp);
   }
 }

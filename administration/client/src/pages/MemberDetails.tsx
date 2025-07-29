@@ -282,7 +282,7 @@ export function MemberDetails() {
           <div className="text-gray-500 text-sm">No activity recorded yet.</div>
         ) : (
           <div className="space-y-4">
-            {auditLog.map((entry) => (
+            {auditLog.filter(entry => entry.action !== 'view').map((entry) => (
               <div key={entry.id} className="border-l-4 border-blue-200 pl-4 py-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">

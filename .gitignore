@@ -15,10 +15,6 @@ build/
 !.env.example
 .dev.vars
 
-# Package manager files
-yarn.lock
-package-lock.json
-
 # OS generated files
 .DS_Store
 .DS_Store?
@@ -88,9 +84,6 @@ coverage/
 *.db-wal
 *.sqlite
 *.sqlite3
-
-# Claude Code files
-.claude/
 
 # Wrangler/Cloudflare
 .wrangler/

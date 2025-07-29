@@ -17,6 +17,8 @@ export function MemberDetails() {
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [noteContent, setNoteContent] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
 
   const memberId = parseInt(id || '0', 10);
   const { data: member, isLoading, error } = useMember(memberId, !!id);
@@ -87,15 +89,40 @@ export function MemberDetails() {
     }
   };
 
+  const handleTemplateSelect = (templateId: string) => {
+    setSelectedTemplate(templateId);
+    if (templateId) {
+      const template = emailTemplates.find(t => t.id === templateId);
+      if (template) {
+        setEmailSubject(template.subject);
+        setEmailBody(template.body);
+      }
+    } else {
+      setEmailSubject('');
+      setEmailBody('');
+    }
+  };
+
   const handleSendEmail = async () => {
-    const template = emailTemplates.find(t => t.id === selectedTemplate);
-    if (!template || !member) return;
+    if (!member || !emailSubject.trim() || !emailBody.trim()) {
+      alert('Please fill in both subject and body fields.');
+      return;
+    }
 
     // In a real implementation, this would call an API to send the email
     // For now, we'll just show an alert
-    alert(`Email "${template.name}" would be sent to ${member.email}\n\nSubject: ${template.subject}\n\nThis is a placeholder implementation.`);
+    alert(`Email would be sent to ${member.email}\n\nSubject: ${emailSubject}\n\nBody: ${emailBody.substring(0, 100)}...\n\nThis is a placeholder implementation.`);
     setIsEmailModalOpen(false);
     setSelectedTemplate('');
+    setEmailSubject('');
+    setEmailBody('');
+  };
+
+  const handleEmailModalClose = () => {
+    setIsEmailModalOpen(false);
+    setSelectedTemplate('');
+    setEmailSubject('');
+    setEmailBody('');
   };
 
   const handleSubmitNote = async (e: React.FormEvent) => {
@@ -404,7 +431,7 @@ export function MemberDetails() {
       {/* Email Modal */}
       <Modal
         isOpen={isEmailModalOpen}
-        onClose={() => setIsEmailModalOpen(false)}
+        onClose={handleEmailModalClose}
         title="Send Email"
       >
         <div className="space-y-4">
@@ -413,15 +440,15 @@ export function MemberDetails() {
               Send email to: <span className="font-medium">{member?.email}</span>
             </p>
             <label htmlFor="emailTemplate" className="block text-sm font-medium text-gray-700 mb-2">
-              Choose Template
+              Choose Template (Optional)
             </label>
             <select
               id="emailTemplate"
               value={selectedTemplate}
-              onChange={(e) => setSelectedTemplate(e.target.value)}
+              onChange={(e) => handleTemplateSelect(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="">Select a template...</option>
+              <option value="">Write your own email...</option>
               {emailTemplates.map((template) => (
                 <option key={template.id} value={template.id}>
                   {template.name}
@@ -430,31 +457,51 @@ export function MemberDetails() {
             </select>
           </div>
 
-          {selectedTemplate && (
-            <div className="bg-gray-50 p-3 rounded-md">
-              <h4 className="font-medium text-gray-900 mb-2">Preview:</h4>
-              <div className="text-sm space-y-1">
-                <p><strong>Subject:</strong> {emailTemplates.find(t => t.id === selectedTemplate)?.subject}</p>
-                <div>
-                  <strong>Body:</strong>
-                  <pre className="mt-1 text-xs text-gray-600 whitespace-pre-wrap">
-                    {emailTemplates.find(t => t.id === selectedTemplate)?.body}
-                  </pre>
-                </div>
-              </div>
-            </div>
-          )}
+          <div>
+            <label htmlFor="emailSubject" className="block text-sm font-medium text-gray-700 mb-2">
+              Subject
+            </label>
+            <input
+              type="text"
+              id="emailSubject"
+              value={emailSubject}
+              onChange={(e) => setEmailSubject(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter email subject..."
+            />
+          </div>
+
+          <div>
+            <label htmlFor="emailBody" className="block text-sm font-medium text-gray-700 mb-2">
+              Message
+            </label>
+            <textarea
+              id="emailBody"
+              rows={8}
+              value={emailBody}
+              onChange={(e) => setEmailBody(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Write your email message here..."
+            />
+          </div>
+
+          <div className="bg-blue-50 p-3 rounded-md">
+            <h4 className="font-medium text-blue-900 mb-1">Available Variables:</h4>
+            <p className="text-sm text-blue-700">
+              You can use these placeholders: <code>{'{{first_name}}'}</code>, <code>{'{{last_name}}'}</code>, <code>{'{{preferred_name}}'}</code>, <code>{'{{email}}'}</code>
+            </p>
+          </div>
 
           <div className="flex justify-end space-x-3">
             <button
-              onClick={() => setIsEmailModalOpen(false)}
+              onClick={handleEmailModalClose}
               className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
             >
               Cancel
             </button>
             <button
               onClick={handleSendEmail}
-              disabled={!selectedTemplate}
+              disabled={!emailSubject.trim() || !emailBody.trim()}
               className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Send Email

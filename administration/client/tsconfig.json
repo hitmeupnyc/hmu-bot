@@ -3,7 +3,7 @@
     "target": "ES2020",
     "useDefineForClassFields": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "types": ["vitest/globals"],
+    "types": ["node", "vitest/globals"],
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "bundler",
@@ -19,14 +19,14 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "allowSyntheticDefaultImports": true
   },
-  "include": ["src"],
+  "include": ["src", "vite.config.ts"],
   "exclude": [
     "src/**/*.test.*",
     "src/**/*.spec.*", 
     "src/test/**/*",
     "src/__tests__/**/*"
-  ],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  ]
 }

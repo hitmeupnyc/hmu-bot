@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Discussion
+    url: https://github.com/vcarl/hmu-bot/discussions
+    about: Ask questions, share ideas, or discuss features
+  - name: 📚 Documentation
+    url: https://github.com/vcarl/hmu-bot/blob/main/administration/README.md
+    about: Read the documentation and setup guides
+  - name: 🚀 Quick Start Guide
+    url: https://github.com/vcarl/hmu-bot/blob/main/administration/DEV_QUICK_START.md
+    about: Get started with development in 2 minutes

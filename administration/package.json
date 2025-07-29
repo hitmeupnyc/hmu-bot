@@ -73,7 +73,8 @@
     "knip": "^5.62.0",
     "lint-staged": "^15.2.8",
     "prettier-plugin-organize-imports": "^4.2.0",
-    "turbo": "^2.5.5"
+    "turbo": "^2.5.5",
+    "wait-on": "^8.0.1"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

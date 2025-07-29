@@ -1,0 +1,324 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '20'
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
+jobs:
+  # ====================
+  # Code Quality & Linting
+  # ====================
+  lint:
+    name: 🔍 Lint & Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 📥 Install dependencies
+        run: npm ci
+        
+      - name: 🔍 Run ESLint
+        run: npm run lint
+        
+      - name: 🧹 Check for dead code
+        run: npm run deadcode
+        
+      - name: 📋 Check dead code (production)
+        run: npm run deadcode:production
+
+  # ====================
+  # Type Checking
+  # ====================
+  typecheck:
+    name: 🔧 TypeScript
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 📥 Install dependencies
+        run: npm ci
+        
+      - name: 🔧 Run TypeScript checks
+        run: npm run typecheck
+
+  # ====================
+  # Unit & Integration Tests
+  # ====================
+  test:
+    name: 🧪 Unit & Integration Tests
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: ['18', '20', '22']
+    
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          
+      - name: 📥 Install dependencies
+        run: npm ci
+        
+      - name: 🗄️ Setup test database
+        run: npm run setup:db
+        
+      - name: 🧪 Run server tests
+        run: npm run test:server
+        
+      - name: 🧪 Run client tests
+        run: npm run test:client
+        
+      - name: 📊 Upload coverage reports
+        if: matrix.node-version == '20'
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./server/coverage/lcov.info,./client/coverage/lcov.info
+          fail_ci_if_error: false
+
+  # ====================
+  # Build Verification
+  # ====================
+  build:
+    name: 🏗️ Build Verification
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 📥 Install dependencies
+        run: npm ci
+        
+      - name: 🏗️ Build all packages
+        run: npm run build
+        
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            server/dist/
+            client/dist/
+          retention-days: 1
+
+  # ====================
+  # Docker Build Tests
+  # ====================
+  docker:
+    name: 🐳 Docker Build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: 🏗️ Build server image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./server/Dockerfile
+          push: false
+          tags: club-management-server:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          
+      - name: 🏗️ Build client image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./client/Dockerfile
+          push: false
+          tags: club-management-client:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ====================
+  # End-to-End Tests
+  # ====================
+  e2e:
+    name: 🎭 E2E Tests
+    runs-on: ubuntu-latest
+    needs: [build]
+    
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 📥 Install dependencies
+        run: npm ci
+        
+      - name: 🗄️ Setup database
+        run: npm run setup:db
+        
+      - name: 📥 Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          
+      - name: 🎭 Install Playwright browsers
+        run: npx playwright install --with-deps
+        working-directory: tests
+        
+      - name: 🚀 Start application for E2E tests
+        run: |
+          npm run dev:simple &
+          # Wait for services to be ready
+          npx wait-on http://localhost:3000/health http://localhost:5173 --timeout 60000
+        
+      - name: 🎭 Run E2E tests
+        run: npm run test:e2e
+        
+      - name: 📊 Upload E2E test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results
+          path: |
+            tests/test-results/
+            tests/playwright-report/
+          retention-days: 7
+
+  # ====================
+  # Database Tests
+  # ====================
+  database:
+    name: 🗄️ Database Operations
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 📥 Install dependencies
+        run: npm ci
+        
+      - name: 🗄️ Test database migrations
+        run: |
+          cd server
+          npm run db:migrate:latest
+          
+      - name: 🌱 Test database seeding
+        run: |
+          cd server
+          npm run db:seed
+          
+      - name: 🔧 Test database codegen
+        run: |
+          cd server
+          npm run db:codegen
+          # Verify generated types are up to date
+          git diff --exit-code src/types/database.ts || (echo "Database types are out of date. Run 'npm run db:codegen'" && exit 1)
+
+  # ====================
+  # Security Scanning
+  # ====================
+  security:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 📥 Install dependencies
+        run: npm ci
+        
+      - name: 🔒 Run npm audit
+        run: npm audit --audit-level=high
+        
+      - name: 🔍 Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          
+      - name: 📤 Upload Trivy scan results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # ====================
+  # Integration Summary
+  # ====================
+  ci-success:
+    name: ✅ CI Success
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test, build, docker, e2e, database, security]
+    if: always()
+    
+    steps:
+      - name: ✅ Check all jobs succeeded
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          echo "❌ One or more CI jobs failed:"
+          echo "Lint: ${{ needs.lint.result }}"
+          echo "TypeScript: ${{ needs.typecheck.result }}"
+          echo "Tests: ${{ needs.test.result }}"
+          echo "Build: ${{ needs.build.result }}"
+          echo "Docker: ${{ needs.docker.result }}"
+          echo "E2E: ${{ needs.e2e.result }}"
+          echo "Database: ${{ needs.database.result }}"
+          echo "Security: ${{ needs.security.result }}"
+          exit 1
+          
+      - name: 🎉 All checks passed
+        run: echo "🎉 All CI checks passed successfully!"

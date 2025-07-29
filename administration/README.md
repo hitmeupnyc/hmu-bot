@@ -74,8 +74,11 @@ npm run docker:down        # Stop Docker services
 - **Monorepo**: Turborepo with npm workspaces
 - **Backend**: Node.js + TypeScript + Express + SQLite
 - **Frontend**: React + TypeScript + Vite + Tailwind CSS
-- **Testing**: Playwright (E2E)
+- **Testing**: Playwright (E2E), Vitest (Unit)
 - **Database**: SQLite with better-sqlite3
+- **CI/CD**: GitHub Actions with automated testing, building, and deployment
+- **Container**: Docker with multi-stage builds
+- **Security**: Automated vulnerability scanning and dependency updates
 
 ## 📁 Project Structure
 
@@ -127,9 +130,11 @@ E2E tests cover:
 
 1. Make changes to your feature
 2. Test locally: `npm run dev:simple`
-3. Run tests: `npm test`
-4. Lint: `npm run lint`
-5. Commit with descriptive message
+3. Run full verification: `npm run lint && npm run typecheck && npm test`
+4. Commit with descriptive message
+5. Create pull request (CI will run automatically)
+
+> 📖 **See [.github/README.md](.github/README.md) for detailed CI/CD documentation**
 
 ## 📝 Notes
 

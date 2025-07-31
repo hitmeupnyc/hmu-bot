@@ -1,54 +1,108 @@
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../types';
+import { ValidationError } from './validation';
+import logger from '../utils/logger';
 
 export class AppError extends Error {
   public statusCode: number;
   public isOperational: boolean;
+  public code?: string;
 
-  constructor(message: string, statusCode: number) {
+  constructor(message: string, statusCode: number, code?: string) {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = true;
+    this.code = code;
 
     Error.captureStackTrace(this, this.constructor);
   }
 }
 
+// Helper functions instead of subclasses
+export const createError = (message: string, statusCode: number, code?: string) => {
+  const error = new Error(message) as Error & { statusCode: number; code?: string };
+  error.statusCode = statusCode;
+  error.code = code;
+  return error;
+};
+
+interface ErrorResponse extends ApiResponse {
+  code?: string;
+  errors?: Array<{ field: string; message: string }>;
+  requestId?: string;
+}
+
 export const errorHandler = (
-  error: Error | AppError,
+  error: Error | AppError | ValidationError,
   req: Request,
-  res: Response<ApiResponse>,
+  res: Response<ErrorResponse>,
   next: NextFunction
 ): void => {
   let statusCode = 500;
   let message = 'Internal server error';
+  let code: string | undefined;
+  let errors: Array<{ field: string; message: string }> | undefined;
 
-  if (error instanceof AppError) {
+  // Generate unique request ID for tracking
+  const requestId = req.headers['x-request-id'] as string || 
+    `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  if (error instanceof ValidationError) {
     statusCode = error.statusCode;
     message = error.message;
-  } else if (error.name === 'ValidationError') {
-    statusCode = 400;
+    code = 'VALIDATION_ERROR';
+    errors = error.errors;
+  } else if (error instanceof AppError) {
+    statusCode = error.statusCode;
     message = error.message;
+    code = error.code;
   } else if (error.name === 'SqliteError') {
     statusCode = 400;
     message = 'Database operation failed';
+    code = 'DATABASE_ERROR';
+  } else if (error.name === 'CastError') {
+    statusCode = 400;
+    message = 'Invalid data format';
+    code = 'INVALID_FORMAT';
+  } else if (error.message.includes('UNIQUE constraint')) {
+    statusCode = 409;
+    message = 'Resource already exists';
+    code = 'DUPLICATE_RESOURCE';
+  } else if (error.message.includes('FOREIGN KEY constraint')) {
+    statusCode = 400;
+    message = 'Invalid reference to related resource';
+    code = 'INVALID_REFERENCE';
   }
 
-  // Log error for debugging
-  console.error('Error:', {
+  // Log error with appropriate level
+  const logLevel = statusCode >= 500 ? 'error' : 'warn';
+  logger[logLevel]('API Error', {
+    requestId,
     message: error.message,
     stack: error.stack,
     statusCode,
+    code,
     path: req.path,
     method: req.method,
-    timestamp: new Date().toISOString()
+    userAgent: req.get('User-Agent'),
+    ip: req.ip,
+    timestamp: new Date().toISOString(),
+    ...(errors && { validationErrors: errors })
   });
 
-  res.status(statusCode).json({
+  const response: ErrorResponse = {
     success: false,
     error: message,
-    ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
-  });
+    code,
+    requestId,
+    ...(errors && { errors }),
+    ...(process.env.NODE_ENV === 'development' && { 
+      stack: error.stack,
+      originalError: error.message 
+    })
+  };
+
+  res.status(statusCode).json(response);
 };
 
 export const asyncHandler = (fn: Function) => {

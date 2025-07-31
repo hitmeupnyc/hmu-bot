@@ -8,6 +8,7 @@ import { jobScheduler } from './services/JobScheduler';
 import logger from './utils/logger';
 import { errorHandler } from './middleware/errorHandler';
 import { auditMiddleware as globalAuditMiddleware } from './middleware/auditLoggingMiddleware';
+import { apiLimiter } from './middleware/rateLimiting';
 import { memberRoutes } from './routes/memberRoutes';
 import { eventRoutes } from './routes/eventRoutes';
 import { webhookRoutes } from './routes/webhookRoutes';
@@ -37,6 +38,9 @@ app.use(morgan('combined'));
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Rate limiting
+app.use('/api', apiLimiter);
 
 // Global audit middleware
 app.use(globalAuditMiddleware);

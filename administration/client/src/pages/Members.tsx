@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { Member, MemberFormData } from '../types';
+import { PlusIcon, PencilIcon, TrashIcon, DocumentArrowUpIcon } from '@heroicons/react/24/outline';
+import { Member, MemberFormData, ApplicationFormData } from '../types';
 import { Modal } from '../components/Modal';
 import { MemberForm } from '../components/MemberForm';
+import { CsvImport } from '../components/CsvImport';
 import { 
   useMembers, 
   useCreateMember, 
@@ -17,6 +18,8 @@ export function Members() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [showCsvImport, setShowCsvImport] = useState(false);
+  const [csvImportLoading, setCsvImportLoading] = useState(false);
 
   // React Query hooks
   const { data, isLoading, error } = useMembers({ 
@@ -89,6 +92,48 @@ export function Members() {
     }
   };
 
+  const handleCsvImport = async (applications: ApplicationFormData[]) => {
+    setCsvImportLoading(true);
+    
+    try {
+      const response = await fetch('/api/applications/bulk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ applications }),
+      });
+
+      const result = await response.json();
+      
+      if (response.ok || response.status === 207) { // 207 = Multi-Status (partial success)
+        const { imported, total, errors } = result.data;
+        
+        if (errors && errors.length > 0) {
+          const errorDetails = errors.map((err: any) => 
+            `Row ${err.index}: ${err.email || 'Unknown'} - ${err.error}`
+          ).join('\n');
+          
+          alert(`Import completed with some errors:\n\nImported: ${imported}/${total}\n\nErrors:\n${errorDetails}`);
+        } else {
+          alert(`Successfully imported all ${imported} applications!`);
+        }
+        
+        setShowCsvImport(false);
+      } else {
+        throw new Error(result.error || 'Failed to import applications');
+      }
+      
+      // Refresh the members list
+      // Note: React Query will automatically refetch due to mutations
+    } catch (error) {
+      console.error('Error importing applications:', error);
+      alert('Failed to import applications. Please try again.');
+    } finally {
+      setCsvImportLoading(false);
+    }
+  };
+
   const getDisplayName = (member: Member) => {
     return member.preferred_name 
       ? `${member.preferred_name} (${member.first_name}) ${member.last_name}`
@@ -134,14 +179,23 @@ export function Members() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Members</h1>
-        <button 
-          onClick={handleCreateMember}
-          disabled={createMember.isPending}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center hover:bg-blue-700 disabled:opacity-50"
-        >
-          <PlusIcon className="h-5 w-5 mr-2" />
-          Add Member
-        </button>
+        <div className="flex space-x-3">
+          <button 
+            onClick={() => setShowCsvImport(true)}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center hover:bg-green-700"
+          >
+            <DocumentArrowUpIcon className="h-5 w-5 mr-2" />
+            Import CSV
+          </button>
+          <button 
+            onClick={handleCreateMember}
+            disabled={createMember.isPending}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center hover:bg-blue-700 disabled:opacity-50"
+          >
+            <PlusIcon className="h-5 w-5 mr-2" />
+            Add Member
+          </button>
+        </div>
       </div>
 
       <div className="bg-white shadow rounded-lg">
@@ -285,6 +339,14 @@ export function Members() {
           isLoading={createMember.isPending || updateMember.isPending}
         />
       </Modal>
+
+      {showCsvImport && (
+        <CsvImport 
+          onImport={handleCsvImport} 
+          onClose={() => setShowCsvImport(false)}
+          isLoading={csvImportLoading} 
+        />
+      )}
     </div>
   );
 }

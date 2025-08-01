@@ -348,27 +348,24 @@ export class PatreonSyncService extends BaseSyncService {
 
   private async updateMemberMembership(memberId: number, membershipTypeId: number, pledge: PatreonPledge): Promise<void> {
     // End any existing active memberships
-    const endExistingStmt = this.db.prepare(`
-      UPDATE member_memberships 
-      SET end_date = ? 
-      WHERE member_id = ? AND end_date IS NULL
-    `);
-    endExistingStmt.run(new Date().toISOString(), memberId);
+    await this.db
+      .updateTable('member_memberships')
+      .set({ end_date: new Date().toISOString() })
+      .where('member_id', '=', memberId)
+      .where('end_date', 'is', null)
+      .execute();
 
     // Create new membership if pledge is active
     if (!pledge.attributes.declined_since) {
-      const insertStmt = this.db.prepare(`
-        INSERT INTO member_memberships (member_id, membership_type_id, start_date, external_payment_reference, created_at)
-        VALUES (?, ?, ?, ?, ?)
-      `);
-
-      insertStmt.run(
-        memberId,
-        membershipTypeId,
-        new Date().toISOString(),
-        `patreon_pledge_${pledge.id}`,
-        new Date().toISOString()
-      );
+      await this.db
+        .insertInto('member_memberships')
+        .values({
+          member_id: memberId,
+          membership_type_id: membershipTypeId,
+          start_date: new Date().toISOString(),
+          external_payment_reference: `patreon_pledge_${pledge.id}`
+        })
+        .execute();
     }
   }
 

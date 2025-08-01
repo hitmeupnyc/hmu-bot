@@ -172,7 +172,7 @@ export function HeaderMapping({ sourceHeaders, targetHeaders, mapping, onMapping
   }, [getHeaderElement, targetHeaders]);
 
   return (
-    <div className="flex gap-6 min-h-[400px]">
+    <div className="flex gap-0 min-h-[400px]">
       {/* Source Headers */}
       <div className="flex-1">
         <h4 className="text-sm font-medium text-gray-700 mb-3">Your Column Headers</h4>
@@ -209,7 +209,7 @@ export function HeaderMapping({ sourceHeaders, targetHeaders, mapping, onMapping
       </div>
 
       {/* SVG Connection Area */}
-      <div className="w-32 flex-shrink-0 relative">
+      <div className="w-16 flex-shrink-0 relative">
         <svg
           ref={svgRef}
           data-testid="mapping-svg"

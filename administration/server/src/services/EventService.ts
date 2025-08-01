@@ -1,8 +1,16 @@
 import { getDb } from './DatabaseService';
 import { AppError } from '../middleware/errorHandler';
-import type { Events, EventsMarketing, EventsVolunteers, EventsAttendance, EventsEventbriteLink, EventbriteEvents } from '../types/database';
+import type { DB } from '../types/database';
 import type { EventWithDetails, CreateEventPayload, CreateEventMarketingPayload, CreateVolunteerPayload, CreateAttendancePayload } from '../types/events';
-import { sql } from 'kysely';
+import { sql, Selectable } from 'kysely';
+
+// Use Selectable to get the actual result types from database queries
+type EventsResult = Selectable<DB['events']>;
+type EventsMarketingResult = Selectable<DB['events_marketing']>;
+type EventsVolunteersResult = Selectable<DB['events_volunteers']>;
+type EventsAttendanceResult = Selectable<DB['events_attendance']>;
+type EventsEventbriteLinkResult = Selectable<DB['events_eventbrite_link']>;
+type EventbriteEventsResult = Selectable<DB['eventbrite_events']>;
 
 export class EventService {
   private db = getDb();
@@ -11,17 +19,17 @@ export class EventService {
     page: number;
     limit: number;
     upcoming?: boolean;
-  }): Promise<{ events: Events[]; pagination: any }> {
+  }): Promise<{ events: EventsResult[]; pagination: any }> {
     const { page, limit, upcoming } = options;
     const offset = (page - 1) * limit;
 
     let query = this.db
       .selectFrom('events')
       .selectAll()
-      .where('flags', '&', 1); // Only active events
+      .where(sql`flags & 1`, '=', 1); // Only active events
 
     if (upcoming) {
-      query = query.where('start_datetime', '>', sql`datetime('now')`);
+      query = query.where('start_datetime', '>', sql<string>`datetime('now')`);
     }
 
     const countQuery = query
@@ -51,12 +59,12 @@ export class EventService {
     };
   }
 
-  public async getEventById(id: number): Promise<Events> {
+  public async getEventById(id: number): Promise<EventsResult> {
     const event = await this.db
       .selectFrom('events')
       .selectAll()
       .where('id', '=', id)
-      .where('flags', '&', 1) // Only active events
+      .where(sql`flags & 1`, '=', 1) // Only active events
       .executeTakeFirst();
 
     if (!event) {
@@ -87,7 +95,7 @@ export class EventService {
     };
   }
 
-  public async createEvent(data: CreateEventPayload): Promise<Events> {
+  public async createEvent(data: CreateEventPayload): Promise<EventsResult> {
     const flags = data.flags || 3; // Default: active + public
 
     const result = await this.db
@@ -110,16 +118,17 @@ export class EventService {
   }
 
   // Events Marketing methods
-  public async getEventMarketing(eventId: number): Promise<EventsMarketing | null> {
-    return await this.db
+  public async getEventMarketing(eventId: number): Promise<EventsMarketingResult | null> {
+    const result = await this.db
       .selectFrom('events_marketing')
       .selectAll()
       .where('event_id', '=', eventId)
-      .where('flags', '&', 1) // Only active
-      .executeTakeFirst() || null;
+      .where(sql`flags & 1`, '=', 1) // Only active
+      .executeTakeFirst();
+    return result || null;
   }
 
-  public async createEventMarketing(data: CreateEventMarketingPayload): Promise<EventsMarketing> {
+  public async createEventMarketing(data: CreateEventMarketingPayload): Promise<EventsMarketingResult> {
     await this.getEventById(data.event_id); // Ensure event exists
 
     const result = await this.db
@@ -150,17 +159,17 @@ export class EventService {
   }
 
   // Events Volunteers methods
-  public async getEventVolunteers(eventId: number): Promise<EventsVolunteers[]> {
+  public async getEventVolunteers(eventId: number): Promise<EventsVolunteersResult[]> {
     return await this.db
       .selectFrom('events_volunteers')
       .selectAll()
       .where('event_id', '=', eventId)
-      .where('flags', '&', 1) // Only active
+      .where(sql`flags & 1`, '=', 1) // Only active
       .orderBy('role', 'asc')
       .execute();
   }
 
-  public async createVolunteer(data: CreateVolunteerPayload): Promise<EventsVolunteers> {
+  public async createVolunteer(data: CreateVolunteerPayload): Promise<EventsVolunteersResult> {
     await this.getEventById(data.event_id); // Ensure event exists
 
     const result = await this.db
@@ -190,17 +199,17 @@ export class EventService {
   }
 
   // Events Attendance methods
-  public async getEventAttendance(eventId: number): Promise<EventsAttendance[]> {
+  public async getEventAttendance(eventId: number): Promise<EventsAttendanceResult[]> {
     return await this.db
       .selectFrom('events_attendance')
       .selectAll()
       .where('event_id', '=', eventId)
-      .where('flags', '&', 1) // Only active
+      .where(sql`flags & 1`, '=', 1) // Only active
       .orderBy('created_at', 'desc')
       .execute();
   }
 
-  public async createAttendance(data: CreateAttendancePayload): Promise<EventsAttendance> {
+  public async createAttendance(data: CreateAttendancePayload): Promise<EventsAttendanceResult> {
     await this.getEventById(data.event_id); // Ensure event exists
 
     // Check if already exists
@@ -245,16 +254,15 @@ export class EventService {
       .executeTakeFirstOrThrow();
   }
 
-  public async checkInAttendee(attendanceId: number, checkInMethod?: string): Promise<EventsAttendance> {
+  public async checkInAttendee(attendanceId: number, checkInMethod?: string): Promise<EventsAttendanceResult> {
     const result = await this.db
       .updateTable('events_attendance')
       .set({
-        checked_in_at: sql`datetime('now')`,
         check_in_method: checkInMethod || 'manual',
         updated_at: sql`datetime('now')`
       })
       .where('id', '=', attendanceId)
-      .where('flags', '&', 1)
+      .where(sql`flags & 1`, '=', 1)
       .returning('id')
       .executeTakeFirst();
 
@@ -270,12 +278,12 @@ export class EventService {
   }
 
   // Eventbrite integration methods
-  private async getEventbriteEventByEventId(eventId: number): Promise<EventbriteEvents | null> {
+  private async getEventbriteEventByEventId(eventId: number): Promise<EventbriteEventsResult | null> {
     const link = await this.db
       .selectFrom('events_eventbrite_link')
       .select('eventbrite_event_id')
       .where('event_id', '=', eventId)
-      .where('flags', '&', 1) // Only active links
+      .where(sql`flags & 1`, '=', 1) // Only active links
       .executeTakeFirst();
 
     if (!link) return null;
@@ -284,16 +292,16 @@ export class EventService {
       .selectFrom('eventbrite_events')
       .selectAll()
       .where('id', '=', link.eventbrite_event_id)
-      .where('flags', '&', 1) // Only active
+      .where(sql`flags & 1`, '=', 1) // Only active
       .executeTakeFirst() || null;
   }
 
-  private async getEventbriteLink(eventId: number): Promise<EventsEventbriteLink | null> {
+  private async getEventbriteLink(eventId: number): Promise<EventsEventbriteLinkResult | null> {
     return await this.db
       .selectFrom('events_eventbrite_link')
       .selectAll()
       .where('event_id', '=', eventId)
-      .where('flags', '&', 1) // Only active links
+      .where(sql`flags & 1`, '=', 1) // Only active links
       .executeTakeFirst() || null;
   }
 }

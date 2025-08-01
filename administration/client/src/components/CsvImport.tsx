@@ -19,7 +19,7 @@ interface ParsedResult {
   errors: ImportError[];
 }
 
-interface HeaderMapping {
+interface HeaderMappingState {
   [expectedHeader: string]: string | null; // maps expected header to found header or null if not mapped
 }
 
@@ -56,7 +56,7 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
   const [rawData, setRawData] = useState('');
   const [foundHeaders, setFoundHeaders] = useState<string[]>([]);
   const [hasHeaders, setHasHeaders] = useState(true);
-  const [headerMapping, setHeaderMapping] = useState<HeaderMapping>({});
+  const [headerMapping, setHeaderMapping] = useState<HeaderMappingState>({});
   const [showMapping, setShowMapping] = useState(false);
   const [preview, setPreview] = useState<ParsedResult | null>(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -94,7 +94,7 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
 
     if (exactMatch) {
       // Create automatic mapping
-      const autoMapping: HeaderMapping = {};
+      const autoMapping: HeaderMappingState = {};
       EXPECTED_HEADERS.forEach(expected => {
         const foundIndex = normalizedFound.indexOf(expected.key.toLowerCase());
         if (foundIndex !== -1) {
@@ -106,7 +106,7 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
       processWithMapping(autoMapping);
     } else {
       // Show mapping interface
-      const initialMapping: HeaderMapping = {};
+      const initialMapping: HeaderMappingState = {};
       EXPECTED_HEADERS.forEach(expected => {
         initialMapping[expected.key] = null;
       });
@@ -115,7 +115,7 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
     }
   };
 
-  const processWithMapping = (mapping: HeaderMapping) => {
+  const processWithMapping = (mapping: HeaderMappingState) => {
     const rows = parseTsvData(rawData);
     if (rows.length === 0) return;
 
@@ -260,7 +260,7 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
     }
   };
 
-  const handleMappingChange = (newMapping: HeaderMapping) => {
+  const handleMappingChange = (newMapping: HeaderMappingState) => {
     setHeaderMapping(newMapping);
   };
 

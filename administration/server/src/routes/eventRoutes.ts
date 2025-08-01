@@ -159,8 +159,10 @@ router.post('/:id/checkin', asyncHandler(async (req, res) => {
   };
   
   const attendance = await eventService.createAttendance(attendanceData);
-  const attendanceId = typeof attendance.id === 'number' ? attendance.id : parseInt(attendance.id as string);
-  const checkedIn = await eventService.checkInAttendee(attendanceId, 'manual');
+  if (!attendance.id) {
+    throw new Error('Failed to create attendance record');
+  }
+  const checkedIn = await eventService.checkInAttendee(attendance.id!, 'manual');
   
   res.json({
     success: true,

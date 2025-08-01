@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { EventService } from '../services/eventService';
@@ -407,7 +407,11 @@ export function EventDetails() {
       >
         <EventMarketingForm
           eventId={eventId}
-          initialData={marketing || undefined}
+          initialData={marketing ? {
+            ...marketing,
+            hashtags: marketing.hashtags ? marketing.hashtags.split(',').map(tag => tag.trim()) : undefined,
+            key_selling_points: marketing.key_selling_points ? marketing.key_selling_points.split(',').map(point => point.trim()) : undefined
+          } : undefined}
           onSubmit={handleMarketingSubmit}
           onCancel={() => setShowMarketingForm(false)}
           isLoading={marketingLoading}

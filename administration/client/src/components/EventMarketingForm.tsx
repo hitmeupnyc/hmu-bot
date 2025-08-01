@@ -10,7 +10,7 @@ interface EventMarketingFormProps {
 }
 
 export const EventMarketingForm: React.FC<EventMarketingFormProps> = ({
-  eventId,
+  eventId: _eventId,
   initialData,
   onSubmit,
   onCancel,

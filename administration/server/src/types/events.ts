@@ -3,6 +3,10 @@
  * Domain-specific types for the events management system
  */
 
+// Import selectable types for proper typing
+import type { Selectable } from 'kysely';
+import type { DB } from './database';
+
 // Eventbrite Events Status Bitfield
 export const EventbriteEventStatus = {
   DRAFT: 1,
@@ -204,12 +208,12 @@ export interface VolunteerSkill {
 
 // Comprehensive event data with all related information
 export interface EventWithDetails {
-  event: import('./database').Events;
-  eventbrite_event?: import('./database').EventbriteEvents;
-  marketing?: import('./database').EventsMarketing;
-  volunteers: import('./database').EventsVolunteers[];
-  attendance: import('./database').EventsAttendance[];
-  eventbrite_link?: import('./database').EventsEventbriteLink;
+  event: Selectable<DB['events']>;
+  eventbrite_event?: Selectable<DB['eventbrite_events']>;
+  marketing?: Selectable<DB['events_marketing']>;
+  volunteers: Selectable<DB['events_volunteers']>[];
+  attendance: Selectable<DB['events_attendance']>[];
+  eventbrite_link?: Selectable<DB['events_eventbrite_link']>;
 }
 
 // Event creation/update payloads

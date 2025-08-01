@@ -3,6 +3,7 @@ import { BaseSyncService } from './BaseSyncService';
 import { Member } from '../types';
 import crypto from 'crypto';
 import { logSyncOperation } from '../utils/logger';
+import { getDb } from './DatabaseService';
 
 export interface PatreonUser {
   id: string;
@@ -73,6 +74,7 @@ export interface PatreonWebhookPayload {
 export class PatreonSyncService extends BaseSyncService {
   private patreonAPI: any;
   private patreonOAuth: any;
+  private db = getDb();
 
   constructor() {
     super();

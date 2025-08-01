@@ -32,6 +32,37 @@ export interface EventAttendance {
   notes: string | null;
 }
 
+export interface EventbriteEvents {
+  capacity: number | null;
+  category_id: string | null;
+  created_at: Generated<string | null>;
+  description_html: string | null;
+  description_text: string | null;
+  end_local: string | null;
+  end_timezone: string | null;
+  end_utc: string | null;
+  eventbrite_id: string;
+  flags: Generated<number | null>;
+  format_id: string | null;
+  id: Generated<number | null>;
+  last_synced_at: Generated<string | null>;
+  name_html: string | null;
+  name_text: string | null;
+  organizer_json: string | null;
+  raw_eventbrite_data: string | null;
+  show_remaining: Generated<number | null>;
+  start_local: string | null;
+  start_timezone: string | null;
+  start_utc: string | null;
+  status: Generated<number | null>;
+  subcategory_id: string | null;
+  sync_hash: string | null;
+  ticket_classes_json: string | null;
+  updated_at: Generated<string | null>;
+  url: string | null;
+  venue_json: string | null;
+}
+
 export interface Events {
   created_at: Generated<string | null>;
   created_by_member_id: number | null;
@@ -46,6 +77,78 @@ export interface Events {
   required_membership_types: string | null;
   start_datetime: string;
   updated_at: Generated<string | null>;
+}
+
+export interface EventsAttendance {
+  attendance_source: Generated<number | null>;
+  check_in_method: string | null;
+  created_at: Generated<string | null>;
+  event_id: number;
+  eventbrite_attendee_id: string | null;
+  eventbrite_order_id: string | null;
+  flags: Generated<number | null>;
+  id: Generated<number | null>;
+  marketing_source: string | null;
+  member_id: number | null;
+  notes: string | null;
+  registration_date: string | null;
+  ticket_type: string | null;
+  updated_at: Generated<string | null>;
+}
+
+export interface EventsEventbriteLink {
+  created_at: Generated<string | null>;
+  event_id: number;
+  eventbrite_event_id: number;
+  flags: Generated<number | null>;
+  id: Generated<number | null>;
+  last_synced_at: string | null;
+  sync_direction: Generated<string | null>;
+  sync_errors: string | null;
+  sync_status: Generated<string | null>;
+}
+
+export interface EventsMarketing {
+  blurb: string | null;
+  created_at: Generated<string | null>;
+  created_by_member_id: number | null;
+  email_preview_text: string | null;
+  email_subject: string | null;
+  event_id: number;
+  flags: Generated<number | null>;
+  hashtags: string | null;
+  id: Generated<number | null>;
+  key_selling_points: string | null;
+  marketing_images_json: string | null;
+  primary_marketing_copy: string | null;
+  secondary_marketing_copy: string | null;
+  seo_description: string | null;
+  seo_title: string | null;
+  social_media_copy: string | null;
+  updated_at: Generated<string | null>;
+}
+
+export interface EventsVolunteers {
+  arrival_time: string | null;
+  checked_in_at: string | null;
+  checked_out_at: string | null;
+  confirmed_at: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  coordinator_notes: string | null;
+  created_at: Generated<string | null>;
+  departure_time: string | null;
+  equipment_needed: string | null;
+  event_id: number;
+  flags: Generated<number | null>;
+  hours_worked: number | null;
+  id: Generated<number | null>;
+  member_id: number;
+  role: string;
+  skills_required: string | null;
+  special_instructions: string | null;
+  updated_at: Generated<string | null>;
+  volunteer_notes: string | null;
 }
 
 export interface ExternalIntegrations {
@@ -71,6 +174,7 @@ export interface MemberMemberships {
 }
 
 export interface Members {
+  access_level: Generated<number | null>;
   created_at: Generated<string | null>;
   date_added: Generated<string | null>;
   email: string;
@@ -117,118 +221,15 @@ export interface SyncOperations {
   status: string;
 }
 
-export interface EventbriteEvents {
-  id: Generated<number | null>;
-  eventbrite_id: string;
-  name_text: string | null;
-  name_html: string | null;
-  description_text: string | null;
-  description_html: string | null;
-  url: string | null;
-  start_utc: string | null;
-  end_utc: string | null;
-  start_timezone: string | null;
-  end_timezone: string | null;
-  start_local: string | null;
-  end_local: string | null;
-  capacity: number | null;
-  status: Generated<number | null>;
-  category_id: string | null;
-  subcategory_id: string | null;
-  format_id: string | null;
-  show_remaining: Generated<number | null>;
-  venue_json: string | null;
-  organizer_json: string | null;
-  ticket_classes_json: string | null;
-  raw_eventbrite_data: string | null;
-  last_synced_at: Generated<string | null>;
-  sync_hash: string | null;
-  flags: Generated<number | null>;
-  created_at: Generated<string | null>;
-  updated_at: Generated<string | null>;
-}
-
-export interface EventsMarketing {
-  id: Generated<number | null>;
-  event_id: number;
-  primary_marketing_copy: string | null;
-  secondary_marketing_copy: string | null;
-  blurb: string | null;
-  social_media_copy: string | null;
-  email_subject: string | null;
-  email_preview_text: string | null;
-  seo_title: string | null;
-  seo_description: string | null;
-  hashtags: string | null;
-  marketing_images_json: string | null;
-  key_selling_points: string | null;
-  created_by_member_id: number | null;
-  flags: Generated<number | null>;
-  created_at: Generated<string | null>;
-  updated_at: Generated<string | null>;
-}
-
-export interface EventsVolunteers {
-  id: Generated<number | null>;
-  event_id: number;
-  member_id: number;
-  role: string;
-  contact_phone: string | null;
-  contact_email: string | null;
-  arrival_time: string | null;
-  departure_time: string | null;
-  special_instructions: string | null;
-  equipment_needed: string | null;
-  skills_required: string | null;
-  volunteer_notes: string | null;
-  coordinator_notes: string | null;
-  confirmed_at: string | null;
-  checked_in_at: string | null;
-  checked_out_at: string | null;
-  hours_worked: number | null;
-  flags: Generated<number | null>;
-  created_at: Generated<string | null>;
-  updated_at: Generated<string | null>;
-}
-
-export interface EventsAttendance {
-  id: Generated<number | null>;
-  event_id: number;
-  member_id: number | null;
-  eventbrite_attendee_id: string | null;
-  eventbrite_order_id: string | null;
-  ticket_type: string | null;
-  registration_date: string | null;
-  attendance_source: Generated<number | null>;
-  check_in_method: string | null;
-  marketing_source: string | null;
-  notes: string | null;
-  flags: Generated<number | null>;
-  created_at: Generated<string | null>;
-  updated_at: Generated<string | null>;
-}
-
-export interface EventsEventbriteLink {
-  id: Generated<number | null>;
-  event_id: number;
-  eventbrite_event_id: number;
-  sync_direction: Generated<string | null>;
-  last_synced_at: string | null;
-  sync_status: Generated<string | null>;
-  sync_errors: string | null;
-  flags: Generated<number | null>;
-  created_at: Generated<string | null>;
-}
-
 export interface DB {
   audit_log: AuditLog;
   event_attendance: EventAttendance;
+  eventbrite_events: EventbriteEvents;
   events: Events;
   events_attendance: EventsAttendance;
   events_eventbrite_link: EventsEventbriteLink;
   events_marketing: EventsMarketing;
   events_volunteers: EventsVolunteers;
-  eventbrite_events: EventbriteEvents;
   external_integrations: ExternalIntegrations;
   member_memberships: MemberMemberships;
   members: Members;

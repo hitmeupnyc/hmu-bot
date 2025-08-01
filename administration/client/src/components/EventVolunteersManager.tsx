@@ -23,7 +23,7 @@ const VOLUNTEER_ROLES = [
 ];
 
 export const EventVolunteersManager: React.FC<EventVolunteersManagerProps> = ({
-  eventId,
+  eventId: _eventId,
   volunteers,
   members,
   onAddVolunteer,

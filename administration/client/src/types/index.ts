@@ -92,28 +92,185 @@ export interface Event {
   updated_at: string;
 }
 
-export interface EventAttendance {
+// Enhanced Events Management Types
+export interface EventbriteEvent {
+  id: number;
+  eventbrite_id: string;
+  name_text?: string;
+  name_html?: string;
+  description_text?: string;
+  description_html?: string;
+  url?: string;
+  start_utc?: string;
+  end_utc?: string;
+  start_timezone?: string;
+  end_timezone?: string;
+  start_local?: string;
+  end_local?: string;
+  capacity?: number;
+  status: number;
+  category_id?: string;
+  subcategory_id?: string;
+  format_id?: string;
+  show_remaining: number;
+  venue_json?: string;
+  organizer_json?: string;
+  ticket_classes_json?: string;
+  raw_eventbrite_data?: string;
+  last_synced_at: string;
+  sync_hash?: string;
+  flags: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventMarketing {
+  id: number;
+  event_id: number;
+  primary_marketing_copy?: string;
+  secondary_marketing_copy?: string;
+  blurb?: string;
+  social_media_copy?: string;
+  email_subject?: string;
+  email_preview_text?: string;
+  seo_title?: string;
+  seo_description?: string;
+  hashtags?: string;
+  marketing_images_json?: string;
+  key_selling_points?: string;
+  created_by_member_id?: number;
+  flags: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventVolunteer {
   id: number;
   event_id: number;
   member_id: number;
+  role: string;
+  contact_phone?: string;
+  contact_email?: string;
+  arrival_time?: string;
+  departure_time?: string;
+  special_instructions?: string;
+  equipment_needed?: string;
+  skills_required?: string;
+  volunteer_notes?: string;
+  coordinator_notes?: string;
+  confirmed_at?: string;
   checked_in_at?: string;
   checked_out_at?: string;
-  attendance_source: string;
-  notes?: string;
+  hours_worked?: number;
+  flags: number;
+  created_at: string;
+  updated_at: string;
 }
 
+export interface EventAttendance {
+  id: number;
+  event_id: number;
+  member_id?: number;
+  eventbrite_attendee_id?: string;
+  eventbrite_order_id?: string;
+  ticket_type?: string;
+  registration_date?: string;
+  attendance_source: number;
+  check_in_method?: string;
+  marketing_source?: string;
+  notes?: string;
+  flags: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventWithDetails {
+  event: Event;
+  eventbrite_event?: EventbriteEvent;
+  marketing?: EventMarketing;
+  volunteers: EventVolunteer[];
+  attendance: EventAttendance[];
+  eventbrite_link?: {
+    id: number;
+    event_id: number;
+    eventbrite_event_id: number;
+    sync_direction: string;
+    last_synced_at?: string;
+    sync_status: string;
+    sync_errors?: string;
+    flags: number;
+    created_at: string;
+  };
+}
+
+// Request types
 export interface CreateEventRequest {
   name: string;
   description?: string;
   start_datetime: string;
   end_datetime: string;
-  is_public?: boolean;
   max_capacity?: number;
   required_membership_types?: number[];
+  eventbrite_id?: string;
+  eventbrite_url?: string;
+  flags?: number;
 }
 
 export interface UpdateEventRequest extends Partial<CreateEventRequest> {
   id: number;
+}
+
+export interface CreateEventMarketingRequest {
+  primary_marketing_copy?: string;
+  secondary_marketing_copy?: string;
+  blurb?: string;
+  social_media_copy?: string;
+  email_subject?: string;
+  email_preview_text?: string;
+  seo_title?: string;
+  seo_description?: string;
+  hashtags?: string[];
+  marketing_images?: Array<{
+    url: string;
+    alt_text?: string;
+    caption?: string;
+    type: 'hero' | 'thumbnail' | 'social' | 'email';
+  }>;
+  key_selling_points?: string[];
+}
+
+export interface CreateVolunteerRequest {
+  member_id: number;
+  role: string;
+  contact_phone?: string;
+  contact_email?: string;
+  arrival_time?: string;
+  departure_time?: string;
+  special_instructions?: string;
+  equipment_needed?: Array<{
+    name: string;
+    description?: string;
+    quantity?: number;
+    provided_by?: 'organization' | 'volunteer';
+  }>;
+  skills_required?: Array<{
+    name: string;
+    level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+    required: boolean;
+  }>;
+  volunteer_notes?: string;
+}
+
+export interface CreateAttendanceRequest {
+  member_id?: number;
+  eventbrite_attendee_id?: string;
+  eventbrite_order_id?: string;
+  ticket_type?: string;
+  registration_date?: string;
+  attendance_source?: number;
+  check_in_method?: string;
+  marketing_source?: string;
+  notes?: string;
 }
 
 // Form types

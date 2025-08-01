@@ -6,9 +6,10 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: ReactNode;
+  size?: 'small' | 'medium' | 'large' | 'xlarge';
 }
 
-export function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, size = 'medium' }: ModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -18,7 +19,12 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
         
         <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
         
-        <div className="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
+        <div className={`inline-block w-full p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg ${
+          size === 'small' ? 'max-w-md' : 
+          size === 'large' ? 'max-w-4xl' : 
+          size === 'xlarge' ? 'max-w-6xl' : 
+          'max-w-2xl'
+        }`}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-medium text-gray-900">{title}</h3>
             <button

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { PlusIcon, PencilIcon, TrashIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import { useNavigate } from 'react-router-dom';
+import { PlusIcon, PencilIcon, TrashIcon, CalendarIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { Event, EventFormData } from '../types';
 import { EventService } from '../services/eventService';
 import { Modal } from '../components/Modal';
@@ -8,6 +9,7 @@ import { EventForm } from '../components/EventForm';
 type EventFilter = 'upcoming' | 'past' | 'all';
 
 export function Events() {
+  const navigate = useNavigate();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<EventFilter>('upcoming');
@@ -53,6 +55,10 @@ export function Events() {
   const handleEditEvent = (event: Event) => {
     setEditingEvent(event);
     setIsModalOpen(true);
+  };
+
+  const handleViewEvent = (event: Event) => {
+    navigate(`/events/${event.id}`);
   };
 
   const handleDeleteEvent = async (event: Event) => {
@@ -259,14 +265,23 @@ export function Events() {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex space-x-2">
                         <button
+                          onClick={() => handleViewEvent(event)}
+                          className="text-green-600 hover:text-green-900"
+                          title="View Details"
+                        >
+                          <EyeIcon className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => handleEditEvent(event)}
                           className="text-blue-600 hover:text-blue-900"
+                          title="Edit Event"
                         >
                           <PencilIcon className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteEvent(event)}
                           className="text-red-600 hover:text-red-900"
+                          title="Delete Event"
                         >
                           <TrashIcon className="h-4 w-4" />
                         </button>

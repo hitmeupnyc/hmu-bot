@@ -4,6 +4,7 @@ import { Dashboard } from '@/pages/Dashboard';
 import { Members } from '@/pages/Members';
 import { MemberDetails } from '@/pages/MemberDetails';
 import { Events } from '@/pages/Events';
+import { EventDetails } from '@/pages/EventDetails';
 import { Settings } from '@/pages/Settings';
 import { Apply } from '@/pages/Apply';
 
@@ -15,6 +16,7 @@ function App() {
         <Route path="/members" element={<Members />} />
         <Route path="/members/:id" element={<MemberDetails />} />
         <Route path="/events" element={<Events />} />
+        <Route path="/events/:id" element={<EventDetails />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/apply" element={<Apply />} />
       </Routes>

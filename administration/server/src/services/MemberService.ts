@@ -1,4 +1,4 @@
-import { DatabaseService } from './DatabaseService';
+import { prepare } from './DatabaseService';
 import { AuditService } from './AuditService';
 import { AppError } from '../middleware/errorHandler';
 import { 
@@ -10,8 +10,6 @@ import {
 } from '../types';
 
 export class MemberService {
-  private db = DatabaseService.getInstance().getDatabase();
-  private dbService = DatabaseService.getInstance();
   private auditService = AuditService.getInstance();
 
   public async getMembers(options: {
@@ -39,8 +37,8 @@ export class MemberService {
       LIMIT ? OFFSET ?
     `;
 
-    const countResult = this.dbService.prepare(countQuery).get(search ? [search, search, search] : []) as { total: number };
-    const members = this.dbService.prepare(selectQuery).all(params) as Member[];
+    const countResult = prepare(countQuery).get(search ? [search, search, search] : []) as { total: number };
+    const members = prepare(selectQuery).all(params) as Member[];
 
     const total = countResult.total;
     const totalPages = Math.ceil(total / limit);
@@ -57,7 +55,7 @@ export class MemberService {
   }
 
   private async getMemberByIdInternal(id: number): Promise<Member> {
-    const member = this.dbService.prepare(
+    const member = prepare(
       'SELECT * FROM members WHERE id = ? AND (flags & 1) = 1'
     ).get(id) as Member | undefined;
 
@@ -85,7 +83,7 @@ export class MemberService {
 
   public async createMember(data: CreateMemberRequest): Promise<Member> {
     // Check if email already exists
-    const existingMember = this.dbService.prepare(
+    const existingMember = prepare(
       'SELECT id FROM members WHERE email = ?'
     ).get(data.email);
 
@@ -98,7 +96,7 @@ export class MemberService {
       professional_affiliate: data.is_professional_affiliate || false
     });
 
-    const stmt = this.dbService.prepare(`
+    const stmt = prepare(`
       INSERT INTO members (
         first_name, last_name, preferred_name, email, pronouns, 
         sponsor_notes, flags
@@ -123,7 +121,7 @@ export class MemberService {
 
     // Check if email is being changed and if it conflicts
     if (data.email && data.email !== existingMember.email) {
-      const emailConflict = this.dbService.prepare(
+      const emailConflict = prepare(
         'SELECT id FROM members WHERE email = ? AND id != ?'
       ).get(data.email, data.id);
 
@@ -163,7 +161,7 @@ export class MemberService {
     updateFields.push('updated_at = CURRENT_TIMESTAMP');
     values.push(data.id);
 
-    const stmt = this.dbService.prepare(`
+    const stmt = prepare(`
       UPDATE members 
       SET ${updateFields.join(', ')}
       WHERE id = ?
@@ -194,7 +192,7 @@ export class MemberService {
     // Soft delete by setting active flag to false
     const flags = member.flags & ~1; // Clear active bit
 
-    this.dbService.prepare(
+    prepare(
       'UPDATE members SET flags = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
     ).run(flags, id);
   }
@@ -202,7 +200,7 @@ export class MemberService {
   public async getMemberMemberships(memberId: number): Promise<MemberMembership[]> {
     await this.getMemberByIdInternal(memberId); // Ensure member exists
 
-    return this.dbService.prepare(`
+    return prepare(`
       SELECT mm.*, mt.name as membership_name, ps.name as payment_status_name
       FROM member_memberships mm
       JOIN membership_types mt ON mm.membership_type_id = mt.id
@@ -215,7 +213,7 @@ export class MemberService {
   public async getMemberEvents(memberId: number): Promise<any[]> {
     await this.getMemberByIdInternal(memberId); // Ensure member exists
 
-    return this.dbService.prepare(`
+    return prepare(`
       SELECT e.*, ea.checked_in_at, ea.checked_out_at, ea.attendance_source
       FROM events e
       JOIN event_attendance ea ON e.id = ea.event_id

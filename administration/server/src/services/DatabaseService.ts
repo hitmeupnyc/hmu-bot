@@ -5,96 +5,121 @@ import fs from 'fs';
 import type { DB as DatabaseSchema } from '../types/database';
 import { MigrationProvider } from './MigrationProvider';
 
-export class DatabaseService {
-  private static instance: DatabaseService;
-  private _db: Kysely<DatabaseSchema>;
-  private _sqliteDb: Database.Database;
-  private _migrationProvider: MigrationProvider;
+// Module-scoped singleton variables
+let _db: Kysely<DatabaseSchema>;
+let _sqliteDb: Database.Database;
+let _migrationProvider: MigrationProvider;
+let _initialized = false;
 
-  private constructor() {
-    const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../data/club.db');
-    
-    // Ensure data directory exists
-    const dbDir = path.dirname(dbPath);
-    if (!fs.existsSync(dbDir)) {
-      fs.mkdirSync(dbDir, { recursive: true });
-    }
-
-    // Create the better-sqlite3 instance
-    this._sqliteDb = new Database(dbPath);
-    this._sqliteDb.pragma('journal_mode = WAL');
-    this._sqliteDb.pragma('foreign_keys = ON');
-
-    // Create Kysely instance with SqliteDialect
-    this._db = new Kysely<DatabaseSchema>({
-      dialect: new SqliteDialect({
-        database: this._sqliteDb,
-      }),
-    });
-
-    // Initialize migration provider
-    this._migrationProvider = new MigrationProvider(this._db);
+// Initialize the database connection
+function initializeDatabase(): void {
+  if (_initialized) return;
+  
+  const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../data/club.db');
+  
+  // Ensure data directory exists
+  const dbDir = path.dirname(dbPath);
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
   }
 
-  public static getInstance(): DatabaseService {
-    if (!DatabaseService.instance) {
-      DatabaseService.instance = new DatabaseService();
-    }
-    return DatabaseService.instance;
-  }
+  // Create the better-sqlite3 instance
+  _sqliteDb = new Database(dbPath);
+  _sqliteDb.pragma('journal_mode = WAL');
+  _sqliteDb.pragma('foreign_keys = ON');
 
-  public get db(): Kysely<DatabaseSchema> {
-    return this._db;
-  }
+  // Create Kysely instance with SqliteDialect
+  _db = new Kysely<DatabaseSchema>({
+    dialect: new SqliteDialect({
+      database: _sqliteDb,
+    }),
+  });
 
-  public get sqliteDb(): Database.Database {
-    return this._sqliteDb;
-  }
+  // Initialize migration provider
+  _migrationProvider = new MigrationProvider(_db);
+  _initialized = true;
+}
 
-  public async initialize(): Promise<void> {
-    try {
-      console.log('🔄 Running database migrations...');
-      await this._migrationProvider.migrateToLatest();
-      console.log('✅ Database initialized successfully');
-    } catch (error) {
-      console.error('❌ Database initialization failed:', error);
-      throw error;
-    }
+// Get the Kysely database instance
+export function getDb(): Kysely<DatabaseSchema> {
+  if (!_initialized) {
+    initializeDatabase();
   }
+  return _db;
+}
 
-  public getDatabase(): Kysely<DatabaseSchema> {
-    return this._db;
+// Get the raw SQLite database instance
+export function getSqliteDb(): Database.Database {
+  if (!_initialized) {
+    initializeDatabase();
   }
+  return _sqliteDb;
+}
 
-  public async close(): Promise<void> {
-    await this._db.destroy();
-    this._sqliteDb.close();
+// Initialize database and run migrations
+export async function initialize(): Promise<void> {
+  if (!_initialized) {
+    initializeDatabase();
   }
+  
+  try {
+    console.log('🔄 Running database migrations...');
+    await _migrationProvider.migrateToLatest();
+    console.log('✅ Database initialized successfully');
+  } catch (error) {
+    console.error('❌ Database initialization failed:', error);
+    throw error;
+  }
+}
 
-  // Transaction helper
-  public async transaction<T>(fn: (trx: Kysely<DatabaseSchema>) => Promise<T>): Promise<T> {
-    return await this._db.transaction().execute(fn);
-  }
+// Get database instance (legacy compatibility)
+export function getDatabase(): Kysely<DatabaseSchema> {
+  return getDb();
+}
 
-  // Legacy compatibility methods for gradual migration
-  public prepare(sql: string): Database.Statement {
-    return this._sqliteDb.prepare(sql);
+// Close database connections
+export async function close(): Promise<void> {
+  if (_db) {
+    await _db.destroy();
   }
+  if (_sqliteDb) {
+    _sqliteDb.close();
+  }
+  _initialized = false;
+}
 
-  public legacyTransaction<T>(fn: () => T): T {
-    return this._sqliteDb.transaction(fn)();
-  }
+// Transaction helper
+export async function transaction<T>(fn: (trx: Kysely<DatabaseSchema>) => Promise<T>): Promise<T> {
+  return await getDb().transaction().execute(fn);
+}
 
-  // Migration management methods
-  public async migrateUp(): Promise<void> {
-    await this._migrationProvider.migrateToLatest();
-  }
+// Legacy compatibility methods for gradual migration
+export function prepare(sql: string): Database.Statement {
+  return getSqliteDb().prepare(sql);
+}
 
-  public async migrateDown(): Promise<void> {
-    await this._migrationProvider.migrateDown();
-  }
+export function legacyTransaction<T>(fn: () => T): T {
+  return getSqliteDb().transaction(fn)();
+}
 
-  public async getMigrationStatus() {
-    return await this._migrationProvider.getMigrationStatus();
+// Migration management methods
+export async function migrateUp(): Promise<void> {
+  if (!_initialized) {
+    initializeDatabase();
   }
+  await _migrationProvider.migrateToLatest();
+}
+
+export async function migrateDown(): Promise<void> {
+  if (!_initialized) {
+    initializeDatabase();
+  }
+  await _migrationProvider.migrateDown();
+}
+
+export async function getMigrationStatus() {
+  if (!_initialized) {
+    initializeDatabase();
+  }
+  return await _migrationProvider.getMigrationStatus();
 }

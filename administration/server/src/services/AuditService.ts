@@ -1,4 +1,4 @@
-import { DatabaseService } from './DatabaseService';
+import { getDb } from './DatabaseService';
 
 export interface AuditLogEntry {
   entityType: string;
@@ -13,10 +13,10 @@ export interface AuditLogEntry {
 
 export class AuditService {
   private static instance: AuditService;
-  private dbService: DatabaseService;
+  private db: ReturnType<typeof getDb>;
 
   private constructor() {
-    this.dbService = DatabaseService.getInstance();
+    this.db = getDb();
   }
 
   public static getInstance(): AuditService {
@@ -31,7 +31,7 @@ export class AuditService {
    */
   async logEvent(entry: AuditLogEntry): Promise<void> {
     try {
-      await this.dbService.db
+      await this.db
         .insertInto('audit_log')
         .values({
           entity_type: entry.entityType,
@@ -132,7 +132,7 @@ export class AuditService {
    * Get audit log entries for a specific entity
    */
   async getAuditLog(entityType: string, entityId?: number, limit = 100): Promise<any[]> {
-    let query = this.dbService.db
+    let query = this.db
       .selectFrom('audit_log')
       .selectAll()
       .where('entity_type', '=', entityType)

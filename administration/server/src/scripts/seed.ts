@@ -1,11 +1,9 @@
-import { DatabaseService } from '../services/DatabaseService';
+import { prepare } from '../services/DatabaseService';
 
 async function seed() {
   console.log('🌱 Seeding database with initial data...');
   
   try {
-    const dbService = DatabaseService.getInstance();
-    
     // Seed payment statuses
     const paymentStatuses = [
       { name: 'pending', description: 'Payment pending', sort_order: 1 },
@@ -14,7 +12,7 @@ async function seed() {
       { name: 'failed', description: 'Payment failed', sort_order: 4 }
     ];
 
-    const insertPaymentStatus = dbService.prepare(`
+    const insertPaymentStatus = prepare(`
       INSERT OR IGNORE INTO payment_statuses (name, description, sort_order, flags)
       VALUES (?, ?, ?, 1)
     `);
@@ -48,7 +46,7 @@ async function seed() {
       }
     ];
 
-    const insertMembershipType = dbService.prepare(`
+    const insertMembershipType = prepare(`
       INSERT OR IGNORE INTO membership_types (name, description, price_cents, flags, benefits_json)
       VALUES (?, ?, ?, ?, ?)
     `);

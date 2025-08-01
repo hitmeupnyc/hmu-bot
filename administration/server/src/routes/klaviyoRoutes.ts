@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { KlaviyoSyncService, KlaviyoWebhookPayload } from '../services/KlaviyoSyncService';
 import { asyncHandler } from '../middleware/errorHandler';
 import { Member } from '../types';
-import { DatabaseService } from '../services/DatabaseService';
+import { prepare } from '../services/DatabaseService';
 import crypto from 'crypto';
 
 const router = Router();
@@ -88,8 +88,7 @@ router.post('/push/:memberId', asyncHandler(async (req, res) => {
 // Helper function to get member (should be moved to MemberService)
 async function getMemberById(id: number): Promise<Member | null> {
   // This is a temporary implementation - should use MemberService
-  const db = DatabaseService.getInstance();
-  const stmt = db.prepare('SELECT * FROM members WHERE id = ?');
+  const stmt = prepare('SELECT * FROM members WHERE id = ?');
   const result = stmt.get(id) as Member | undefined;
   return result || null;
 }

@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
-import { DatabaseService } from './services/DatabaseService';
+import { getDb, initialize } from './services/DatabaseService';
 import { jobScheduler } from './services/JobScheduler';
 import logger from './utils/logger';
 import { errorHandler } from './middleware/errorHandler';
@@ -42,8 +42,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(globalAuditMiddleware);
 
 // Initialize database
-const dbService = DatabaseService.getInstance();
-dbService.initialize();
+initialize();
 
 // Initialize job scheduler
 jobScheduler.processSyncJobs(parseInt(process.env.SYNC_WORKER_CONCURRENCY || '5'));
@@ -71,8 +70,8 @@ app.use('/api/audit', auditRoutes);
 app.get('/health', async (req, res) => {
   try {
     // Check database connectivity
-    const db = DatabaseService.getInstance();
-    await db.getDatabase().selectFrom('payment_statuses').select('id').limit(1).execute();
+    const db = getDb();
+    await db.selectFrom('payment_statuses').select('id').limit(1).execute();
     
     res.json({ 
       status: 'healthy', 

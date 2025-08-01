@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { ApplicationFormData } from '../types';
+import { HeaderMapping } from './HeaderMapping';
 
 interface CsvImportProps {
   onImport: (applications: ApplicationFormData[]) => void;
@@ -23,23 +24,23 @@ interface HeaderMapping {
 }
 
 const EXPECTED_HEADERS = [
-  'name',
-  'pronouns', 
-  'preferred_name',
-  'email',
-  'social_url_primary',
-  'social_url_secondary', 
-  'social_url_tertiary',
-  'birth_year',
-  'referral_source',
-  'sponsor_name',
-  'sponsor_email_confirmation',
-  'referral_details',
-  'kinky_experience',
-  'self_description',
-  'consent_understanding',
-  'additional_info',
-  'consent_policy_agreement'
+  { key: 'name', label: 'Name', required: true },
+  { key: 'pronouns', label: 'Pronouns', required: false },
+  { key: 'preferred_name', label: 'Preferred Name', required: false },
+  { key: 'email', label: 'Email', required: true },
+  { key: 'social_url_primary', label: 'Social URL Primary', required: false },
+  { key: 'social_url_secondary', label: 'Social URL Secondary', required: false },
+  { key: 'social_url_tertiary', label: 'Social URL Tertiary', required: false },
+  { key: 'birth_year', label: 'Birth Year', required: true },
+  { key: 'referral_source', label: 'Referral Source', required: true },
+  { key: 'sponsor_name', label: 'Sponsor Name', required: true },
+  { key: 'sponsor_email_confirmation', label: 'Sponsor Email Confirmation', required: true },
+  { key: 'referral_details', label: 'Referral Details', required: false },
+  { key: 'kinky_experience', label: 'Kinky Experience', required: true },
+  { key: 'self_description', label: 'Self Description', required: true },
+  { key: 'consent_understanding', label: 'Consent Understanding', required: true },
+  { key: 'additional_info', label: 'Additional Info', required: false },
+  { key: 'consent_policy_agreement', label: 'Consent Policy Agreement', required: true }
 ];
 
 const REFERRAL_SOURCES = [
@@ -88,16 +89,16 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
     const normalizedFound = firstRow.map(h => h.toLowerCase().trim());
 
     const exactMatch = EXPECTED_HEADERS.every(expected => 
-      normalizedFound.includes(expected.toLowerCase())
+      normalizedFound.includes(expected.key.toLowerCase())
     );
 
     if (exactMatch) {
       // Create automatic mapping
       const autoMapping: HeaderMapping = {};
       EXPECTED_HEADERS.forEach(expected => {
-        const foundIndex = normalizedFound.indexOf(expected.toLowerCase());
+        const foundIndex = normalizedFound.indexOf(expected.key.toLowerCase());
         if (foundIndex !== -1) {
-          autoMapping[expected] = firstRow[foundIndex];
+          autoMapping[expected.key] = firstRow[foundIndex];
         }
       });
       setHeaderMapping(autoMapping);
@@ -107,7 +108,7 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
       // Show mapping interface
       const initialMapping: HeaderMapping = {};
       EXPECTED_HEADERS.forEach(expected => {
-        initialMapping[expected] = null;
+        initialMapping[expected.key] = null;
       });
       setHeaderMapping(initialMapping);
       setShowMapping(true);
@@ -259,11 +260,8 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
     }
   };
 
-  const handleMappingChange = (expectedHeader: string, mappedValue: string | null) => {
-    setHeaderMapping(prev => ({
-      ...prev,
-      [expectedHeader]: mappedValue
-    }));
+  const handleMappingChange = (newMapping: HeaderMapping) => {
+    setHeaderMapping(newMapping);
   };
 
   const handleProcessMapping = () => {
@@ -389,38 +387,12 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {EXPECTED_HEADERS.map((expectedHeader) => (
-                  <div key={expectedHeader} className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      {expectedHeader.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      {['name', 'email', 'birth_year', 'referral_source', 'sponsor_name', 'sponsor_email_confirmation', 'kinky_experience', 'self_description', 'consent_understanding', 'consent_policy_agreement'].includes(expectedHeader) && (
-                        <span className="text-red-500 ml-1">*</span>
-                      )}
-                    </label>
-                    <select
-                      value={headerMapping[expectedHeader] || ''}
-                      onChange={(e) => handleMappingChange(expectedHeader, e.target.value || null)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">-- Skip this field --</option>
-                      {hasHeaders ? (
-                        foundHeaders.map((header, index) => (
-                          <option key={index} value={header}>
-                            {header}
-                          </option>
-                        ))
-                      ) : (
-                        foundHeaders.map((_, index) => (
-                          <option key={index} value={String(index + 1)}>
-                            Column {index + 1}
-                          </option>
-                        ))
-                      )}
-                    </select>
-                  </div>
-                ))}
-              </div>
+              <HeaderMapping
+                sourceHeaders={foundHeaders}
+                targetHeaders={EXPECTED_HEADERS}
+                mapping={headerMapping}
+                onMappingChange={handleMappingChange}
+              />
 
               <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                 <button

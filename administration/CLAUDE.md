@@ -1,7 +1,7 @@
 ## Memory Management Guidelines
 
-- You can reliably restart the app by using `npm run dev:kill-ports; npm run dev > /dev/null 2>&1 &`
-  - The dev:kill-ports script properly handles orphaned processes that turbo --parallel doesn't clean up
+- You can reliably restart the app by using `npm run dev:clear-ports; npm run dev > /dev/null 2>&1 &`
+  - The dev:clear-ports script properly handles orphaned processes that turbo --parallel doesn't clean up
   - You must always use ` > /dev/null 2>&1 &` when you run something in the background.
 - `/Users/vcarl/workspace/hmu-product/administration` is the project root. You can go in administration/client/ and administration/server/, but when starting the app, do so from administration/.
 - You expect to be able to access an IDE. If you can't, prompt me about it.

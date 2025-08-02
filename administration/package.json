@@ -35,11 +35,11 @@
     "prepare": "husky install",
     "precommit": "lint-staged",
     "ports:check": "lsof -i :3000 && lsof -i :5173 || echo 'Ports 3000 and 5173 are available'",
-    "ports:kill": "lsof -ti:3000 | xargs kill -9 2>/dev/null; lsof -ti:5173 | xargs kill -9 2>/dev/null; echo 'Ports cleared'",
+    "ports:clear": "lsof -ti:3000 | xargs kill -9 2>/dev/null; lsof -ti:5173 | xargs kill -9 2>/dev/null; echo 'Ports cleared'",
     "status": "npm run setup:check && curl -s http://localhost:3000/health | jq . || echo 'Server not running'",
     "logs:server": "tail -f server/logs/combined.log",
     "logs:error": "tail -f server/logs/error.log",
-    "dev:kill-ports": "node scripts/dev-utils.js kill-ports",
+    "dev:clear-ports": "node scripts/dev-utils.js kill-ports",
     "dev:health": "node scripts/dev-utils.js health",
     "dev:status": "node scripts/dev-utils.js status"
   },

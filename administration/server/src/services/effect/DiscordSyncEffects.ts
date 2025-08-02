@@ -59,7 +59,8 @@ const createMemberFromDiscordUser = (discordUser: DiscordUser, guildMember?: Dis
       first_name: firstName,
       last_name: lastName,
       email,
-      flags: 1 // Active by default
+      flags: 1, // Active by default
+      date_added: new Date().toISOString()
     })
   })
 
@@ -130,7 +131,8 @@ export const handleDiscordWebhook = (payload: DiscordWebhookPayload, signature?:
         yield* verifyHMACSignature({
           payload: JSON.stringify(payload),
           signature,
-          secret: config.webhookSecret
+          secret: config.webhookSecret,
+          algorithm: 'sha256'
         })
       }
     }

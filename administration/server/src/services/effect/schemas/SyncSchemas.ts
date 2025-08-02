@@ -13,10 +13,10 @@ export const SyncOperationSchema = Schema.Struct({
   processed_at: Schema.optional(Schema.String),
 });
 
-export type SyncOperation = typeof SyncOperationSchema;
+export type SyncOperation = Schema.Schema.Type<typeof SyncOperationSchema>;
 
-export const CreateSyncOperationSchema = SyncOperationSchema.omit('id', 'created_at');
-export type CreateSyncOperation = typeof CreateSyncOperationSchema;
+export const CreateSyncOperationSchema = SyncOperationSchema.pipe(Schema.omit('id', 'created_at'));
+export type CreateSyncOperation = Schema.Schema.Type<typeof CreateSyncOperationSchema>;
 
 export const MemberDataSchema = Schema.Struct({
   first_name: Schema.String,

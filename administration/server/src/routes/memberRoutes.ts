@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { Effect } from 'effect';
 import { auditMiddleware } from '../middleware/auditMiddleware';
 import { asyncHandler, createError } from '../middleware/errorHandler';
 import { apiLimiter, readOnlyLimiter } from '../middleware/rateLimiting';
@@ -10,10 +11,11 @@ import {
   updateMemberSchema,
 } from '../schemas/validation';
 import { AuditService } from '../services/AuditService';
-import { MemberService } from '../services/MemberService';
+import * as MemberEffects from '../services/effect/MemberEffects';
+import { effectToExpress, extractId, extractBody, extractQuery, extractAuditInfo } from '../services/effect/adapters/expressAdapter';
+import { DatabaseLive } from '../services/effect/layers/DatabaseLayer';
 
 const router = Router();
-const memberService = new MemberService();
 const auditService = AuditService.getInstance();
 
 // Apply audit middleware to all routes
@@ -24,16 +26,19 @@ router.get(
   '/',
   readOnlyLimiter,
   validate({ query: memberQuerySchema }),
-  asyncHandler(async (req, res) => {
-    const { page, limit, search } = req.query as any;
-    const result = await memberService.getMembers({ page, limit, search });
-
-    res.json({
-      success: true,
-      data: result.members,
-      pagination: result.pagination,
-    });
-  })
+  effectToExpress((req, res) =>
+    Effect.gen(function* () {
+      const query = yield* extractQuery(req);
+      const { page = 1, limit = 10, search } = query as any;
+      const result = yield* MemberEffects.getMembers({ page: Number(page), limit: Number(limit), search });
+      
+      return {
+        success: true,
+        data: result.members,
+        pagination: result.pagination,
+      };
+    })
+  )
 );
 
 // GET /api/members/:id - Get single member
@@ -41,19 +46,18 @@ router.get(
   '/:id',
   readOnlyLimiter,
   validate({ params: idParamSchema }),
-  asyncHandler(async (req, res) => {
-    const { id } = req.params as any;
-    const member = await memberService.getMemberById(id, req.auditInfo);
-
-    if (!member) {
-      throw createError('Member not found', 404, 'NOT_FOUND');
-    }
-
-    res.json({
-      success: true,
-      data: member,
-    });
-  })
+  effectToExpress((req, res) =>
+    Effect.gen(function* () {
+      const id = yield* extractId(req);
+      const auditInfo = yield* extractAuditInfo(req);
+      const member = yield* MemberEffects.getMemberById(id, auditInfo);
+      
+      return {
+        success: true,
+        data: member,
+      };
+    })
+  )
 );
 
 // POST /api/members - Create new member
@@ -61,14 +65,17 @@ router.post(
   '/',
   apiLimiter,
   validate({ body: createMemberSchema }),
-  asyncHandler(async (req, res) => {
-    const memberData = req.body;
-    const member = await memberService.createMember(memberData);
-
-    res.status(201).json({
-      success: true,
-      data: member,
-      message: 'Member created successfully',
+  effectToExpress((req, res) => {
+    res.status(201);
+    return Effect.gen(function* () {
+      const memberData = yield* extractBody<any>(req);
+      const member = yield* MemberEffects.createMember(memberData);
+      
+      return {
+        success: true,
+        data: member,
+        message: 'Member created successfully',
+      };
     });
   })
 );
@@ -81,22 +88,20 @@ router.put(
     params: idParamSchema,
     body: updateMemberSchema,
   }),
-  asyncHandler(async (req, res) => {
-    const { id } = req.params as any;
-    const updateData = { ...req.body, id };
-
-    const member = await memberService.updateMember(updateData, req.auditInfo);
-
-    if (!member) {
-      throw createError('Member not found', 404, 'NOT_FOUND');
-    }
-
-    res.json({
-      success: true,
-      data: member,
-      message: 'Member updated successfully',
-    });
-  })
+  effectToExpress((req, res) =>
+    Effect.gen(function* () {
+      const id = yield* extractId(req);
+      const updateData = yield* extractBody<any>(req);
+      const auditInfo = yield* extractAuditInfo(req);
+      const member = yield* MemberEffects.updateMember({ ...updateData, id }, auditInfo);
+      
+      return {
+        success: true,
+        data: member,
+        message: 'Member updated successfully',
+      };
+    })
+  )
 );
 
 // DELETE /api/members/:id - Soft delete member
@@ -104,16 +109,17 @@ router.delete(
   '/:id',
   apiLimiter,
   validate({ params: idParamSchema }),
-  asyncHandler(async (req, res) => {
-    const { id } = req.params as any;
-
-    await memberService.deleteMember(id);
-
-    res.json({
-      success: true,
-      message: 'Member deleted successfully',
-    });
-  })
+  effectToExpress((req, res) =>
+    Effect.gen(function* () {
+      const id = yield* extractId(req);
+      yield* MemberEffects.deleteMember(id);
+      
+      return {
+        success: true,
+        message: 'Member deleted successfully',
+      };
+    })
+  )
 );
 
 // GET /api/members/:id/memberships - Get member's memberships
@@ -121,15 +127,17 @@ router.get(
   '/:id/memberships',
   readOnlyLimiter,
   validate({ params: idParamSchema }),
-  asyncHandler(async (req, res) => {
-    const { id } = req.params as any;
-    const memberships = await memberService.getMemberMemberships(id);
-
-    res.json({
-      success: true,
-      data: memberships,
-    });
-  })
+  effectToExpress((req, res) =>
+    Effect.gen(function* () {
+      const id = yield* extractId(req);
+      const memberships = yield* MemberEffects.getMemberMemberships(id);
+      
+      return {
+        success: true,
+        data: memberships,
+      };
+    })
+  )
 );
 
 // GET /api/members/:id/events - Get member's event attendance
@@ -137,15 +145,17 @@ router.get(
   '/:id/events',
   readOnlyLimiter,
   validate({ params: idParamSchema }),
-  asyncHandler(async (req, res) => {
-    const { id } = req.params as any;
-    const events = await memberService.getMemberEvents(id);
-
-    res.json({
-      success: true,
-      data: events,
-    });
-  })
+  effectToExpress((req, res) =>
+    Effect.gen(function* () {
+      const id = yield* extractId(req);
+      const events = yield* MemberEffects.getMemberEvents(id);
+      
+      return {
+        success: true,
+        data: events,
+      };
+    })
+  )
 );
 
 // POST /api/members/:id/notes - Add a note to a member
@@ -162,8 +172,12 @@ router.post(
       });
     }
 
-    // Verify member exists
-    await memberService.getMemberById(id);
+    // Verify member exists using Effect
+    const memberEffect = Effect.gen(function* () {
+      return yield* MemberEffects.getMemberById(id);
+    });
+    
+    await Effect.runPromise(memberEffect.pipe(Effect.provide(DatabaseLive)));
 
     // Log the note
     await auditService.logMemberNote(

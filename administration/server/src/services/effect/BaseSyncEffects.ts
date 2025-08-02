@@ -127,7 +127,7 @@ export const updateMemberFlag = (memberId: number, flag: number, value: boolean)
       })
     }
     
-    let newFlags = result.flags
+    let newFlags = result.flags || 0
     
     if (value) {
       newFlags |= flag // Set flag

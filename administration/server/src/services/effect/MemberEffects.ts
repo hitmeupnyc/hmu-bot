@@ -182,7 +182,7 @@ export const createMember = (data: CreateMember) =>
         .executeTakeFirstOrThrow()
     )
 
-    return yield* getMemberByIdInternal(result.id)
+    return yield* getMemberByIdInternal(result.id!)
   }).pipe(
     Effect.mapError((error) => 
       error._tag === "ParseError" 
@@ -209,7 +209,7 @@ export const updateMember = (data: UpdateMember, auditInfo?: { sessionId: string
       const emailConflict = yield* db.query(async (db) =>
         db.selectFrom('members')
           .select('id')
-          .where('email', '=', validatedData.email)
+          .where('email', '=', validatedData.email!)
           .where('id', '!=', validatedData.id)
           .executeTakeFirst()
       )

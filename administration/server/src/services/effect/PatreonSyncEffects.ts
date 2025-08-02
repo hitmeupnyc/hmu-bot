@@ -146,7 +146,8 @@ const createMemberFromPatron = (patron: PatreonUser) =>
       first_name: patron.attributes.first_name || 'Unknown',
       last_name: patron.attributes.last_name || 'Patron',
       email: patron.attributes.email,
-      flags: baseFlags | statusFlags
+      flags: baseFlags | statusFlags,
+      date_added: new Date().toISOString()
     })
   })
 
@@ -308,9 +309,9 @@ export const handlePatreonWebhook = (payload: PatreonWebhookPayload, signature: 
     const result = yield* pipe(
       Effect.gen(function* () {
         if (data.type === 'user') {
-          return yield* syncPatron(data as PatreonUser, validatedPayload.included, syncOperation.id)
+          return yield* syncPatron(data as PatreonUser, [...(validatedPayload.included || [])], syncOperation.id)
         } else if (data.type === 'pledge') {
-          yield* syncPledge(data as PatreonPledge, validatedPayload.included, syncOperation.id)
+          yield* syncPledge(data as PatreonPledge, [...(validatedPayload.included || [])], syncOperation.id)
           return "pledge_processed"
         }
         return null

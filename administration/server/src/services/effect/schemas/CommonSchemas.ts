@@ -59,7 +59,7 @@ export const DiscordWebhookPayloadSchema = Schema.Struct({
     Schema.Literal('role_update')
   ),
   member: Schema.optional(DiscordGuildMemberSchema),
-  old_member: Schema.optional(Schema.partial(DiscordGuildMemberSchema)),
+  // old_member: Schema.optional(Schema.partial(DiscordGuildMemberSchema)),
 });
 
 export type DiscordWebhookPayload = typeof DiscordWebhookPayloadSchema.Type;

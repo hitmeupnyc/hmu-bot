@@ -1,9 +1,11 @@
 import { Router } from 'express';
-import { PatreonSyncService, PatreonWebhookPayload } from '../services/PatreonSyncService';
+import { Effect } from 'effect';
 import { asyncHandler } from '../middleware/errorHandler';
+import * as PatreonSyncEffects from '../services/effect/PatreonSyncEffects';
+import { effectToExpress, extractBody, extractQuery } from '../services/effect/adapters/expressAdapter';
+import type { PatreonWebhookPayload } from '../services/effect/schemas/PatreonSchemas';
 
 const router = Router();
-const patreonService = new PatreonSyncService();
 
 // Webhook signature verification middleware
 const verifyPatreonSignature = (req: any, res: any, next: any) => {
@@ -20,61 +22,71 @@ const verifyPatreonSignature = (req: any, res: any, next: any) => {
 };
 
 // POST /api/patreon/webhook - Handle Patreon webhooks
-router.post('/webhook', verifyPatreonSignature, asyncHandler(async (req, res) => {
-  const payload: PatreonWebhookPayload = req.body;
-  const signature = req.patreonSignature;
-  
-  await patreonService.handleWebhook(payload, signature);
-  
-  res.status(200).json({ message: 'Webhook processed successfully' });
-}));
+router.post('/webhook', verifyPatreonSignature, effectToExpress((req, res) =>
+  Effect.gen(function* () {
+    const payload = yield* extractBody<PatreonWebhookPayload>(req);
+    const signature = (req as any).patreonSignature;
+    
+    yield* PatreonSyncEffects.handlePatreonWebhook(payload, signature);
+    
+    return { message: 'Webhook processed successfully' };
+  })
+));
 
 // POST /api/patreon/sync/:campaignId - Manual bulk sync for campaign
-router.post('/sync/:campaignId', asyncHandler(async (req, res) => {
-  const { campaignId } = req.params;
-  
-  const result = await patreonService.bulkSync(campaignId);
-  
-  res.json({
-    success: true,
-    message: `Patreon sync completed: ${result.synced} synced, ${result.errors} errors`,
-    data: result
-  });
-}));
+router.post('/sync/:campaignId', effectToExpress((req, res) =>
+  Effect.gen(function* () {
+    const campaignId = req.params.campaignId;
+    
+    const result = yield* PatreonSyncEffects.bulkSyncPatreons(campaignId);
+    
+    return {
+      success: true,
+      message: `Patreon sync completed: ${result.synced} synced, ${result.errors} errors`,
+      data: result
+    };
+  })
+));
 
 // GET /api/patreon/oauth/url - Get OAuth authorization URL
-router.get('/oauth/url', asyncHandler(async (req, res) => {
-  const { redirect_uri, state } = req.query;
-  
-  if (!redirect_uri) {
-    return res.status(400).json({ error: 'redirect_uri parameter required' });
-  }
-  
-  const authUrl = patreonService.getOAuthURL(redirect_uri as string, state as string);
-  
-  res.json({
-    success: true,
-    data: {
-      authorization_url: authUrl,
-      state
+router.get('/oauth/url', effectToExpress((req, res) =>
+  Effect.gen(function* () {
+    const query = yield* extractQuery(req);
+    const { redirect_uri, state } = query as any;
+    
+    if (!redirect_uri) {
+      res.status(400);
+      return { error: 'redirect_uri parameter required' };
     }
-  });
-}));
+    
+    const authUrl = yield* PatreonSyncEffects.getPatreonOAuthURL(redirect_uri as string, state as string);
+    
+    return {
+      success: true,
+      data: {
+        authorization_url: authUrl,
+        state
+      }
+    };
+  })
+));
 
 // POST /api/patreon/oauth/token - Exchange authorization code for tokens
-router.post('/oauth/token', asyncHandler(async (req, res) => {
-  const { code, redirect_uri } = req.body;
-  
-  if (!code || !redirect_uri) {
-    return res.status(400).json({ error: 'code and redirect_uri required' });
-  }
-  
-  try {
-    const tokens = await patreonService.getTokens(code, redirect_uri);
+router.post('/oauth/token', effectToExpress((req, res) =>
+  Effect.gen(function* () {
+    const bodyData = yield* extractBody<{code: string, redirect_uri: string}>(req);
+    const { code, redirect_uri } = bodyData;
+    
+    if (!code || !redirect_uri) {
+      res.status(400);
+      return { error: 'code and redirect_uri required' };
+    }
+    
+    const tokens = yield* PatreonSyncEffects.exchangePatreonOAuthCode(code, redirect_uri) as any;
     
     // In a real implementation, you would store these tokens securely
     // and associate them with your application's user/admin
-    res.json({
+    return {
       success: true,
       message: 'Tokens received successfully',
       data: {
@@ -84,14 +96,17 @@ router.post('/oauth/token', asyncHandler(async (req, res) => {
         scope: tokens.scope,
         token_type: tokens.token_type
       }
-    });
-  } catch (error) {
-    res.status(400).json({ 
-      error: 'Failed to exchange code for tokens',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-}));
+    };
+  }).pipe(
+    Effect.mapError((error) => {
+      res.status(400);
+      return {
+        error: 'Failed to exchange code for tokens',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      };
+    })
+  )
+));
 
 // GET /api/patreon/campaigns - Get user's campaigns (requires valid access token)
 router.get('/campaigns', asyncHandler(async (req, res) => {

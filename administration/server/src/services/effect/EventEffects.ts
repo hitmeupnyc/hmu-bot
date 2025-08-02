@@ -1,4 +1,5 @@
 import { Effect, Schema } from 'effect';
+import { sql } from 'kysely';
 import { DatabaseService } from './context/DatabaseService';
 import {
   AttendanceAlreadyExists,
@@ -68,7 +69,7 @@ export const getEvents = (options: EventQueryOptions) =>
         .where((eb) => eb('flags', '&', 1), '=', 1); // Only active events
 
       if (upcoming) {
-        query = query.where('start_datetime', '>', db.fn('datetime', ['now']));
+        query = query.where('start_datetime', '>', sql<string>`datetime('now')`);
       }
 
       const countQuery = query.clearSelect().select((eb) => eb.fn.count('id').as('total'));
@@ -418,7 +419,7 @@ export const checkInAttendee = (attendanceId: number, checkInMethod?: string) =>
         .updateTable('events_attendance')
         .set({
           check_in_method: checkInMethod || 'manual',
-          updated_at: db.fn('datetime', ['now']),
+          updated_at: sql<string>`datetime('now')`,
         })
         .where('id', '=', attendanceId)
         .where((eb) => eb('flags', '&', 1), '=', 1)

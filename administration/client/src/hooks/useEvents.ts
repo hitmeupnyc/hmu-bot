@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { Event } from '@/types';
 
-export interface EventsResponse {
+interface EventsResponse {
   success: boolean;
   data: Event[];
   pagination: {

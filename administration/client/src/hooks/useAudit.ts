@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 
-export interface AuditLogEntry {
+interface AuditLogEntry {
   id: number;
   entity_type: string;
   entity_id: number;
@@ -14,7 +14,7 @@ export interface AuditLogEntry {
   created_at: string;
 }
 
-export interface AuditResponse {
+interface AuditResponse {
   success: boolean;
   data: AuditLogEntry[];
 }

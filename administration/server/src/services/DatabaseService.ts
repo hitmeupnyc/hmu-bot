@@ -48,14 +48,6 @@ export function getDb(): Kysely<DatabaseSchema> {
   return _db;
 }
 
-// Get the raw SQLite database instance
-export function getSqliteDb(): Database.Database {
-  if (!_initialized) {
-    initializeDatabase();
-  }
-  return _sqliteDb;
-}
-
 // Initialize database and run migrations
 export async function initialize(): Promise<void> {
   if (!_initialized) {
@@ -72,59 +64,14 @@ export async function initialize(): Promise<void> {
   }
 }
 
-// Get database instance (legacy compatibility)
-export function getDatabase(): Kysely<DatabaseSchema> {
-  return getDb();
-}
-
-// Close database connections
-export async function close(): Promise<void> {
-  if (_db) {
-    await _db.destroy();
-  }
-  if (_sqliteDb) {
-    _sqliteDb.close();
-  }
-  _initialized = false;
-}
-
-// Transaction helper
-export async function transaction<T>(fn: (trx: Kysely<DatabaseSchema>) => Promise<T>): Promise<T> {
-  return await getDb().transaction().execute(fn);
-}
-
 // Legacy compatibility methods for gradual migration
 export function prepare(sql: string): Database.Statement {
-  return getSqliteDb().prepare(sql);
-}
-
-export function legacyTransaction<T>(fn: () => T): T {
-  return getSqliteDb().transaction(fn)();
-}
-
-// Migration management methods
-export async function migrateUp(): Promise<void> {
   if (!_initialized) {
     initializeDatabase();
   }
-  await _migrationProvider.migrateToLatest();
+  return _sqliteDb.prepare(sql);
 }
 
-export async function migrateDown(): Promise<void> {
-  if (!_initialized) {
-    initializeDatabase();
-  }
-  await _migrationProvider.migrateDown();
-}
-
-export async function getMigrationStatus() {
-  if (!_initialized) {
-    initializeDatabase();
-  }
-  return await _migrationProvider.getMigrationStatus();
-}
-
-// Get comprehensive database information
 export function getDatabaseInfo() {
   if (!_initialized) {
     initializeDatabase();

@@ -23,6 +23,7 @@ const config: KnipConfig = {
         'src/**/*.test.ts',
         'src/scripts/*.ts',
         'kysely.config.ts',
+        'src/seeds/*.ts', // Kysely seed files
       ],
       project: ['src/**/*.ts', '*.ts'],
       ignore: ['dist/**', 'node_modules/**'],
@@ -58,6 +59,12 @@ const config: KnipConfig = {
     
     // Database migrations (essential infrastructure)
     '**/migrations/**',
+    
+    // WIP Effect system - keep everything alive
+    '**/services/effect/**',
+    
+    // Type definitions - useful reference for Effect migration
+    '**/types/**',
   ],
   
   // Plugin configurations
@@ -87,6 +94,9 @@ const config: KnipConfig = {
     'eslint-config-standard',
     'eslint-plugin-react-hooks',
     'eslint-plugin-react-refresh',
+    
+    // Prettier plugin used in configuration
+    'prettier-plugin-organize-imports',
   ],
 };
 

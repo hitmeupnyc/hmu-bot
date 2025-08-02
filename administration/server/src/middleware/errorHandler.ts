@@ -18,13 +18,6 @@ export class AppError extends Error {
   }
 }
 
-// Helper functions instead of subclasses
-export const createError = (message: string, statusCode: number, code?: string) => {
-  const error = new Error(message) as Error & { statusCode: number; code?: string };
-  error.statusCode = statusCode;
-  error.code = code;
-  return error;
-};
 
 interface ErrorResponse extends ApiResponse {
   code?: string;

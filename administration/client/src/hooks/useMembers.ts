@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { Member, MemberFormData } from '@/types';
 
-export interface MembersResponse {
+interface MembersResponse {
   success: boolean;
   data: Member[];
   pagination: {
@@ -13,12 +13,12 @@ export interface MembersResponse {
   };
 }
 
-export interface MemberResponse {
+interface MemberResponse {
   success: boolean;
   data: Member;
 }
 
-export interface CreateMemberResponse {
+interface CreateMemberResponse {
   success: boolean;
   data: Member;
   message: string;

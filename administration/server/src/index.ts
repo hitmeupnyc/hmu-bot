@@ -19,13 +19,12 @@ import { klaviyoRoutes } from './routes/klaviyoRoutes';
 import { memberRoutes } from './routes/memberRoutes';
 import { patreonRoutes } from './routes/patreonRoutes';
 import { webhookRoutes } from './routes/webhookRoutes';
-import { getDb, initialize } from './services/DatabaseService';
+import { getDatabaseInfo, getDb, initialize } from './services/DatabaseService';
 import { jobScheduler } from './services/JobScheduler';
 import logger from './utils/logger';
 
 // Load environment variables
 dotenv.config();
-console.log(process.env);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -290,6 +289,7 @@ app.get('/health/env', (req, res) => {
     status: hasIssues ? 'configuration_issues' : 'ok',
     timestamp: new Date().toISOString(),
     environment: env,
+    database: getDatabaseInfo(),
   });
 });
 

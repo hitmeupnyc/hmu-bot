@@ -1,3 +1,6 @@
-**/*.ts
-**/*.json
-**/*.js
+node_modules
+dist
+coverage
+*.min.js
+package-lock.json
+*.md

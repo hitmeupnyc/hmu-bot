@@ -43,15 +43,8 @@ test.describe('Member CRUD Operations', () => {
     // Submit the form
     await page.getByRole('button', { name: 'Submit Application' }).click();
     
-    // Wait a bit for the submission to process
-    await page.waitForTimeout(2000);
-    
-    // Check what's on the page now
-    const pageContent = await page.textContent('body');
-    console.log('Page content after submission:', pageContent?.substring(0, 500));
-    
-    // Should show success message
-    await expect(page.getByRole('heading', { name: 'Application Submitted!' })).toBeVisible();
+    // Wait for the success message to appear (replaces hardcoded timeout)
+    await expect(page.getByRole('heading', { name: 'Application Submitted!' })).toBeVisible({ timeout: 10000 });
   });
 
   test('should validate required fields in application form', async ({ page }) => {
@@ -133,6 +126,10 @@ test.describe('Member CRUD Operations', () => {
     // Navigate to members page
     await page.getByRole('link', { name: 'Members' }).click();
     
+    // Wait for members page to load completely
+    await expect(page.getByRole('heading', { name: 'Members' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add Member' })).toBeVisible();
+    
     // Click Add Member button
     await page.getByRole('button', { name: 'Add Member' }).click();
     
@@ -200,8 +197,10 @@ test.describe('Member CRUD Operations', () => {
     // Navigate to members page
     await page.getByRole('link', { name: 'Members' }).click();
     
-    // Wait for the page to load and members to be visible
-    await expect(page.locator('tbody tr').first()).toBeVisible();
+    // Wait for the page to load completely and data to be loaded
+    await expect(page.getByRole('heading', { name: 'Members' })).toBeVisible();
+    await page.waitForLoadState('networkidle'); // Wait for API calls to complete
+    await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 10000 });
     
     // Get initial row count
     const initialRows = await page.locator('tbody tr').count();
@@ -209,8 +208,8 @@ test.describe('Member CRUD Operations', () => {
     // Use search - search for a specific email that should exist only once
     await page.getByPlaceholder('Search members...').fill('alice.johnson@example.com');
     
-    // Wait a moment for search to process
-    await page.waitForTimeout(500);
+    // Wait for search results to update
+    await expect(page.locator('tbody tr')).toHaveCount(1);
     
     // Should filter results - should show only 1 result (Alice Johnson from seed data)
     const filteredRows = await page.locator('tbody tr').count();
@@ -222,7 +221,9 @@ test.describe('Member CRUD Operations', () => {
     
     // Clear search
     await page.getByPlaceholder('Search members...').fill('');
-    await page.waitForTimeout(500);
+    
+    // Wait for all members to be visible again
+    await expect(page.locator('tbody tr')).toHaveCount(initialRows, { timeout: 2000 });
     
     // All members should be visible again - should be at least the initial count
     const finalRows = await page.locator('tbody tr').count();

@@ -5,8 +5,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 2, // Limit to 2 concurrent test files
   reporter: 'list',
+  timeout: 1500, // Standard timeout for operations
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
@@ -30,8 +31,8 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       env: {
         DATABASE_PATH: '../data/test.db',
-        NODE_ENV: 'test'
-      }
+        NODE_ENV: 'test',
+      },
     },
     {
       command: 'cd ../client && npm run dev',

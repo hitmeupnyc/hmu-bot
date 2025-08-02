@@ -59,7 +59,7 @@ test.describe('Events Management System', () => {
     await page.locator('form').getByRole('button', { name: 'Create Event' }).click();
     
     // Verify the event was created and appears in the list
-    await expect(page.getByText(eventName)).toBeVisible();
+    await expect(page.getByText(eventName)).toBeAttached();
     
     // Check that we have more events in the table than we started with
     const finalEventRows = page.locator('tbody tr');

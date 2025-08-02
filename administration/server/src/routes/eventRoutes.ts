@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { Effect } from 'effect';
-import type { CreateEventPayload, CreateEventMarketingPayload, CreateVolunteerPayload, CreateAttendancePayload } from '../types/events';
+import type { CreateEventPayload, UpdateEventPayload, CreateEventMarketingPayload, CreateVolunteerPayload, CreateAttendancePayload } from '../types/events';
 import * as EventEffects from '../services/effect/EventEffects';
 import { effectToExpress, extractId, extractBody, extractQuery } from '../services/effect/adapters/expressAdapter';
 
@@ -66,6 +66,23 @@ router.post('/', effectToExpress((req, res) => {
     };
   });
 }));
+
+// PUT /api/events/:id - Update existing event
+router.put('/:id', effectToExpress((req, res) =>
+  Effect.gen(function* () {
+    const id = yield* extractId(req);
+    const eventData = yield* extractBody<Partial<UpdateEventPayload>>(req);
+    
+    const updatePayload = { ...eventData, id };
+    const event = yield* EventEffects.updateEvent(updatePayload);
+    
+    return {
+      success: true,
+      data: event,
+      message: 'Event updated successfully'
+    };
+  })
+));
 
 // Marketing routes
 // GET /api/events/:id/marketing - Get event marketing

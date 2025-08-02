@@ -227,4 +227,146 @@ test.describe('Events Management System', () => {
     // Should still be on events page
     await expect(page.getByRole('heading', { name: 'Events' })).toBeVisible();
   });
+
+  test('should edit event successfully from events list', async ({ page }) => {
+    // Navigate to Events page
+    await page.getByRole('link', { name: 'Events' }).click();
+    
+    // Get the first event's original name
+    const firstEventRow = page.locator('tbody tr').first();
+    const originalEventName = await firstEventRow.locator('td').first().locator('div').first().textContent();
+    
+    // Click Edit Event button for first event
+    await firstEventRow.getByRole('button', { name: 'Edit Event' }).click();
+    
+    // Verify edit modal is open with pre-populated data
+    await expect(page.getByRole('heading', { name: 'Edit Event' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Event Name *' })).toHaveValue(originalEventName || '');
+    
+    // Modify the event name
+    const timestamp = Date.now();
+    const updatedEventName = `${originalEventName} - EDITED ${timestamp}`;
+    await page.getByRole('textbox', { name: 'Event Name *' }).fill(updatedEventName);
+    
+    // Submit the form
+    await page.getByRole('button', { name: 'Update Event' }).click();
+    
+    // Verify modal closes
+    await expect(page.getByRole('heading', { name: 'Edit Event' })).not.toBeVisible();
+    
+    // Verify event was updated in the list
+    await expect(page.getByText(updatedEventName)).toBeVisible();
+    
+    // Verify we can see the updated event in the table
+    const updatedRow = page.locator('tbody tr').first();
+    await expect(updatedRow).toContainText(updatedEventName);
+  });
+
+  test('should edit event successfully from event details page', async ({ page }) => {
+    // Navigate to Events page
+    await page.getByRole('link', { name: 'Events' }).click();
+    
+    // Click View Details for first event
+    await page.getByRole('button', { name: 'View Details' }).first().click();
+    
+    // Verify we're on event details page
+    await expect(page.getByRole('button', { name: 'Edit Event' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Back to Events' })).toBeVisible();
+    
+    // Get the event name from details page
+    const eventTitle = page.getByRole('heading', { level: 1 }).first();
+    const originalEventName = await eventTitle.textContent();
+    
+    // Click Edit Event button
+    await page.getByRole('button', { name: 'Edit Event' }).click();
+    
+    // Should navigate back to events page with edit modal open
+    await expect(page.getByRole('heading', { name: 'Events' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Edit Event' })).toBeVisible();
+    
+    // Verify the correct event is loaded in the form
+    await expect(page.getByRole('textbox', { name: 'Event Name *' })).toHaveValue(originalEventName || '');
+    
+    // Modify the event description
+    const updatedDescription = `Updated from event details page at ${Date.now()}`;
+    await page.getByRole('textbox', { name: 'Description' }).fill(updatedDescription);
+    
+    // Submit the form
+    await page.getByRole('button', { name: 'Update Event' }).click();
+    
+    // Verify modal closes
+    await expect(page.getByRole('heading', { name: 'Edit Event' })).not.toBeVisible();
+    
+    // Navigate back to event details to verify update
+    await page.getByRole('button', { name: 'View Details' }).first().click();
+    
+    // Verify description was updated (description appears below the title)
+    await expect(page.getByText(updatedDescription)).toBeVisible();
+  });
+
+  test('should handle edit event form validation', async ({ page }) => {
+    // Navigate to Events page
+    await page.getByRole('link', { name: 'Events' }).click();
+    
+    // Click Edit Event button for first event
+    await page.getByRole('button', { name: 'Edit Event' }).first().click();
+    
+    // Verify edit modal is open
+    await expect(page.getByRole('heading', { name: 'Edit Event' })).toBeVisible();
+    
+    // Clear required field
+    await page.getByRole('textbox', { name: 'Event Name *' }).clear();
+    
+    // Try to submit
+    await page.getByRole('button', { name: 'Update Event' }).click();
+    
+    // Form should still be visible (validation prevents submission)
+    await expect(page.getByRole('heading', { name: 'Edit Event' })).toBeVisible();
+    
+    // Fill field back with valid data
+    await page.getByRole('textbox', { name: 'Event Name *' }).fill('Valid Event Name');
+    
+    // Cancel the edit
+    await page.getByRole('button', { name: 'Cancel' }).click();
+    
+    // Modal should close
+    await expect(page.getByRole('heading', { name: 'Edit Event' })).not.toBeVisible();
+  });
+
+  test('should edit multiple event fields successfully', async ({ page }) => {
+    // Navigate to Events page
+    await page.getByRole('link', { name: 'Events' }).click();
+    
+    // Click Edit Event button for first event
+    await page.getByRole('button', { name: 'Edit Event' }).first().click();
+    
+    // Verify edit modal is open
+    await expect(page.getByRole('heading', { name: 'Edit Event' })).toBeVisible();
+    
+    // Update multiple fields
+    const timestamp = Date.now();
+    await page.getByRole('textbox', { name: 'Event Name *' }).fill(`Multi-Field Edit Test ${timestamp}`);
+    await page.getByRole('textbox', { name: 'Description' }).fill(`Comprehensive edit test performed at ${timestamp}`);
+    await page.getByRole('spinbutton', { name: 'Max Capacity' }).fill('50');
+    
+    // Uncheck Public Event checkbox if it's checked
+    const publicCheckbox = page.getByRole('checkbox', { name: 'Public Event' });
+    if (await publicCheckbox.isChecked()) {
+      await publicCheckbox.uncheck();
+    }
+    
+    // Submit the form
+    await page.getByRole('button', { name: 'Update Event' }).click();
+    
+    // Verify modal closes
+    await expect(page.getByRole('heading', { name: 'Edit Event' })).not.toBeVisible();
+    
+    // Verify changes are reflected in the events list
+    await expect(page.getByText(`Multi-Field Edit Test ${timestamp}`)).toBeVisible();
+    await expect(page.getByText(`Comprehensive edit test performed at ${timestamp}`)).toBeVisible();
+    
+    // Verify capacity shows as 50
+    const updatedRow = page.locator('tbody tr').filter({ hasText: `Multi-Field Edit Test ${timestamp}` });
+    await expect(updatedRow.locator('td').nth(2)).toContainText('50');
+  });
 });

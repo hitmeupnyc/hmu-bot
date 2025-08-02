@@ -229,6 +229,10 @@ export interface CreateEventPayload {
   flags?: number;
 }
 
+export interface UpdateEventPayload extends Partial<CreateEventPayload> {
+  id: number;
+}
+
 export interface CreateEventMarketingPayload {
   event_id: number;
   primary_marketing_copy?: string;

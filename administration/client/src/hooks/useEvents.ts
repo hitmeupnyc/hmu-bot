@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { Event } from '@/types';
+import { Event, CreateEventRequest, UpdateEventRequest } from '@/types';
 
 interface EventsResponse {
   success: boolean;
@@ -37,5 +37,47 @@ export function useEvents(params: GetEventsParams = {}) {
       events: data.data,
       pagination: data.pagination,
     }),
+  });
+}
+
+export function useCreateEvent() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (eventData: CreateEventRequest) => {
+      const response = await api.post('/events', eventData);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: eventKeys.all });
+    },
+  });
+}
+
+export function useUpdateEvent() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (eventData: UpdateEventRequest) => {
+      const response = await api.put(`/events/${eventData.id}`, eventData);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: eventKeys.all });
+    },
+  });
+}
+
+export function useDeleteEvent() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (eventId: number) => {
+      const response = await api.delete(`/events/${eventId}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: eventKeys.all });
+    },
   });
 }

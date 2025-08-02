@@ -20,12 +20,14 @@ import {
   EventSchema,
   EventVolunteerSchema,
   EventWithDetailsSchema,
+  UpdateEventSchema,
   type CreateAttendance,
   type CreateEvent,
   type CreateEventMarketing,
   type CreateVolunteer,
   type EventQueryOptions,
   type EventWithDetails,
+  type UpdateEvent,
 } from './schemas/EventSchemas';
 
 /**
@@ -147,6 +149,65 @@ export const createEvent = (data: CreateEvent) =>
         ? new EventValidationError({
             field: 'event_data',
             message: `Invalid event data: ${error.message}`,
+          })
+        : error
+    )
+  );
+
+/**
+ * Update an existing event
+ */
+export const updateEvent = (data: UpdateEvent) =>
+  Effect.gen(function* () {
+    const db = yield* DatabaseService;
+    const validatedData = yield* Schema.decodeUnknown(UpdateEventSchema)(data);
+
+    // Ensure event exists before updating
+    yield* getEventByIdInternal(validatedData.id);
+
+    // Build update object with only provided fields
+    const updateData: Partial<{
+      name: string;
+      description: string | null;
+      start_datetime: string;
+      end_datetime: string;
+      flags: number;
+      max_capacity: number | null;
+      required_membership_types: string | null;
+      eventbrite_id: string | null;
+      eventbrite_url: string | null;
+    }> = {};
+
+    if (validatedData.name !== undefined) updateData.name = validatedData.name;
+    if (validatedData.description !== undefined) updateData.description = validatedData.description || null;
+    if (validatedData.start_datetime !== undefined) updateData.start_datetime = validatedData.start_datetime;
+    if (validatedData.end_datetime !== undefined) updateData.end_datetime = validatedData.end_datetime;
+    if (validatedData.flags !== undefined) updateData.flags = validatedData.flags;
+    if (validatedData.max_capacity !== undefined) updateData.max_capacity = validatedData.max_capacity || null;
+    if (validatedData.required_membership_types !== undefined) {
+      updateData.required_membership_types = validatedData.required_membership_types
+        ? JSON.stringify(validatedData.required_membership_types)
+        : null;
+    }
+    if (validatedData.eventbrite_id !== undefined) updateData.eventbrite_id = validatedData.eventbrite_id || null;
+    if (validatedData.eventbrite_url !== undefined) updateData.eventbrite_url = validatedData.eventbrite_url || null;
+
+    yield* db.query(async (db) =>
+      db
+        .updateTable('events')
+        .set(updateData)
+        .where('id', '=', validatedData.id)
+        .where((eb) => eb('flags', '&', 1), '=', 1) // Only update active events
+        .executeTakeFirstOrThrow()
+    );
+
+    return yield* getEventByIdInternal(validatedData.id);
+  }).pipe(
+    Effect.mapError((error) =>
+      error._tag === 'ParseError'
+        ? new EventValidationError({
+            field: 'event_update_data',
+            message: `Invalid event update data: ${error.message}`,
           })
         : error
     )

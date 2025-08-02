@@ -31,6 +31,21 @@ export const CreateEventSchema = Schema.Struct({
 
 export type CreateEvent = typeof CreateEventSchema.Type;
 
+export const UpdateEventSchema = Schema.Struct({
+  id: Schema.Number,
+  name: Schema.optional(Schema.String),
+  description: Schema.optional(Schema.String),
+  start_datetime: Schema.optional(Schema.String),
+  end_datetime: Schema.optional(Schema.String),
+  flags: Schema.optional(Schema.Number),
+  max_capacity: Schema.optional(Schema.Number),
+  required_membership_types: Schema.optional(Schema.Array(Schema.Number)),
+  eventbrite_id: Schema.optional(Schema.String),
+  eventbrite_url: Schema.optional(Schema.String),
+});
+
+export type UpdateEvent = typeof UpdateEventSchema.Type;
+
 export const EventQueryOptionsSchema = Schema.Struct({
   page: Schema.Number,
   limit: Schema.Number,

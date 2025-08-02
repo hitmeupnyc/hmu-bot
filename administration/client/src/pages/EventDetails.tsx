@@ -169,7 +169,10 @@ export function EventDetails() {
               )}
               {getStatusBadge()}
             </div>
-            <button className="flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+            <button 
+              onClick={() => navigate('/events', { state: { editEventId: eventDetails.event.id } })}
+              className="flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            >
               <PencilIcon className="h-4 w-4 mr-2" />
               Edit Event
             </button>

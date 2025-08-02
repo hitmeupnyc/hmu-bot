@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { PlusIcon, PencilIcon, TrashIcon, CalendarIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { Event, EventFormData } from '../types';
-import { EventService } from '../services/eventService';
+import { useEvents, useCreateEvent, useUpdateEvent, useDeleteEvent } from '../hooks/useEvents';
 import { Modal } from '../components/Modal';
 import { EventForm } from '../components/EventForm';
 
@@ -10,42 +10,25 @@ type EventFilter = 'upcoming' | 'past' | 'all';
 
 export function Events() {
   const navigate = useNavigate();
-  const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
+  const location = useLocation();
   const [filter, setFilter] = useState<EventFilter>('upcoming');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
-  const [formLoading, setFormLoading] = useState(false);
-
-  const fetchEvents = async () => {
-    try {
-      setLoading(true);
-      const response = await EventService.getEvents({
-        upcoming: filter === 'upcoming' ? true : undefined
-      });
-      
-      if (response.success && response.data) {
-        let filteredEvents = response.data;
-        
-        if (filter === 'past') {
-          const now = new Date();
-          filteredEvents = response.data.filter(event => 
-            new Date(event.end_datetime) < now
-          );
-        }
-        
-        setEvents(filteredEvents);
-      }
-    } catch (error) {
-      console.error('Failed to fetch events:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchEvents();
-  }, [filter]);
+  
+  // React Query hooks
+  const queryParams = filter === 'upcoming' ? { upcoming: true } : 
+                     filter === 'past' ? { upcoming: false } : {};
+  const { data, isLoading } = useEvents(queryParams);
+  const createEventMutation = useCreateEvent();
+  const updateEventMutation = useUpdateEvent();
+  const deleteEventMutation = useDeleteEvent();
+  
+  // Filter events client-side for 'past' filter since backend doesn't handle it
+  const allEvents = data?.events || [];
+  const events = filter === 'past' 
+    ? allEvents.filter(event => new Date(event.end_datetime) < new Date())
+    : allEvents;
+  const loading = isLoading;
 
   const handleCreateEvent = () => {
     setEditingEvent(null);
@@ -57,6 +40,19 @@ export function Events() {
     setIsModalOpen(true);
   };
 
+  // Handle edit event from EventDetails page
+  useEffect(() => {
+    const state = location.state as { editEventId?: number } | null;
+    if (state?.editEventId && events.length > 0) {
+      const eventToEdit = events.find(event => event.id === state.editEventId);
+      if (eventToEdit) {
+        handleEditEvent(eventToEdit);
+        // Clear the state to prevent re-triggering
+        navigate(location.pathname, { replace: true, state: {} });
+      }
+    }
+  }, [events, location.state, navigate, location.pathname, handleEditEvent]);
+
   const handleViewEvent = (event: Event) => {
     navigate(`/events/${event.id}`);
   };
@@ -67,8 +63,7 @@ export function Events() {
     }
 
     try {
-      await EventService.deleteEvent(event.id);
-      await fetchEvents();
+      await deleteEventMutation.mutateAsync(event.id);
     } catch (error) {
       console.error('Failed to delete event:', error);
       alert('Failed to delete event. Please try again.');
@@ -76,34 +71,30 @@ export function Events() {
   };
 
   const handleFormSubmit = async (formData: EventFormData) => {
+    const eventData = {
+      name: formData.name,
+      description: formData.description || undefined,
+      start_datetime: formData.start_datetime,
+      end_datetime: formData.end_datetime,
+      is_public: formData.is_public,
+      max_capacity: formData.max_capacity ? parseInt(formData.max_capacity) : undefined,
+    };
+    
     try {
-      setFormLoading(true);
-      
-      const eventData = {
-        name: formData.name,
-        description: formData.description || undefined,
-        start_datetime: formData.start_datetime,
-        end_datetime: formData.end_datetime,
-        is_public: formData.is_public,
-        max_capacity: formData.max_capacity ? parseInt(formData.max_capacity) : undefined,
-      };
-      
       if (editingEvent) {
-        await EventService.updateEvent({
+        await updateEventMutation.mutateAsync({
           id: editingEvent.id,
           ...eventData
         });
       } else {
-        await EventService.createEvent(eventData);
+        await createEventMutation.mutateAsync(eventData);
       }
       
       setIsModalOpen(false);
-      await fetchEvents();
+      setEditingEvent(null);
     } catch (error) {
       console.error('Failed to save event:', error);
       alert('Failed to save event. Please try again.');
-    } finally {
-      setFormLoading(false);
     }
   };
 
@@ -304,7 +295,7 @@ export function Events() {
           event={editingEvent || undefined}
           onSubmit={handleFormSubmit}
           onCancel={() => setIsModalOpen(false)}
-          isLoading={formLoading}
+          isLoading={createEventMutation.isPending || updateEventMutation.isPending}
         />
       </Modal>
     </div>

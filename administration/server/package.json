@@ -1,5 +1,5 @@
 {
-  "name": "club-management-server",
+  "name": "api-server",
   "version": "1.0.0",
   "description": "Backend API for club management system",
   "main": "dist/index.js",

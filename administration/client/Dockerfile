@@ -7,14 +7,14 @@ RUN npm install -g turbo@^2
 COPY . .
 
 # Generate a partial monorepo with a pruned lockfile for the client workspace
-RUN turbo prune club-management-client --docker
+RUN turbo prune web-app --docker
 
 # Change to out directory and install dependencies
 WORKDIR /app/out
 RUN npm ci --frozen-lockfile
 
 # Build the project
-RUN npm run build --filter=club-management-client
+RUN npm run build --filter=web-app
 
 # Production stage
 FROM nginx:alpine AS production

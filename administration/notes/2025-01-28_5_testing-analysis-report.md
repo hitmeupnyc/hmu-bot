@@ -46,7 +46,7 @@ The current testing setup shows a **partially implemented testing strategy** wit
 - Missing accessibility testing
 
 ### Client Testing (❌ **Missing**)
-**Package**: `club-management-client`  
+**Package**: `web-app`  
 **Testing Framework**: Jest (configured in package.json but unused)  
 **Current State**: 
 - Jest dependency installed (`jest@^29.7.0`)
@@ -62,7 +62,7 @@ The current testing setup shows a **partially implemented testing strategy** wit
 - Form validation testing
 
 ### Server Testing (❌ **Missing**)
-**Package**: `club-management-server`  
+**Package**: `api-server`  
 **Testing Framework**: Jest + ts-jest (configured but unused)  
 **Current State**:
 - Jest and ts-jest dependencies installed

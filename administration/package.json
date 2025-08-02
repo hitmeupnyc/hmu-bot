@@ -19,6 +19,8 @@
     "build": "turbo run build",
     "test": "turbo run test",
     "test:watch": "turbo run test:watch --parallel",
+    "test:e2e": "npm run test --workspace=tests",
+    "test:unit": "turbo run test --filter=!e2e",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "deadcode": "knip",

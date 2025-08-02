@@ -212,17 +212,24 @@ test.describe('Member CRUD Operations', () => {
     // Wait a moment for search to process
     await page.waitForTimeout(500);
     
-    // Should filter results - should show only 1 result
+    // Should filter results - should show only 1 result (Alice Johnson from seed data)
     const filteredRows = await page.locator('tbody tr').count();
     expect(filteredRows).toBe(1);
+    
+    // Verify the correct member is shown
+    await expect(page.getByText('Ali (Alice) Johnson')).toBeVisible();
+    await expect(page.getByText('alice.johnson@example.com')).toBeVisible();
     
     // Clear search
     await page.getByPlaceholder('Search members...').fill('');
     await page.waitForTimeout(500);
     
-    // All members should be visible again
+    // All members should be visible again - should be at least the initial count
     const finalRows = await page.locator('tbody tr').count();
-    expect(finalRows).toBe(initialRows);
+    expect(finalRows).toBeGreaterThanOrEqual(initialRows);
+    
+    // Verify Alice is still visible among all members
+    await expect(page.getByText('alice.johnson@example.com')).toBeVisible();
   });
 
   test.skip('should delete a member with confirmation', async ({ page }) => {

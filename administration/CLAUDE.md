@@ -1,11 +1,13 @@
 ## Memory Management Guidelines
 
+- You can reliably restart the app by using `lsof -ti:5173 -ti:3000 | xargs kill; npm run dev > /dev/null 2>&1 &`
+  - You must always use ` > /dev/null 2>&1 &` when you run something in the background.
 - `/Users/vcarl/workspace/hmu-product/administration` is the project root. You can go in administration/client/ and administration/server/, but when starting the app, do so from administration/.
 - You expect to be able to access an IDE. If you can't, prompt me about it.
 - Write your thoughts in `/notes`, especially if it will help you remember important implementation details later.
 - Your notes must be named consistently with a date prefix in the format `YYYY-MM-DD_X_title.md` where X is a monotonically increasing integer.
 - This project uses sqlite, so you can inspect the database yourself. You can make your own dummy data, but don't do anything destructive, and make sure to describe how to reverse any DB changes.
-- Prefer using Playwright over curl.
+- Prefer using your Playwright MCP over curl.
 - When possible, avoid storing boolean values. Bitfields as flags are preferable to booleans in all situations, bitfields and flags.
 - Always use React Query in client apps.
 

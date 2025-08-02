@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { Effect } from 'effect';
-import { asyncHandler } from '../middleware/errorHandler';
 import type { CreateEventPayload, CreateEventMarketingPayload, CreateVolunteerPayload, CreateAttendancePayload } from '../types/events';
 import * as EventEffects from '../services/effect/EventEffects';
 import { effectToExpress, extractId, extractBody, extractQuery } from '../services/effect/adapters/expressAdapter';

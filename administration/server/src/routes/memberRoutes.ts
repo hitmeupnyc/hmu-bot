@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { Effect } from 'effect';
 import { auditMiddleware } from '../middleware/auditMiddleware';
-import { asyncHandler, createError } from '../middleware/errorHandler';
+import { asyncHandler } from '../middleware/errorHandler';
 import { apiLimiter, readOnlyLimiter } from '../middleware/rateLimiting';
 import { validate } from '../middleware/validation';
 import {

@@ -2,8 +2,7 @@ import { Router } from 'express';
 import { Effect } from 'effect';
 import { asyncHandler } from '../middleware/errorHandler';
 import * as DiscordSyncEffects from '../services/effect/DiscordSyncEffects';
-import { effectToExpress, extractBody, extractQuery } from '../services/effect/adapters/expressAdapter';
-import { DatabaseLive } from '../services/effect/layers/DatabaseLayer';
+import { effectToExpress, extractBody } from '../services/effect/adapters/expressAdapter';
 import type { DiscordWebhookPayload } from '../services/effect/schemas/CommonSchemas';
 
 const router = Router();

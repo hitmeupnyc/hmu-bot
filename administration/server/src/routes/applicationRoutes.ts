@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { Effect } from 'effect';
-import { asyncHandler } from '../middleware/errorHandler';
 import { ApplicationFormData } from '../types';
 import * as MemberEffects from '../services/effect/MemberEffects';
 import { effectToExpress, extractBody } from '../services/effect/adapters/expressAdapter';

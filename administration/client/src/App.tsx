@@ -1,12 +1,13 @@
-import { Routes, Route } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
-import { Dashboard } from '@/pages/Dashboard';
-import { Members } from '@/pages/Members';
-import { MemberDetails } from '@/pages/MemberDetails';
-import { Events } from '@/pages/Events';
-import { EventDetails } from '@/pages/EventDetails';
-import { Settings } from '@/pages/Settings';
 import { Apply } from '@/pages/Apply';
+import { Dashboard } from '@/pages/Dashboard';
+import { Debug } from '@/pages/Debug';
+import { EventDetails } from '@/pages/EventDetails';
+import { Events } from '@/pages/Events';
+import { MemberDetails } from '@/pages/MemberDetails';
+import { Members } from '@/pages/Members';
+import { Settings } from '@/pages/Settings';
+import { Route, Routes } from 'react-router-dom';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         <Route path="/events/:id" element={<EventDetails />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/apply" element={<Apply />} />
+        <Route path="/debug" element={<Debug />} />
       </Routes>
     </Layout>
   );

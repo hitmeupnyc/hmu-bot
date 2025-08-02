@@ -1,332 +1,331 @@
-name: Deploy
-
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Deployment environment'
-        required: true
-        default: 'staging'
-        type: choice
-        options:
-          - staging
-          - production
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME_SERVER: ${{ github.repository }}/server
-  IMAGE_NAME_CLIENT: ${{ github.repository }}/client
-
-jobs:
-  # ====================
-  # Build & Push Images
-  # ====================
-  build-images:
-    name: 🏗️ Build & Push Images
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      
-    outputs:
-      server-image: ${{ steps.meta-server.outputs.tags }}
-      client-image: ${{ steps.meta-client.outputs.tags }}
-      server-digest: ${{ steps.build-server.outputs.digest }}
-      client-digest: ${{ steps.build-client.outputs.digest }}
-    
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v4
-        
-      - name: 🐳 Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        
-      - name: 🔐 Log in to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          
-      - name: 📋 Extract server metadata
-        id: meta-server
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_SERVER }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-            
-      - name: 📋 Extract client metadata
-        id: meta-client
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_CLIENT }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-            
-      - name: 🏗️ Build and push server image
-        id: build-server
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./server/Dockerfile
-          push: true
-          tags: ${{ steps.meta-server.outputs.tags }}
-          labels: ${{ steps.meta-server.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64,linux/arm64
-          
-      - name: 🏗️ Build and push client image
-        id: build-client
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./client/Dockerfile
-          push: true
-          tags: ${{ steps.meta-client.outputs.tags }}
-          labels: ${{ steps.meta-client.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64,linux/arm64
-
-  # ====================
-  # Deploy to Staging
-  # ====================
-  deploy-staging:
-    name: 🚀 Deploy to Staging
-    runs-on: ubuntu-latest
-    needs: [build-images]
-    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
-    environment:
-      name: staging
-      url: https://staging.your-domain.com
-    
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v4
-        
-      - name: 🔧 Generate docker-compose for staging
-        run: |
-          cat > docker-compose.staging.yml << EOF
-          services:
-            server:
-              image: ${{ needs.build-images.outputs.server-image }}
-              ports:
-                - "3000:3000"
-              environment:
-                - NODE_ENV=staging
-                - DATABASE_PATH=/app/data/club.db
-                - REDIS_URL=redis://redis:6379
-                - CLIENT_URL=https://staging.your-domain.com
-                - JWT_SECRET=\${{ secrets.STAGING_JWT_SECRET }}
-                - KLAVIYO_API_KEY=\${{ secrets.STAGING_KLAVIYO_API_KEY }}
-                - DISCORD_BOT_TOKEN=\${{ secrets.STAGING_DISCORD_BOT_TOKEN }}
-                - EVENTBRITE_API_TOKEN=\${{ secrets.STAGING_EVENTBRITE_API_TOKEN }}
-                - PATREON_CLIENT_ID=\${{ secrets.STAGING_PATREON_CLIENT_ID }}
-                - PATREON_CLIENT_SECRET=\${{ secrets.STAGING_PATREON_CLIENT_SECRET }}
-              volumes:
-                - staging_data:/app/data
-              depends_on:
-                redis:
-                  condition: service_healthy
-              restart: unless-stopped
-              healthcheck:
-                test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-                interval: 30s
-                timeout: 10s
-                retries: 3
-                start_period: 40s
-          
-            client:
-              image: ${{ needs.build-images.outputs.client-image }}
-              ports:
-                - "80:80"
-              depends_on:
-                server:
-                  condition: service_healthy
-              restart: unless-stopped
-          
-            redis:
-              image: redis:7-alpine
-              volumes:
-                - staging_redis_data:/data
-              restart: unless-stopped
-              healthcheck:
-                test: ["CMD", "redis-cli", "ping"]
-                interval: 30s
-                timeout: 10s
-                retries: 3
-                start_period: 30s
-              command: redis-server --appendonly yes --maxmemory 100mb --maxmemory-policy allkeys-lru
-          
-          volumes:
-            staging_redis_data:
-            staging_data:
-          EOF
-          
-      - name: 📤 Upload staging compose file
-        uses: actions/upload-artifact@v4
-        with:
-          name: staging-compose
-          path: docker-compose.staging.yml
-          
-      # In a real deployment, you would deploy to your staging server here
-      # For example, using SSH, Kubernetes, Docker Swarm, etc.
-      - name: 🚀 Deploy to staging (simulation)
-        run: |
-          echo "🚀 Deploying to staging environment..."
-          echo "Server image: ${{ needs.build-images.outputs.server-image }}"
-          echo "Client image: ${{ needs.build-images.outputs.client-image }}"
-          echo "✅ Staging deployment completed!"
-
-  # ====================
-  # Deploy to Production
-  # ====================
-  deploy-production:
-    name: 🚀 Deploy to Production
-    runs-on: ubuntu-latest
-    needs: [build-images, deploy-staging]
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
-    environment:
-      name: production
-      url: https://your-domain.com
-    
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v4
-        
-      - name: 🔧 Generate docker-compose for production
-        run: |
-          cat > docker-compose.production.yml << EOF
-          services:
-            server:
-              image: ${{ needs.build-images.outputs.server-image }}
-              ports:
-                - "3000:3000"
-              environment:
-                - NODE_ENV=production
-                - DATABASE_PATH=/app/data/club.db
-                - REDIS_URL=redis://redis:6379
-                - CLIENT_URL=https://your-domain.com
-                - JWT_SECRET=\${{ secrets.PROD_JWT_SECRET }}
-                - KLAVIYO_API_KEY=\${{ secrets.PROD_KLAVIYO_API_KEY }}
-                - DISCORD_BOT_TOKEN=\${{ secrets.PROD_DISCORD_BOT_TOKEN }}
-                - EVENTBRITE_API_TOKEN=\${{ secrets.PROD_EVENTBRITE_API_TOKEN }}
-                - PATREON_CLIENT_ID=\${{ secrets.PROD_PATREON_CLIENT_ID }}
-                - PATREON_CLIENT_SECRET=\${{ secrets.PROD_PATREON_CLIENT_SECRET }}
-              volumes:
-                - production_data:/app/data
-              depends_on:
-                redis:
-                  condition: service_healthy
-              restart: unless-stopped
-              healthcheck:
-                test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-                interval: 30s
-                timeout: 10s
-                retries: 3
-                start_period: 40s
-              deploy:
-                resources:
-                  limits:
-                    memory: 1G
-                    cpus: "1.0"
-                  reservations:
-                    memory: 512M
-                    cpus: "0.5"
-          
-            client:
-              image: ${{ needs.build-images.outputs.client-image }}
-              ports:
-                - "80:80"
-                - "443:443"
-              depends_on:
-                server:
-                  condition: service_healthy
-              restart: unless-stopped
-              deploy:
-                resources:
-                  limits:
-                    memory: 512M
-                    cpus: "0.5"
-                  reservations:
-                    memory: 256M
-                    cpus: "0.25"
-          
-            redis:
-              image: redis:7-alpine
-              volumes:
-                - production_redis_data:/data
-              restart: unless-stopped
-              healthcheck:
-                test: ["CMD", "redis-cli", "ping"]
-                interval: 30s
-                timeout: 10s
-                retries: 3
-                start_period: 30s
-              command: redis-server --appendonly yes --maxmemory 200mb --maxmemory-policy allkeys-lru
-              deploy:
-                resources:
-                  limits:
-                    memory: 256M
-                    cpus: "0.5"
-                  reservations:
-                    memory: 128M
-                    cpus: "0.25"
-          
-          volumes:
-            production_redis_data:
-            production_data:
-          EOF
-          
-      - name: 📤 Upload production compose file
-        uses: actions/upload-artifact@v4
-        with:
-          name: production-compose
-          path: docker-compose.production.yml
-          
-      # In a real deployment, you would deploy to your production server here
-      - name: 🚀 Deploy to production (simulation)
-        run: |
-          echo "🚀 Deploying to production environment..."
-          echo "Server image: ${{ needs.build-images.outputs.server-image }}"
-          echo "Client image: ${{ needs.build-images.outputs.client-image }}"
-          echo "✅ Production deployment completed!"
-          
-      - name: 📊 Post-deployment health check
-        run: |
-          echo "🏥 Running post-deployment health checks..."
-          # In a real deployment, you would check your actual production URLs
-          echo "✅ All health checks passed!"
-
-  # ====================
-  # Notification
-  # ====================
-  notify:
-    name: 📢 Notify Deployment
-    runs-on: ubuntu-latest
-    needs: [deploy-staging, deploy-production]
-    if: always() && (needs.deploy-staging.result != 'skipped' || needs.deploy-production.result != 'skipped')
-    
-    steps:
-      - name: 📢 Send deployment notification
-        run: |
-          if [[ "${{ needs.deploy-staging.result }}" == "success" ]]; then
-            echo "✅ Staging deployment successful"
-          fi
-          if [[ "${{ needs.deploy-production.result }}" == "success" ]]; then
-            echo "✅ Production deployment successful"
-          fi
-          if [[ "${{ needs.deploy-staging.result }}" == "failure" || "${{ needs.deploy-production.result }}" == "failure" ]]; then
-            echo "❌ Deployment failed"
-            exit 1
-          fi
+# # Commented out until we actually need deployment
+# # name: Deploy
+# # 
+# # on:
+# #   workflow_dispatch:
+# #     inputs:
+# #       environment:
+# #         description: 'Deployment environment'
+# #         required: true
+# #         default: 'staging'
+# #         type: choice
+# #         options:
+# #           - staging
+# #           - production
+# 
+# env:
+#   REGISTRY: ghcr.io
+#   IMAGE_NAME_SERVER: ${{ github.repository }}/server
+#   IMAGE_NAME_CLIENT: ${{ github.repository }}/client
+# 
+# jobs:
+#   # ====================
+#   # Build & Push Images
+#   # ====================
+#   build-images:
+#     name: 🏗️ Build & Push Images
+#     runs-on: ubuntu-latest
+#     permissions:
+#       contents: read
+#       packages: write
+#       
+#     outputs:
+#       server-image: ${{ steps.meta-server.outputs.tags }}
+#       client-image: ${{ steps.meta-client.outputs.tags }}
+#       server-digest: ${{ steps.build-server.outputs.digest }}
+#       client-digest: ${{ steps.build-client.outputs.digest }}
+#     
+#     steps:
+#       - name: 📂 Checkout code
+#         uses: actions/checkout@v4
+#         
+#       - name: 🐳 Set up Docker Buildx
+#         uses: docker/setup-buildx-action@v3
+#         
+#       - name: 🔐 Log in to Container Registry
+#         uses: docker/login-action@v3
+#         with:
+#           registry: ${{ env.REGISTRY }}
+#           username: ${{ github.actor }}
+#           password: ${{ secrets.GITHUB_TOKEN }}
+#           
+#       - name: 📋 Extract server metadata
+#         id: meta-server
+#         uses: docker/metadata-action@v5
+#         with:
+#           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_SERVER }}
+#           tags: |
+#             type=ref,event=branch
+#             type=ref,event=pr
+#             type=sha,prefix={{branch}}-
+#             type=raw,value=latest,enable={{is_default_branch}}
+#             
+#       - name: 📋 Extract client metadata
+#         id: meta-client
+#         uses: docker/metadata-action@v5
+#         with:
+#           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_CLIENT }}
+#           tags: |
+#             type=ref,event=branch
+#             type=ref,event=pr
+#             type=sha,prefix={{branch}}-
+#             type=raw,value=latest,enable={{is_default_branch}}
+#             
+#       - name: 🏗️ Build and push server image
+#         id: build-server
+#         uses: docker/build-push-action@v5
+#         with:
+#           context: .
+#           file: ./server/Dockerfile
+#           push: true
+#           tags: ${{ steps.meta-server.outputs.tags }}
+#           labels: ${{ steps.meta-server.outputs.labels }}
+#           cache-from: type=gha
+#           cache-to: type=gha,mode=max
+#           platforms: linux/amd64,linux/arm64
+#           
+#       - name: 🏗️ Build and push client image
+#         id: build-client
+#         uses: docker/build-push-action@v5
+#         with:
+#           context: .
+#           file: ./client/Dockerfile
+#           push: true
+#           tags: ${{ steps.meta-client.outputs.tags }}
+#           labels: ${{ steps.meta-client.outputs.labels }}
+#           cache-from: type=gha
+#           cache-to: type=gha,mode=max
+#           platforms: linux/amd64,linux/arm64
+# 
+#   # ====================
+#   # Deploy to Staging
+#   # ====================
+#   deploy-staging:
+#     name: 🚀 Deploy to Staging
+#     runs-on: ubuntu-latest
+#     needs: [build-images]
+#     if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+#     environment:
+#       name: staging
+#       url: https://staging.your-domain.com
+#     
+#     steps:
+#       - name: 📂 Checkout code
+#         uses: actions/checkout@v4
+#         
+#       - name: 🔧 Generate docker-compose for staging
+#         run: |
+#           cat > docker-compose.staging.yml << EOF
+#           services:
+#             server:
+#               image: ${{ needs.build-images.outputs.server-image }}
+#               ports:
+#                 - "3000:3000"
+#               environment:
+#                 - NODE_ENV=staging
+#                 - DATABASE_PATH=/app/data/club.db
+#                 - REDIS_URL=redis://redis:6379
+#                 - CLIENT_URL=https://staging.your-domain.com
+#                 - JWT_SECRET=\${{ secrets.STAGING_JWT_SECRET }}
+#                 - KLAVIYO_API_KEY=\${{ secrets.STAGING_KLAVIYO_API_KEY }}
+#                 - DISCORD_BOT_TOKEN=\${{ secrets.STAGING_DISCORD_BOT_TOKEN }}
+#                 - EVENTBRITE_API_TOKEN=\${{ secrets.STAGING_EVENTBRITE_API_TOKEN }}
+#                 - PATREON_CLIENT_ID=\${{ secrets.STAGING_PATREON_CLIENT_ID }}
+#                 - PATREON_CLIENT_SECRET=\${{ secrets.STAGING_PATREON_CLIENT_SECRET }}
+#               volumes:
+#                 - staging_data:/app/data
+#               depends_on:
+#                 redis:
+#                   condition: service_healthy
+#               restart: unless-stopped
+#               healthcheck:
+#                 test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+#                 interval: 30s
+#                 timeout: 10s
+#                 retries: 3
+#                 start_period: 40s
+#           
+#             client:
+#               image: ${{ needs.build-images.outputs.client-image }}
+#               ports:
+#                 - "80:80"
+#               depends_on:
+#                 server:
+#                   condition: service_healthy
+#               restart: unless-stopped
+#           
+#             redis:
+#               image: redis:7-alpine
+#               volumes:
+#                 - staging_redis_data:/data
+#               restart: unless-stopped
+#               healthcheck:
+#                 test: ["CMD", "redis-cli", "ping"]
+#                 interval: 30s
+#                 timeout: 10s
+#                 retries: 3
+#                 start_period: 30s
+#               command: redis-server --appendonly yes --maxmemory 100mb --maxmemory-policy allkeys-lru
+#           
+#           volumes:
+#             staging_redis_data:
+#             staging_data:
+#           EOF
+#           
+#       - name: 📤 Upload staging compose file
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: staging-compose
+#           path: docker-compose.staging.yml
+#           
+#       # In a real deployment, you would deploy to your staging server here
+#       # For example, using SSH, Kubernetes, Docker Swarm, etc.
+#       - name: 🚀 Deploy to staging (simulation)
+#         run: |
+#           echo "🚀 Deploying to staging environment..."
+#           echo "Server image: ${{ needs.build-images.outputs.server-image }}"
+#           echo "Client image: ${{ needs.build-images.outputs.client-image }}"
+#           echo "✅ Staging deployment completed!"
+# 
+#   # ====================
+#   # Deploy to Production
+#   # ====================
+#   deploy-production:
+#     name: 🚀 Deploy to Production
+#     runs-on: ubuntu-latest
+#     needs: [build-images, deploy-staging]
+#     if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
+#     environment:
+#       name: production
+#       url: https://your-domain.com
+#     
+#     steps:
+#       - name: 📂 Checkout code
+#         uses: actions/checkout@v4
+#         
+#       - name: 🔧 Generate docker-compose for production
+#         run: |
+#           cat > docker-compose.production.yml << EOF
+#           services:
+#             server:
+#               image: ${{ needs.build-images.outputs.server-image }}
+#               ports:
+#                 - "3000:3000"
+#               environment:
+#                 - NODE_ENV=production
+#                 - DATABASE_PATH=/app/data/club.db
+#                 - REDIS_URL=redis://redis:6379
+#                 - CLIENT_URL=https://your-domain.com
+#                 - JWT_SECRET=\${{ secrets.PROD_JWT_SECRET }}
+#                 - KLAVIYO_API_KEY=\${{ secrets.PROD_KLAVIYO_API_KEY }}
+#                 - DISCORD_BOT_TOKEN=\${{ secrets.PROD_DISCORD_BOT_TOKEN }}
+#                 - EVENTBRITE_API_TOKEN=\${{ secrets.PROD_EVENTBRITE_API_TOKEN }}
+#                 - PATREON_CLIENT_ID=\${{ secrets.PROD_PATREON_CLIENT_ID }}
+#                 - PATREON_CLIENT_SECRET=\${{ secrets.PROD_PATREON_CLIENT_SECRET }}
+#               volumes:
+#                 - production_data:/app/data
+#               depends_on:
+#                 redis:
+#                   condition: service_healthy
+#               restart: unless-stopped
+#               healthcheck:
+#                 test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+#                 interval: 30s
+#                 timeout: 10s
+#                 retries: 3
+#                 start_period: 40s
+#               deploy:
+#                 resources:
+#                   limits:
+#                     memory: 1G
+#                     cpus: "1.0"
+#                   reservations:
+#                     memory: 512M
+#                     cpus: "0.5"
+#           
+#             client:
+#               image: ${{ needs.build-images.outputs.client-image }}
+#               ports:
+#                 - "80:80"
+#                 - "443:443"
+#               depends_on:
+#                 server:
+#                   condition: service_healthy
+#               restart: unless-stopped
+#               deploy:
+#                 resources:
+#                   limits:
+#                     memory: 512M
+#                     cpus: "0.5"
+#                   reservations:
+#                     memory: 256M
+#                     cpus: "0.25"
+#           
+#             redis:
+#               image: redis:7-alpine
+#               volumes:
+#                 - production_redis_data:/data
+#               restart: unless-stopped
+#               healthcheck:
+#                 test: ["CMD", "redis-cli", "ping"]
+#                 interval: 30s
+#                 timeout: 10s
+#                 retries: 3
+#                 start_period: 30s
+#               command: redis-server --appendonly yes --maxmemory 200mb --maxmemory-policy allkeys-lru
+#               deploy:
+#                 resources:
+#                   limits:
+#                     memory: 256M
+#                     cpus: "0.5"
+#                   reservations:
+#                     memory: 128M
+#                     cpus: "0.25"
+#           
+#           volumes:
+#             production_redis_data:
+#             production_data:
+#           EOF
+#           
+#       - name: 📤 Upload production compose file
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: production-compose
+#           path: docker-compose.production.yml
+#           
+#       # In a real deployment, you would deploy to your production server here
+#       - name: 🚀 Deploy to production (simulation)
+#         run: |
+#           echo "🚀 Deploying to production environment..."
+#           echo "Server image: ${{ needs.build-images.outputs.server-image }}"
+#           echo "Client image: ${{ needs.build-images.outputs.client-image }}"
+#           echo "✅ Production deployment completed!"
+#           
+#       - name: 📊 Post-deployment health check
+#         run: |
+#           echo "🏥 Running post-deployment health checks..."
+#           # In a real deployment, you would check your actual production URLs
+#           echo "✅ All health checks passed!"
+# 
+#   # ====================
+#   # Notification
+#   # ====================
+#   notify:
+#     name: 📢 Notify Deployment
+#     runs-on: ubuntu-latest
+#     needs: [deploy-staging, deploy-production]
+#     if: always() && (needs.deploy-staging.result != 'skipped' || needs.deploy-production.result != 'skipped')
+#     
+#     steps:
+#       - name: 📢 Send deployment notification
+#         run: |
+#           if [[ "${{ needs.deploy-staging.result }}" == "success" ]]; then
+#             echo "✅ Staging deployment successful"
+#           fi
+#           if [[ "${{ needs.deploy-production.result }}" == "success" ]]; then
+#             echo "✅ Production deployment successful"
+#           fi
+#           if [[ "${{ needs.deploy-staging.result }}" == "failure" || "${{ needs.deploy-production.result }}" == "failure" ]]; then
+#             echo "❌ Deployment failed"
+#             exit 1
+#           fi

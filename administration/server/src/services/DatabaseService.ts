@@ -123,3 +123,53 @@ export async function getMigrationStatus() {
   }
   return await _migrationProvider.getMigrationStatus();
 }
+
+// Get comprehensive database information
+export function getDatabaseInfo() {
+  if (!_initialized) {
+    initializeDatabase();
+  }
+
+  const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../data/club.db');
+  const absoluteDbPath = path.resolve(dbPath);
+
+  // Get SQLite version information
+  const sqliteVersion = _sqliteDb.pragma('sqlite_version', { simple: true });
+  const userVersion = _sqliteDb.pragma('user_version', { simple: true });
+  const schemaVersion = _sqliteDb.pragma('schema_version', { simple: true });
+
+  // Get file system information
+  let fileInfo: any = null;
+  try {
+    const stats = fs.statSync(absoluteDbPath);
+    fileInfo = {
+      size: stats.size,
+      sizeFormatted: `${(stats.size / 1024 / 1024).toFixed(2)} MB`,
+      modified: stats.mtime.toISOString(),
+      created: stats.birthtime.toISOString(),
+      path: absoluteDbPath,
+    };
+  } catch (error) {
+    fileInfo = { error: 'Could not retrieve database file info' };
+  }
+
+  // Get database statistics
+  const pageCount = _sqliteDb.pragma('page_count', { simple: true }) as number;
+  const pageSize = _sqliteDb.pragma('page_size', { simple: true }) as number;
+  const cacheSize = _sqliteDb.pragma('cache_size', { simple: true }) as number;
+
+  return {
+    sqlite: {
+      version: sqliteVersion,
+      userVersion: userVersion,
+      schemaVersion: schemaVersion,
+    },
+    file: fileInfo,
+    statistics: {
+      pageCount: pageCount,
+      pageSize: pageSize,
+      cacheSize: cacheSize,
+      totalPages: pageCount * pageSize,
+    },
+  };
+}

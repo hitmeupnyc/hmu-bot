@@ -250,7 +250,8 @@ app.get('/health', async (req, res) => {
 
 // Environment check endpoint
 app.get('/health/env', (req, res) => {
-  const requiredVars = ['DATABASE_PATH', 'JWT_SECRET'];
+  const actualValues = ['DATABASE_PATH'];
+  const requiredVars = ['JWT_SECRET'];
   const optionalVars = [
     'KLAVIYO_API_KEY',
     'DISCORD_BOT_TOKEN',
@@ -259,11 +260,19 @@ app.get('/health/env', (req, res) => {
   ];
 
   const env = {
+    values: {} as Record<string, any>,
     required: {} as Record<string, boolean>,
     optional: {} as Record<string, boolean>,
     issues: [] as string[],
   };
 
+  actualValues.forEach((varName) => {
+    const exists = process.env[varName];
+    env.values[varName] = exists;
+    if (!exists) {
+      env.issues.push(`Missing required environment variable: ${varName}`);
+    }
+  });
   requiredVars.forEach((varName) => {
     const exists = !!process.env[varName];
     env.required[varName] = exists;

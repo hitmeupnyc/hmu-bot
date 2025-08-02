@@ -1,34 +1,3 @@
-import React, { ReactElement } from 'react'
-import { render, RenderOptions } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { BrowserRouter } from 'react-router-dom'
-
-// Create a custom render function that includes providers
-const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-    },
-  })
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        {children}
-      </BrowserRouter>
-    </QueryClientProvider>
-  )
-}
-
-const customRender = (
-  ui: ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'>,
-) => render(ui, { wrapper: AllTheProviders, ...options })
-
-export * from '@testing-library/react'
-
 // Mock data factories
 export const createMockMember = (overrides = {}) => ({
   id: '1',
@@ -46,7 +15,7 @@ export const createMockMember = (overrides = {}) => ({
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
   ...overrides,
-})
+});
 
 export const createMockEvent = (overrides = {}) => ({
   id: '1',
@@ -61,7 +30,7 @@ export const createMockEvent = (overrides = {}) => ({
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
   ...overrides,
-})
+});
 
 // API response wrappers
 export const createApiResponse = <T,>(data: T) => ({
@@ -73,10 +42,10 @@ export const createApiResponse = <T,>(data: T) => ({
     total: Array.isArray(data) ? data.length : 1,
     totalPages: 1,
   },
-})
+});
 
 export const createApiError = (message: string, status = 400) => ({
   success: false,
   error: message,
   status,
-})
+});

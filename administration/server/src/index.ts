@@ -25,6 +25,7 @@ import logger from './utils/logger';
 
 // Load environment variables
 dotenv.config();
+console.log(process.env);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -97,7 +98,7 @@ app.get('/health', async (req, res) => {
 
     if (debugKey === expectedKey) {
       // Add comprehensive debug information
-      const dbPath = process.env.DATABASE_URL?.replace('file:', '') || 'data/development.db';
+      const dbPath = process.env.DATABASE_PATH?.replace('file:', '') || 'data/development.db';
       const absoluteDbPath = path.resolve(dbPath);
 
       let dbStats: {
@@ -209,7 +210,7 @@ app.get('/health', async (req, res) => {
           },
           environment: {
             NODE_ENV: process.env.NODE_ENV,
-            DATABASE_URL: process.env.DATABASE_URL ? '[CONFIGURED]' : '[NOT SET]',
+            DATABASE_PATH: process.env.DATABASE_PATH ? '[CONFIGURED]' : '[NOT SET]',
             KLAVIYO_API_KEY: process.env.KLAVIYO_API_KEY ? '[CONFIGURED]' : '[NOT SET]',
             DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN ? '[CONFIGURED]' : '[NOT SET]',
             PATREON_CLIENT_ID: process.env.PATREON_CLIENT_ID ? '[CONFIGURED]' : '[NOT SET]',

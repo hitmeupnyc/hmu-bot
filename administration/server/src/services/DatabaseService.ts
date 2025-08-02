@@ -1,7 +1,7 @@
-import { Kysely, SqliteDialect } from 'kysely';
 import Database from 'better-sqlite3';
-import path from 'path';
 import fs from 'fs';
+import { Kysely, SqliteDialect } from 'kysely';
+import path from 'path';
 import type { DB as DatabaseSchema } from '../types/database';
 import { MigrationProvider } from './MigrationProvider';
 
@@ -14,9 +14,9 @@ let _initialized = false;
 // Initialize the database connection
 function initializeDatabase(): void {
   if (_initialized) return;
-  
-  const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../data/club.db');
-  
+
+  const dbPath = process.env.DATABASE_PATH || path.join(__dirname, './data/club.db');
+
   // Ensure data directory exists
   const dbDir = path.dirname(dbPath);
   if (!fs.existsSync(dbDir)) {
@@ -61,7 +61,7 @@ export async function initialize(): Promise<void> {
   if (!_initialized) {
     initializeDatabase();
   }
-  
+
   try {
     console.log('🔄 Running database migrations...');
     await _migrationProvider.migrateToLatest();

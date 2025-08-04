@@ -2,9 +2,15 @@ import { test, expect } from '@playwright/test';
 
 test.describe('CSV Import Header Mapping', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to members page and open CSV import modal
-    await page.goto('/members');
+    // Navigate to members page and wait for it to load
+    await page.goto('/members', { waitUntil: 'networkidle' });
+    await expect(page.getByRole('heading', { name: 'Members' })).toBeVisible();
+    
+    // Wait for Import CSV button to be available and click it
+    await expect(page.getByRole('button', { name: 'Import CSV' })).toBeVisible();
     await page.getByRole('button', { name: 'Import CSV' }).click();
+    
+    // Wait for modal to open
     await expect(page.getByRole('heading', { name: 'Import Applications' })).toBeVisible();
   });
 
@@ -15,7 +21,9 @@ test.describe('CSV Import Header Mapping', () => {
       'John Doe\tjohn@example.com\t1990\tFetlife\tJane Smith\ttrue\tI have experience\tI am friendly\tConsent is important\tyes'
     ].join('\n');
 
-    await page.getByRole('textbox', { name: 'Paste your data here. Copy' }).fill(sampleData);
+    // Wait for textarea to be available and fill it
+    await expect(page.getByTestId('csv-import-textarea')).toBeVisible();
+    await page.getByTestId('csv-import-textarea').fill(sampleData);
     
     // Should show mapping interface
     await expect(page.getByRole('heading', { name: 'Map Your Columns' })).toBeVisible();
@@ -41,7 +49,9 @@ test.describe('CSV Import Header Mapping', () => {
       'John Doe\tjohn@example.com\t1990'
     ].join('\n');
 
-    await page.getByRole('textbox', { name: 'Paste your data here. Copy' }).fill(sampleData);
+    // Wait for textarea to be available and fill it
+    await expect(page.getByTestId('csv-import-textarea')).toBeVisible();
+    await page.getByTestId('csv-import-textarea').fill(sampleData);
     await expect(page.getByRole('heading', { name: 'Map Your Columns' })).toBeVisible();
 
     // Get source and target elements using data attributes
@@ -65,7 +75,9 @@ test.describe('CSV Import Header Mapping', () => {
       'John Doe\tjohn@example.com'
     ].join('\n');
 
-    await page.getByRole('textbox', { name: 'Paste your data here. Copy' }).fill(sampleData);
+    // Wait for textarea to be available and fill it
+    await expect(page.getByTestId('csv-import-textarea')).toBeVisible();
+    await page.getByTestId('csv-import-textarea').fill(sampleData);
     await expect(page.getByRole('heading', { name: 'Map Your Columns' })).toBeVisible();
 
     // Create a connection first
@@ -93,7 +105,9 @@ test.describe('CSV Import Header Mapping', () => {
       'John Doe\tjohn@example.com\t1990\tFetlife'
     ].join('\n');
 
-    await page.getByRole('textbox', { name: 'Paste your data here. Copy' }).fill(sampleData);
+    // Wait for textarea to be available and fill it
+    await expect(page.getByTestId('csv-import-textarea')).toBeVisible();
+    await page.getByTestId('csv-import-textarea').fill(sampleData);
     await expect(page.getByRole('heading', { name: 'Map Your Columns' })).toBeVisible();
 
     // Create multiple connections
@@ -126,7 +140,9 @@ test.describe('CSV Import Header Mapping', () => {
       'John Doe\tjohn@example.com\t1990'
     ].join('\n');
 
-    await page.getByRole('textbox', { name: 'Paste your data here. Copy' }).fill(sampleData);
+    // Wait for textarea to be available and fill it
+    await expect(page.getByTestId('csv-import-textarea')).toBeVisible();
+    await page.getByTestId('csv-import-textarea').fill(sampleData);
     
     // Should show mapping interface
     await expect(page.getByRole('heading', { name: 'Map Your Columns' })).toBeVisible();
@@ -158,7 +174,9 @@ test.describe('CSV Import Header Mapping', () => {
       'John Doe\tjohn@example.com'
     ].join('\n');
 
-    await page.getByRole('textbox', { name: 'Paste your data here. Copy' }).fill(sampleData);
+    // Wait for textarea to be available and fill it
+    await expect(page.getByTestId('csv-import-textarea')).toBeVisible();
+    await page.getByTestId('csv-import-textarea').fill(sampleData);
     await expect(page.getByRole('heading', { name: 'Map Your Columns' })).toBeVisible();
 
     const sourceHeader = page.locator('[data-testid="source-header"][data-header="Full Name"]');

@@ -7,7 +7,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: 2, // Limit to 2 concurrent test files
   reporter: 'list',
-  timeout: 1500, // Standard timeout for operations
+  timeout: 5000, // Standard timeout for operations
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',

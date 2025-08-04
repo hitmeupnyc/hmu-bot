@@ -187,6 +187,7 @@ export function MemberDetails() {
           <button 
             onClick={() => navigate('/members')}
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            data-testid="back-to-members-btn"
           >
             Back to Members
           </button>
@@ -209,11 +210,12 @@ export function MemberDetails() {
           <button
             onClick={() => navigate('/members')}
             className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
+            data-testid="back-to-members-btn"
           >
             <ArrowLeftIcon className="h-5 w-5" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-gray-900" data-testid="member-name-heading">
               {getDisplayName(member)}
             </h1>
             <p className="text-gray-600">{member.email}</p>
@@ -322,6 +324,7 @@ export function MemberDetails() {
               onChange={(e) => setNoteContent(e.target.value)}
               className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
               placeholder="Add a note about this member..."
+              data-testid="member-note-textarea"
               disabled={addNoteMutation.isPending}
             />
             <button

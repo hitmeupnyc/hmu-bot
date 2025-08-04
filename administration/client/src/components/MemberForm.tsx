@@ -68,6 +68,7 @@ export function MemberForm({ member, onSubmit, onCancel, isLoading = false }: Me
             type="text"
             id="first_name"
             name="first_name"
+            data-testid="member-form-first-name"
             required
             value={formData.first_name}
             onChange={handleChange}
@@ -126,6 +127,7 @@ export function MemberForm({ member, onSubmit, onCancel, isLoading = false }: Me
             type="email"
             id="email"
             name="email"
+            data-testid="member-form-email"
             required
             value={formData.email}
             onChange={handleChange}

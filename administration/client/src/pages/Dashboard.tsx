@@ -3,7 +3,7 @@ import { useEvents } from '../hooks/useEvents';
 import { getAccessLevelName, getAccessLevelColor } from '../utils/authorization';
 
 export function Dashboard() {
-  const { data: membersData, isLoading: membersLoading } = useMembers({ limit: 1000 });
+  const { data: membersData, isLoading: membersLoading } = useMembers({ limit: 100 });
   const { data: eventsData, isLoading: eventsLoading } = useEvents({ upcoming: true });
   const { data: recentMembersData } = useMembers({ limit: 5 });
 
@@ -25,30 +25,30 @@ export function Dashboard() {
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white p-6 rounded-lg shadow" data-testid="stat-total-members">
           <h3 className="text-lg font-semibold text-gray-900">Total Members</h3>
-          <p className="text-3xl font-bold text-blue-600 mt-2">
+          <p className="text-3xl font-bold text-blue-600 mt-2" data-testid="stat-total-members-value">
             {formatCount(totalMembers, membersLoading)}
           </p>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white p-6 rounded-lg shadow" data-testid="stat-active-members">
           <h3 className="text-lg font-semibold text-gray-900">Active Members</h3>
-          <p className="text-3xl font-bold text-green-600 mt-2">
+          <p className="text-3xl font-bold text-green-600 mt-2" data-testid="stat-active-members-value">
             {formatCount(activeMembers, membersLoading)}
           </p>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white p-6 rounded-lg shadow" data-testid="stat-upcoming-events">
           <h3 className="text-lg font-semibold text-gray-900">Upcoming Events</h3>
-          <p className="text-3xl font-bold text-purple-600 mt-2">
+          <p className="text-3xl font-bold text-purple-600 mt-2" data-testid="stat-upcoming-events-value">
             {formatCount(upcomingEventsCount, eventsLoading)}
           </p>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white p-6 rounded-lg shadow" data-testid="stat-professional-affiliates">
           <h3 className="text-lg font-semibold text-gray-900">Professional Affiliates</h3>
-          <p className="text-3xl font-bold text-orange-600 mt-2">
+          <p className="text-3xl font-bold text-orange-600 mt-2" data-testid="stat-professional-affiliates-value">
             {formatCount(professionalAffiliates, membersLoading)}
           </p>
         </div>

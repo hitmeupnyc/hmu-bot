@@ -346,6 +346,7 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
                     onChange={(e) => handleTextareaChange(e.target.value)}
                     placeholder="Paste your data here. Copy directly from Google Sheets, Excel, or other spreadsheets..."
                     rows={12}
+                    data-testid="csv-import-textarea"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                   />
                   <p className="text-xs text-gray-500 mt-1">

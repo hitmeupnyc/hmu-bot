@@ -1,4 +1,4 @@
-import { Effect, pipe } from "effect"
+import { Effect } from "effect"
 import * as Schema from "effect/Schema"
 import { DatabaseService } from "./context/DatabaseService"
 import { 
@@ -8,20 +8,15 @@ import {
   MemberFlagsSchema,
   MemberQueryOptionsSchema,
   MemberMembershipSchema,
-  type Member,
   type CreateMember,
   type UpdateMember,
-  type MemberQueryOptions,
-  type MemberMembership
+  type MemberQueryOptions
 } from "./schemas/MemberSchemas"
 import { 
   MemberNotFound, 
-  EmailAlreadyExists, 
-  InvalidEmail,
-  MemberValidationError,
-  MemberUpdateError
+  EmailAlreadyExists,
+  MemberValidationError
 } from "./errors/MemberErrors"
-import { DatabaseError } from "./errors/DatabaseErrors"
 
 /**
  * Internal helper to get member by ID without audit logging

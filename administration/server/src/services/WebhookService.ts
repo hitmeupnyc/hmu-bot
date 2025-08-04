@@ -2,7 +2,6 @@ import { Effect } from 'effect';
 import { AppError } from '../middleware/errorHandler';
 import { DatabaseLive } from './effect/layers/DatabaseLayer';
 import * as JobSchedulerEffects from './effect/JobSchedulerEffects';
-import * as BaseSyncEffects from './effect/BaseSyncEffects';
 import crypto from 'crypto';
 
 export class WebhookService {

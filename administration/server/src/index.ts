@@ -18,7 +18,9 @@ import { memberRoutes } from './routes/memberRoutes';
 import { patreonRoutes } from './routes/patreonRoutes';
 import { webhookRoutes } from './routes/webhookRoutes';
 import { initialize } from './services/DatabaseService';
-import { jobScheduler } from './services/JobScheduler';
+import * as JobSchedulerEffects from './services/effect/JobSchedulerEffects';
+import { DatabaseLive } from './services/effect/layers/DatabaseLayer';
+import { Effect } from 'effect';
 import logger from './utils/logger';
 
 // Load environment variables
@@ -52,16 +54,39 @@ app.use(globalAuditMiddleware);
 // Initialize database
 initialize();
 
-// Initialize job scheduler
-jobScheduler.processSyncJobs(parseInt(process.env.SYNC_WORKER_CONCURRENCY || '5'));
-jobScheduler.processWebhookJobs(parseInt(process.env.WEBHOOK_WORKER_CONCURRENCY || '10'));
+// Initialize job scheduler (Effect-based)
+const initializeJobScheduler = async () => {
+  try {
+    // Initialize job processors
+    const syncResult = await Effect.runPromise(
+      JobSchedulerEffects.processSyncJobs(parseInt(process.env.SYNC_WORKER_CONCURRENCY || '5'))
+        .pipe(Effect.provide(DatabaseLive))
+    );
+    logger.info('Sync job processor initialized', syncResult);
 
-// Set up recurring sync jobs
-if (process.env.NODE_ENV === 'production') {
-  jobScheduler.scheduleBulkSyncs().catch((err) => {
-    logger.error('Failed to schedule bulk syncs', { error: err.message });
-  });
-}
+    const webhookResult = await Effect.runPromise(
+      JobSchedulerEffects.processWebhookJobs(parseInt(process.env.WEBHOOK_WORKER_CONCURRENCY || '10'))
+        .pipe(Effect.provide(DatabaseLive))
+    );
+    logger.info('Webhook job processor initialized', webhookResult);
+
+    // Set up recurring sync jobs in production
+    if (process.env.NODE_ENV === 'production') {
+      const scheduleResult = await Effect.runPromise(
+        JobSchedulerEffects.scheduleBulkSyncs()
+          .pipe(Effect.provide(DatabaseLive))
+      );
+      logger.info('Bulk sync schedules started', scheduleResult);
+    }
+  } catch (error) {
+    logger.error('Failed to initialize job scheduler', { 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
+};
+
+// Initialize the job scheduler
+initializeJobScheduler();
 
 // Routes
 app.use('/health', healthCheckRouter);
@@ -75,16 +100,21 @@ app.use('/api/discord', discordRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/audit', auditRoutes);
 
-// Queue status endpoint
+// Queue status endpoint (Effect-based)
 app.get('/api/queue/status', async (req, res) => {
   try {
-    const stats = await jobScheduler.getQueueStats();
+    const stats = await Effect.runPromise(
+      JobSchedulerEffects.getJobStats()
+        .pipe(Effect.provide(DatabaseLive))
+    );
     res.json({
       success: true,
       data: stats,
-      timestamp: new Date().toISOString(),
     });
   } catch (error) {
+    logger.error('Failed to fetch queue stats', { 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch queue stats',
@@ -108,37 +138,30 @@ const server = app.listen(PORT, () => {
   });
 });
 
+// Graceful shutdown handler
+const gracefulShutdown = async (signal: string) => {
+  logger.info(`${signal} received, shutting down gracefully`);
+
+  server.close(async () => {
+    try {
+      // Shutdown job scheduler (Effect-based)
+      const shutdownResult = await Effect.runPromise(
+        JobSchedulerEffects.shutdown()
+          .pipe(Effect.provide(DatabaseLive))
+      );
+      logger.info('Job scheduler shutdown complete', shutdownResult);
+      
+      logger.info('Server shutdown complete');
+      process.exit(0);
+    } catch (error) {
+      logger.error('Error during shutdown', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      process.exit(1);
+    }
+  });
+};
+
 // Graceful shutdown
-process.on('SIGTERM', async () => {
-  logger.info('SIGTERM received, shutting down gracefully');
-
-  server.close(async () => {
-    try {
-      await jobScheduler.shutdown();
-      logger.info('Server shutdown complete');
-      process.exit(0);
-    } catch (error) {
-      logger.error('Error during shutdown', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-      process.exit(1);
-    }
-  });
-});
-
-process.on('SIGINT', async () => {
-  logger.info('SIGINT received, shutting down gracefully');
-
-  server.close(async () => {
-    try {
-      await jobScheduler.shutdown();
-      logger.info('Server shutdown complete');
-      process.exit(0);
-    } catch (error) {
-      logger.error('Error during shutdown', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-      process.exit(1);
-    }
-  });
-});
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

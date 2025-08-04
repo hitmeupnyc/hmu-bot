@@ -1,4 +1,4 @@
-import { Effect, Schedule, Queue, Ref, pipe } from 'effect';
+import { Effect, Schedule, pipe } from 'effect';
 import * as Schema from 'effect/Schema';
 import { DatabaseService } from './context/DatabaseService';
 import * as PatreonSyncEffects from './PatreonSyncEffects';
@@ -66,12 +66,6 @@ interface JobState {
     failed: number;
   };
 }
-
-// Create initial job state
-const createInitialJobState = (): JobState => ({
-  syncQueue: { waiting: 0, active: 0, completed: 0, failed: 0 },
-  webhookQueue: { waiting: 0, active: 0, completed: 0, failed: 0 },
-});
 
 // Job processor for sync operations
 const processSyncJob = (job: SyncJobData) =>
@@ -184,7 +178,7 @@ const processWebhookJob = (job: WebhookJobData) =>
 const executeSyncOperation = (platform: string, operationType: string, payload: any, externalId?: string) =>
   Effect.gen(function* () {
     switch (platform) {
-      case 'klaviyo':
+      case 'klaviyo': {
         // Create a sync operation first
         const klaviyoSyncOp = yield* BaseSyncEffects.createSyncOperation({
           platform: 'klaviyo',
@@ -200,8 +194,9 @@ const executeSyncOperation = (platform: string, operationType: string, payload: 
           last_name: payload.last_name,
           properties: payload.properties || {},
         }, klaviyoSyncOp.id!);
+      }
 
-      case 'patreon':
+      case 'patreon': {
         // Use PatreonSyncEffects bulkSync
         if (operationType === 'bulk_sync' && payload.campaignId) {
           return yield* PatreonSyncEffects.bulkSyncPatreons(payload.campaignId);
@@ -219,19 +214,22 @@ const executeSyncOperation = (platform: string, operationType: string, payload: 
           [], // included array
           patreonSyncOp.id!
         );
+      }
 
-      case 'discord':
+      case 'discord': {
         // Discord requires guild ID
         const guildId = payload.guildId || process.env.DISCORD_GUILD_ID || '';
         return yield* DiscordSyncEffects.bulkSyncDiscordMembers(guildId);
+      }
 
-      case 'eventbrite':
+      case 'eventbrite': {
         // Use EventbriteSyncEffects bulkSync
         if (operationType === 'bulk_sync' && payload.organizationId) {
           return yield* EventbriteSyncEffects.bulkSyncEvents(payload.organizationId);
         }
         // For individual sync, process the attendee data
         return yield* EventbriteSyncEffects.syncAttendee(payload, externalId || '');
+      }
 
       default:
         return yield* Effect.fail(new UnknownPlatformError(platform));
@@ -239,10 +237,10 @@ const executeSyncOperation = (platform: string, operationType: string, payload: 
   });
 
 // Execute webhook processing based on platform
-const executeWebhookProcessing = (platform: string, eventType: string, payload: any, signature?: string) =>
+const executeWebhookProcessing = (platform: string, _eventType: string, payload: any, signature?: string) =>
   Effect.gen(function* () {
     switch (platform) {
-      case 'klaviyo':
+      case 'klaviyo': {
         // Create sync operation for webhook
         const klaviyoWebhookSyncOp = yield* BaseSyncEffects.createSyncOperation({
           platform: 'klaviyo',
@@ -252,6 +250,7 @@ const executeWebhookProcessing = (platform: string, eventType: string, payload: 
           payload_json: JSON.stringify(payload),
         });
         return yield* KlaviyoSyncEffects.syncKlaviyoProfile(payload, klaviyoWebhookSyncOp.id!);
+      }
 
       case 'patreon':
         // Process Patreon webhook with signature verification
@@ -372,26 +371,52 @@ export const getJobStats = () =>
   Effect.gen(function* () {
     const db = yield* DatabaseService;
     
-    // Get sync operation statistics from database
+    // Get sync operation statistics from database with simpler queries
     const syncStats = yield* db.query(async (db) => {
-      const results = await db
+      const cutoffDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      
+      // Get total count
+      const totalResult = await db
         .selectFrom('sync_operations')
-        .select([
-          db.fn.count('id').as('total'),
-          db.fn.countAll().filterWhere('status', '=', 'pending').as('pending'),
-          db.fn.countAll().filterWhere('status', '=', 'processing').as('active'),
-          db.fn.countAll().filterWhere('status', '=', 'success').as('completed'),
-          db.fn.countAll().filterWhere('status', '=', 'failed').as('failed'),
-        ])
-        .where('created_at', '>=', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()) // Last 24 hours
+        .select(db.fn.count('id').as('count'))
+        .where('created_at', '>=', cutoffDate)
+        .executeTakeFirst();
+      
+      // Get counts by status
+      const pendingResult = await db
+        .selectFrom('sync_operations')
+        .select(db.fn.count('id').as('count'))
+        .where('status', '=', 'pending')
+        .where('created_at', '>=', cutoffDate)
+        .executeTakeFirst();
+        
+      const processingResult = await db
+        .selectFrom('sync_operations')
+        .select(db.fn.count('id').as('count'))
+        .where('status', '=', 'processing')
+        .where('created_at', '>=', cutoffDate)
+        .executeTakeFirst();
+        
+      const successResult = await db
+        .selectFrom('sync_operations')
+        .select(db.fn.count('id').as('count'))
+        .where('status', '=', 'success')
+        .where('created_at', '>=', cutoffDate)
+        .executeTakeFirst();
+        
+      const failedResult = await db
+        .selectFrom('sync_operations')
+        .select(db.fn.count('id').as('count'))
+        .where('status', '=', 'failed')
+        .where('created_at', '>=', cutoffDate)
         .executeTakeFirst();
       
       return {
-        waiting: Number(results?.pending || 0),
-        active: Number(results?.active || 0),
-        completed: Number(results?.completed || 0),
-        failed: Number(results?.failed || 0),
-        total: Number(results?.total || 0),
+        waiting: Number(pendingResult?.count || 0),
+        active: Number(processingResult?.count || 0),
+        completed: Number(successResult?.count || 0),
+        failed: Number(failedResult?.count || 0),
+        total: Number(totalResult?.count || 0),
       };
     });
 
@@ -412,21 +437,15 @@ export const getJobStats = () =>
 
 // Initialize job processing workers
 export const initializeJobProcessors = (syncConcurrency: number = 5, webhookConcurrency: number = 10) =>
-  Effect.gen(function* () {
-    // Start background workers for processing jobs
-    // In a production system, these would process from persistent queues
-    
-    // For now, we just track that workers are initialized
-    return {
-      sync: {
-        concurrency: syncConcurrency,
-        status: 'initialized',
-      },
-      webhook: {
-        concurrency: webhookConcurrency,
-        status: 'initialized',
-      },
-    };
+  Effect.succeed({
+    sync: {
+      concurrency: syncConcurrency,
+      status: 'initialized',
+    },
+    webhook: {
+      concurrency: webhookConcurrency,
+      status: 'initialized',
+    },
   });
 
 // Process sync jobs with concurrency control (simplified for non-Bull implementation)
@@ -447,14 +466,7 @@ export const processWebhookJobs = (concurrency: number = 10) =>
 
 // Shutdown job processors gracefully
 export const shutdown = () =>
-  Effect.gen(function* () {
-    // In a real implementation, this would:
-    // 1. Stop accepting new jobs
-    // 2. Wait for running jobs to complete
-    // 3. Clean up resources
-    
-    return {
-      message: 'Job scheduler shutdown complete',
-      timestamp: new Date().toISOString(),
-    };
+  Effect.succeed({
+    message: 'Job scheduler shutdown complete',
+    timestamp: new Date().toISOString(),
   });

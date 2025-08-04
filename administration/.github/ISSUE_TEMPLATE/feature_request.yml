@@ -1,0 +1,120 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement
+title: "[Feature] "
+labels: ["enhancement", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please provide as much detail as possible to help us understand your request.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 🎯 Problem Statement
+      description: Is your feature request related to a problem? Please describe.
+      placeholder: I'm always frustrated when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 💡 Proposed Solution
+      description: Describe the solution you'd like to see implemented.
+      placeholder: I would like to see...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 🔄 Alternatives Considered
+      description: Describe any alternative solutions or features you've considered.
+      placeholder: I also considered...
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: 🎯 Component
+      description: Which part of the application would this feature affect?
+      options:
+        - Frontend (React client)
+        - Backend (Node.js server)
+        - Database (SQLite)
+        - API Integration
+        - Docker/Infrastructure
+        - CI/CD
+        - Documentation
+        - External Integrations (Discord, Klaviyo, etc.)
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: ⚡ Priority
+      description: How important is this feature to you?
+      options:
+        - Low - Nice to have
+        - Medium - Would be helpful
+        - High - Important for my workflow
+        - Critical - Blocking my use case
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: user-types
+    attributes:
+      label: 👥 User Types
+      description: Which types of users would benefit from this feature?
+      options:
+        - label: Club administrators
+        - label: Event organizers
+        - label: Members
+        - label: Developers
+        - label: System administrators
+
+  - type: textarea
+    id: user-story
+    attributes:
+      label: 📖 User Story
+      description: Write a user story for this feature
+      placeholder: |
+        As a [type of user],
+        I want [some goal/desire]
+        So that [some reason/benefit]
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: ✅ Acceptance Criteria
+      description: What criteria must be met for this feature to be considered complete?
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+        - [ ] Criterion 3
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: 🎨 Mockups/Screenshots
+      description: If applicable, add mockups, wireframes, or reference screenshots
+      placeholder: Drag and drop images here or paste them
+
+  - type: textarea
+    id: technical-notes
+    attributes:
+      label: 🔧 Technical Considerations
+      description: Any technical details, constraints, or implementation ideas?
+      placeholder: This might require changes to...
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 📝 Additional Context
+      description: Add any other context, examples, or references about the feature request.
+      placeholder: Links to similar features, documentation, etc.

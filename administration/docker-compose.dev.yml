@@ -1,0 +1,68 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: ./server/Dockerfile
+      target: builder  # Use builder stage for development
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_PATH=/app/server/data/club.db
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./server:/app/server
+      - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json
+      - ./turbo.json:/app/turbo.json
+      - server_data:/app/server/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    command: ["npm", "run", "dev:server"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  client:
+    build:
+      context: .
+      dockerfile: ./client/Dockerfile
+      target: builder  # Use builder stage for development
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./client:/app/client
+      - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json
+      - ./turbo.json:/app/turbo.json
+    depends_on:
+      server:
+        condition: service_healthy
+    restart: unless-stopped
+    command: ["npm", "run", "dev:client"]
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    command: redis-server --appendonly yes --maxmemory 100mb --maxmemory-policy allkeys-lru
+
+volumes:
+  redis_data:
+  server_data:

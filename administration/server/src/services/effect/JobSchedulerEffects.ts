@@ -1,12 +1,12 @@
 import { Effect, Schedule, pipe } from 'effect';
 import * as Schema from 'effect/Schema';
-import { DatabaseService } from './context/DatabaseService';
-import * as PatreonSyncEffects from './PatreonSyncEffects';
-import * as DiscordSyncEffects from './DiscordSyncEffects';
-import * as KlaviyoSyncEffects from './KlaviyoSyncEffects';
-import * as EventbriteSyncEffects from './EventbriteSyncEffects';
-import * as BaseSyncEffects from './BaseSyncEffects';
 import { logSyncOperation } from '../../utils/logger';
+import * as BaseSyncEffects from './BaseSyncEffects';
+import { DatabaseService } from './context/DatabaseService';
+import * as DiscordSyncEffects from './DiscordSyncEffects';
+import * as EventbriteSyncEffects from './EventbriteSyncEffects';
+import * as KlaviyoSyncEffects from './KlaviyoSyncEffects';
+import * as PatreonSyncEffects from './PatreonSyncEffects';
 
 // Job schemas
 export const SyncJobDataSchema = Schema.Struct({
@@ -15,7 +15,9 @@ export const SyncJobDataSchema = Schema.Struct({
   externalId: Schema.optional(Schema.String),
   payload: Schema.Unknown,
   retryCount: Schema.optionalWith(Schema.Number, { default: () => 0 }),
-  metadata: Schema.optionalWith(Schema.Record({ key: Schema.String, value: Schema.Unknown }), { default: () => ({}) }),
+  metadata: Schema.optionalWith(Schema.Record({ key: Schema.String, value: Schema.Unknown }), {
+    default: () => ({}),
+  }),
 });
 
 export type SyncJobData = typeof SyncJobDataSchema.Type;
@@ -43,7 +45,11 @@ export type JobResult = typeof JobResultSchema.Type;
 // Error types
 export class JobSchedulerError {
   readonly _tag = 'JobSchedulerError';
-  constructor(readonly message: string, readonly platform?: string, readonly operationType?: string) {}
+  constructor(
+    readonly message: string,
+    readonly platform?: string,
+    readonly operationType?: string
+  ) {}
 }
 
 export class UnknownPlatformError {
@@ -80,14 +86,10 @@ const processSyncJob = (job: SyncJobData) =>
       executeSyncOperation(platform, operationType, payload, externalId),
       Effect.catchAll((error) => {
         const processingTime = Date.now() - startTime;
-        logSyncOperation.failed(
-          platform,
-          operationType,
-          error as Error,
-          externalId,
-          { processingTime }
-        );
-        
+        logSyncOperation.failed(platform, operationType, error as Error, externalId, {
+          processingTime,
+        });
+
         if (error instanceof UnknownPlatformError) {
           return Effect.succeed({
             success: false,
@@ -102,12 +104,12 @@ const processSyncJob = (job: SyncJobData) =>
         });
       })
     );
-    
+
     // Check if it's an error result
     if (typeof result === 'object' && result && 'success' in result && !result.success) {
       return result as JobResult;
     }
-    
+
     // Log success
     const processingTime = Date.now() - startTime;
     logSyncOperation.success(
@@ -120,7 +122,8 @@ const processSyncJob = (job: SyncJobData) =>
 
     return {
       success: true,
-      memberId: typeof result === 'object' && result && 'id' in result ? (result as any).id : undefined,
+      memberId:
+        typeof result === 'object' && result && 'id' in result ? (result as any).id : undefined,
       processingTime,
     };
   });
@@ -138,13 +141,10 @@ const processWebhookJob = (job: WebhookJobData) =>
       executeWebhookProcessing(platform, eventType, payload, signature),
       Effect.catchAll((error) => {
         const processingTime = Date.now() - startTime;
-        logSyncOperation.failed(
-          platform,
-          'webhook_processing',
-          error as Error,
-          undefined,
-          { eventType, processingTime }
-        );
+        logSyncOperation.failed(platform, 'webhook_processing', error as Error, undefined, {
+          eventType,
+          processingTime,
+        });
 
         return Effect.succeed({
           success: false,
@@ -153,20 +153,17 @@ const processWebhookJob = (job: WebhookJobData) =>
         });
       })
     );
-    
+
     // Check if it's an error result
     if (typeof result === 'object' && result && 'success' in result && !result.success) {
       return result as JobResult;
     }
-    
+
     const processingTime = Date.now() - startTime;
-    logSyncOperation.success(
-      platform,
-      'webhook_processing',
-      undefined,
-      undefined,
-      { eventType, processingTime }
-    );
+    logSyncOperation.success(platform, 'webhook_processing', undefined, undefined, {
+      eventType,
+      processingTime,
+    });
 
     return {
       success: true,
@@ -175,7 +172,12 @@ const processWebhookJob = (job: WebhookJobData) =>
   });
 
 // Execute sync operation based on platform
-const executeSyncOperation = (platform: string, operationType: string, payload: any, externalId?: string) =>
+const executeSyncOperation = (
+  platform: string,
+  operationType: string,
+  payload: any,
+  externalId?: string
+) =>
   Effect.gen(function* () {
     switch (platform) {
       case 'klaviyo': {
@@ -187,13 +189,16 @@ const executeSyncOperation = (platform: string, operationType: string, payload: 
           status: 'pending',
           payload_json: JSON.stringify(payload),
         });
-        return yield* KlaviyoSyncEffects.syncKlaviyoProfile({
-          id: externalId || '',
-          email: payload.email || '',
-          first_name: payload.first_name,
-          last_name: payload.last_name,
-          properties: payload.properties || {},
-        }, klaviyoSyncOp.id!);
+        return yield* KlaviyoSyncEffects.syncKlaviyoProfile(
+          {
+            id: externalId || '',
+            email: payload.email || '',
+            first_name: payload.first_name,
+            last_name: payload.last_name,
+            properties: payload.properties || {},
+          },
+          klaviyoSyncOp.id!
+        );
       }
 
       case 'patreon': {
@@ -237,7 +242,12 @@ const executeSyncOperation = (platform: string, operationType: string, payload: 
   });
 
 // Execute webhook processing based on platform
-const executeWebhookProcessing = (platform: string, _eventType: string, payload: any, signature?: string) =>
+const executeWebhookProcessing = (
+  platform: string,
+  _eventType: string,
+  payload: any,
+  signature?: string
+) =>
   Effect.gen(function* () {
     switch (platform) {
       case 'klaviyo': {
@@ -272,11 +282,11 @@ const executeWebhookProcessing = (platform: string, _eventType: string, payload:
 export const queueSync = (data: SyncJobData) =>
   Effect.gen(function* () {
     const validatedData = yield* Schema.decodeUnknown(SyncJobDataSchema)(data);
-    
+
     // In a real implementation, this would add to a queue
     // For now, we'll process immediately
     const result = yield* processSyncJob(validatedData);
-    
+
     return {
       jobId: `sync-${Date.now()}`,
       status: result.success ? 'completed' : 'failed',
@@ -288,10 +298,10 @@ export const queueSync = (data: SyncJobData) =>
 export const queueWebhook = (data: WebhookJobData) =>
   Effect.gen(function* () {
     const validatedData = yield* Schema.decodeUnknown(WebhookJobDataSchema)(data);
-    
+
     // Process immediately for now
     const result = yield* processWebhookJob(validatedData);
-    
+
     return {
       jobId: `webhook-${Date.now()}`,
       status: result.success ? 'completed' : 'failed',
@@ -321,23 +331,26 @@ export const scheduleBulkSyncs = () =>
 
     // Create scheduled tasks for each platform
     const tasks = schedules.map(({ platform, interval, cronExpression }) => {
-      const schedule = interval === '2 hours'
-        ? Schedule.fixed('2 hours')
-        : interval === '6 hours'
-        ? Schedule.fixed('6 hours')
-        : interval === '12 hours'
-        ? Schedule.fixed('12 hours')
-        : Schedule.fixed('24 hours');
+      const schedule =
+        interval === '2 hours'
+          ? Schedule.fixed('2 hours')
+          : interval === '6 hours'
+            ? Schedule.fixed('6 hours')
+            : interval === '12 hours'
+              ? Schedule.fixed('12 hours')
+              : Schedule.fixed('24 hours');
 
       return pipe(
-        queueBulkSync(platform, { 
-          recurring: true, 
+        queueBulkSync(platform, {
+          recurring: true,
           cronExpression,
-          scheduledAt: new Date().toISOString() 
+          scheduledAt: new Date().toISOString(),
         }),
-        Effect.retry(Schedule.exponential('1 seconds', 2.0).pipe(Schedule.intersect(Schedule.recurs(3)))),
+        Effect.retry(
+          Schedule.exponential('1 seconds', 2.0).pipe(Schedule.intersect(Schedule.recurs(3)))
+        ),
         Effect.repeat(schedule),
-        Effect.catchAll((error) => 
+        Effect.catchAll((error) =>
           Effect.logError(`Failed to schedule ${platform} sync: ${String(error)}`)
         ),
         Effect.fork // Run in background
@@ -346,10 +359,10 @@ export const scheduleBulkSyncs = () =>
 
     // Start all scheduled tasks
     const fibers = yield* Effect.all(tasks);
-    
-    return { 
+
+    return {
       message: 'Bulk sync schedules started',
-      platforms: schedules.map(s => ({ platform: s.platform, interval: s.interval })),
+      platforms: schedules.map((s) => ({ platform: s.platform, interval: s.interval })),
       fibers: fibers.length,
       startedAt: new Date().toISOString(),
     };
@@ -370,18 +383,18 @@ export const scheduleBulkSyncs = () =>
 export const getJobStats = () =>
   Effect.gen(function* () {
     const db = yield* DatabaseService;
-    
+
     // Get sync operation statistics from database with simpler queries
     const syncStats = yield* db.query(async (db) => {
       const cutoffDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      
+
       // Get total count
       const totalResult = await db
         .selectFrom('sync_operations')
         .select(db.fn.count('id').as('count'))
         .where('created_at', '>=', cutoffDate)
         .executeTakeFirst();
-      
+
       // Get counts by status
       const pendingResult = await db
         .selectFrom('sync_operations')
@@ -389,28 +402,28 @@ export const getJobStats = () =>
         .where('status', '=', 'pending')
         .where('created_at', '>=', cutoffDate)
         .executeTakeFirst();
-        
+
       const processingResult = await db
         .selectFrom('sync_operations')
         .select(db.fn.count('id').as('count'))
         .where('status', '=', 'processing')
         .where('created_at', '>=', cutoffDate)
         .executeTakeFirst();
-        
+
       const successResult = await db
         .selectFrom('sync_operations')
         .select(db.fn.count('id').as('count'))
         .where('status', '=', 'success')
         .where('created_at', '>=', cutoffDate)
         .executeTakeFirst();
-        
+
       const failedResult = await db
         .selectFrom('sync_operations')
         .select(db.fn.count('id').as('count'))
         .where('status', '=', 'failed')
         .where('created_at', '>=', cutoffDate)
         .executeTakeFirst();
-      
+
       return {
         waiting: Number(pendingResult?.count || 0),
         active: Number(processingResult?.count || 0),
@@ -436,7 +449,10 @@ export const getJobStats = () =>
   });
 
 // Initialize job processing workers
-export const initializeJobProcessors = (syncConcurrency: number = 5, webhookConcurrency: number = 10) =>
+export const initializeJobProcessors = (
+  syncConcurrency: number = 5,
+  webhookConcurrency: number = 10
+) =>
   Effect.succeed({
     sync: {
       concurrency: syncConcurrency,
@@ -466,6 +482,17 @@ export const processWebhookJobs = (concurrency: number = 10) =>
 
 // Shutdown job processors gracefully
 export const shutdown = () =>
+  // Effect.gen(function* () {
+  //   In a real implementation, this would:
+  //   1. Stop accepting new jobs
+  //   2. Wait for running jobs to complete
+  //   3. Clean up resources
+  //
+  //   return {
+  //     message: 'Job scheduler shutdown complete',
+  //     timestamp: new Date().toISOString(),
+  //   };
+  // });
   Effect.succeed({
     message: 'Job scheduler shutdown complete',
     timestamp: new Date().toISOString(),

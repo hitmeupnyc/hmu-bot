@@ -2,13 +2,6 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Member CRUD Operations', () => {
   test('should submit public application form', async ({ page }) => {
-    // Add debugging
-    page.on('response', response => {
-      if (response.url().includes('/api/applications')) {
-        console.log('API Response:', response.status(), response.url());
-      }
-    });
-    
     await page.goto('/apply');
     
     // Fill out basic information with unique email

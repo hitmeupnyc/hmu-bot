@@ -2,12 +2,11 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: 2, // Limit to 2 concurrent test files
+  // workers: 5, // Let the default value be used.
   reporter: 'list',
-  timeout: 5000, // Standard timeout for operations
+  timeout: 1500, // DO NOT MODIFY. It is intentionally aggressive.
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',

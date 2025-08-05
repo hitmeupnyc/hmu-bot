@@ -13,4 +13,4 @@ afterEach(() => {
 
 // Mock environment variables for testing
 process.env.NODE_ENV = 'test';
-process.env.DATABASE_PATH = ':memory:';
+process.env.DATABASE_PATH = '../server/data/test.db';

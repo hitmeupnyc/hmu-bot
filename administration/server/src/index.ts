@@ -97,7 +97,10 @@ app.get('/health', async (req, res) => {
 
     if (debugKey === expectedKey) {
       // Add comprehensive debug information
-      const dbPath = process.env.DATABASE_PATH?.replace('file:', '') || 'data/development.db';
+      const dbPath = process.env.DATABASE_PATH?.replace('file:', '');
+      if (!dbPath) {
+        throw new Error('DATABASE_PATH is not set');
+      }
       const absoluteDbPath = path.resolve(dbPath);
 
       let dbStats: {

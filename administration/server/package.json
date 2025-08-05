@@ -9,17 +9,11 @@
     "start": "node dist/index.js",
     "test": "vitest --run",
     "test:watch": "vitest --watch",
-    "test:coverage": "vitest --coverage",
     "lint": "eslint src/**/*.ts",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist node_modules coverage",
     "db:migrate": "kysely migrate",
-    "db:migrate:up": "kysely migrate up",
-    "db:migrate:down": "kysely migrate down",
     "db:migrate:latest": "mkdir -p data && kysely migrate latest",
-    "db:migrate:list": "kysely migrate list",
     "db:seed": "kysely seed run",
-    "db:setup-test": "tsx src/scripts/setup-test-db.ts",
     "db:codegen": "kysely-codegen --dialect sqlite --url ./data/club.db --out-file ./src/types/database.ts"
   },
   "dependencies": {

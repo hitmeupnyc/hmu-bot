@@ -39,7 +39,6 @@ npm run lint:client
 
 # Check for unused/dead code
 npm run deadcode
-npm run deadcode:production
 ```
 
 ## 2. Type Checking
@@ -47,10 +46,6 @@ npm run deadcode:production
 ```bash
 # Type check all workspaces
 npm run typecheck
-
-# Type check specific services
-npm run typecheck:server
-npm run typecheck:client
 ```
 
 ## 3. Testing
@@ -58,13 +53,8 @@ npm run typecheck:client
 ```bash
 # Run all tests
 npm run test
-
-# Run tests for specific services
-npm run test:server
-npm run test:client
+npm run test:unit
 npm run test:e2e
-
-# Run tests in watch mode
 npm run test:watch
 
 # Run tests with coverage
@@ -91,14 +81,9 @@ docker compose up --build
 ## 5. Database Operations (Server-specific)
 
 ```bash
-# Run database migrations
 npm run db:migrate:latest
-
-# Seed the database
 npm run db:seed
-
-# Generate database types
-npm run db:codegen
+npm run --workspace=api-server db:codegen
 ```
 
 # Complete Verification Workflow

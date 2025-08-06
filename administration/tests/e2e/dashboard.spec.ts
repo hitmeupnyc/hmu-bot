@@ -79,25 +79,33 @@ test.describe('Dashboard Page', () => {
     }
   });
 
+  // Skip this test - Recent Members section doesn't have links to member details
+  // The recent members display doesn't include clickable links to navigate to member pages
   test('should navigate to members page from recent members', async ({ page }) => {
-    // Wait for recent members to load
-    const recentMembersSection = page.locator('div').filter({ hasText: 'Recent Members' }).locator('..');
-    const memberRows = recentMembersSection.locator('tbody tr');
+    // Wait for recent members section by finding the heading
+    const recentMembersHeading = page.getByRole('heading', { name: 'Recent Members' });
+    await expect(recentMembersHeading).toBeVisible();
     
-    const rowCount = await memberRows.count();
-    if (rowCount === 0) {
-      test.skip();
-      return;
-    }
+    // Get the parent section that contains the heading and member list
+    const recentMembersSection = recentMembersHeading.locator('..');
     
-    // Click on first member name
-    const firstMemberLink = memberRows.first().getByRole('link');
-    const memberName = await firstMemberLink.textContent();
-    await firstMemberLink.click();
+    // Find all links within the section (member name links)
+    const memberLinks = recentMembersSection.getByRole('link');
+    
+    // Wait for at least one member link to be visible
+    await expect(memberLinks.first()).toBeVisible();
+    
+    // Get the member name and click the link
+    const memberName = await memberLinks.first().textContent();
+    await memberLinks.first().click();
     
     // Should navigate to member details page
-    await expect(page.getByRole('heading', { level: 1 })).toContainText(memberName || '');
-    await expect(page.getByRole('button', { name: 'Back to Members' })).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    // The heading will show the preferred name (first word from the link text)
+    const preferredName = memberName?.split(' ')[0] || '';
+    await expect(page.getByRole('heading', { level: 1 }).filter({ hasText: preferredName })).toBeVisible();
+    // Check for the back button (it's an icon button with data-testid)
+    await expect(page.getByTestId('back-to-members-btn')).toBeVisible();
   });
 
   test('should show loading state initially', async ({ page }) => {

@@ -70,7 +70,20 @@ test.describe('Event Advanced Features', () => {
     await page.waitForLoadState('networkidle');
     
     // Navigate to Volunteers tab
-    await page.getByRole('button', { name: /Volunteers \(\d+\)/ }).click();
+    const volunteersTab = page.getByRole('button', { name: /Volunteers \(\d+\)/ });
+    
+    // Extract the initial volunteer count from the tab text
+    const tabText = await volunteersTab.textContent();
+    const initialCount = parseInt(tabText?.match(/\((\d+)\)/)?.[1] || '0');
+    
+    await volunteersTab.click();
+    
+    // Wait for volunteers section to load
+    await expect(page.getByRole('heading', { name: 'Event Volunteers' })).toBeVisible();
+    
+    // Count the initial number of volunteer cards
+    const volunteerSection = page.locator('div').filter({ hasText: 'Event Volunteers' }).first();
+    const initialCardCount = await volunteerSection.locator('.space-y-4 > div').count();
     
     // Add a volunteer
     await page.getByRole('button', { name: 'Add Volunteer' }).click();
@@ -97,12 +110,17 @@ test.describe('Event Advanced Features', () => {
     // Submit form
     await page.locator('form').getByRole('button', { name: 'Add Volunteer' }).click();
     
-    // Volunteer should be added to the list - look for the role in the volunteer section
-    const volunteerSection = page.locator('div').filter({ hasText: 'Event Volunteers' });
-    await expect(volunteerSection.getByText('Role: greeter')).toBeVisible();
-    
-    // Form should be hidden
+    // Wait for the form to close and volunteer to be added
     await expect(page.getByRole('heading', { name: 'Add New Volunteer' })).not.toBeVisible();
+    
+    // Verify a new volunteer card was added
+    const newCardCount = await volunteerSection.locator('.space-y-4 > div').count();
+    expect(newCardCount).toBe(initialCardCount + 1);
+    
+    // Verify the new volunteer has the greeter role
+    // Get the last volunteer card (the one we just added)
+    const lastVolunteerCard = volunteerSection.locator('.space-y-4 > div').last();
+    await expect(lastVolunteerCard.getByText('Role: greeter')).toBeVisible();
   });
 
   test('should track event attendance', async ({ page }) => {

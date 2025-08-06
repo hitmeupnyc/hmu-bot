@@ -4,7 +4,7 @@ export default defineConfig({
   testDir: './e2e',
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  // workers: 5, // Let the default value be used.
+  workers: 2, // Resource contention seemed to lead to timeouts at default
   reporter: 'list',
   timeout: 1500, // DO NOT MODIFY. It is intentionally aggressive.
   use: {

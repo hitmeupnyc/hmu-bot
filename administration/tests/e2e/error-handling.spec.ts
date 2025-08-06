@@ -220,7 +220,6 @@ test.describe('Error Handling', () => {
     await expect(page.getByRole('heading', { name: 'Add New Member' })).not.toBeVisible({ timeout: 5000 });
     
     // Should only create one member
-    await page.waitForTimeout(1000);
     const memberRows = page.locator('tr', { hasText: `concurrent-${timestamp}@example.com` });
     const count = await memberRows.count();
     expect(count).toBe(1);
@@ -239,10 +238,10 @@ test.describe('Error Handling', () => {
     // Try to access member details
     await page.goto('/members/1');
     
-    // Should handle unauthorized error
-    const hasError = await page.getByText(/unauthorized|forbidden|access denied/i).isVisible().catch(() => false);
-    const redirected = await page.url().includes('/members/1') === false;
+    // Wait for the error message to appear
+    await page.waitForLoadState('networkidle');
     
-    expect(hasError || redirected).toBeTruthy();
+    // Should show permission error message
+    await expect(page.getByText(/permission|unauthorized|forbidden|access denied/i)).toBeVisible();
   });
 });

@@ -76,26 +76,23 @@ app.use('/api/discord', discordRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/audit', auditRoutes);
 
+
+if (process.env.NODE_ENV !== 'production') {
 // Health check with optional debug info
-app.get('/health', async (req, res) => {
-  try {
-    // Check database connectivity
-    const db = getDb();
-    await db.selectFrom('payment_statuses').select('id').limit(1).execute();
+  app.get('/health', async (req, res) => {
+    try {
+      // Check database connectivity
+      const db = getDb();
+      await db.selectFrom('payment_statuses').select('id').limit(1).execute();
 
-    const basicHealth = {
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      version: process.env.npm_package_version || '1.0.0',
-      database: 'connected',
-      environment: process.env.NODE_ENV || 'development',
-    };
+      const basicHealth = {
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        version: process.env.npm_package_version || '1.0.0',
+        database: 'connected',
+        environment: process.env.NODE_ENV || 'development',
+      };
 
-    // Check if debug information is requested
-    const debugKey = req.headers['x-debug-key'];
-    const expectedKey = process.env.DEBUG_KEY || 'debug-secret-key-2025';
-
-    if (debugKey === expectedKey) {
       // Add comprehensive debug information
       const dbPath = process.env.DATABASE_PATH?.replace('file:', '');
       if (!dbPath) {
@@ -237,18 +234,16 @@ app.get('/health', async (req, res) => {
       };
 
       return res.json(debugInfo);
+    } catch (error) {
+      return res.status(503).json({
+        status: 'unhealthy',
+        timestamp: new Date().toISOString(),
+        error: 'Database connection failed',
+        database: 'disconnected',
+      });
     }
-
-    return res.json(basicHealth);
-  } catch (error) {
-    return res.status(503).json({
-      status: 'unhealthy',
-      timestamp: new Date().toISOString(),
-      error: 'Database connection failed',
-      database: 'disconnected',
-    });
-  }
-});
+  });
+}
 
 // Environment check endpoint
 app.get('/health/env', (req, res) => {

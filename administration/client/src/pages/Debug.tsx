@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface DebugResponse {
   status: string;
@@ -75,19 +75,14 @@ export function Debug() {
   const [debugData, setDebugData] = useState<DebugResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [debugKey, setDebugKey] = useState('');
-  const [authenticated, setAuthenticated] = useState(false);
 
-  const fetchDebugData = async (key: string) => {
+
+  const fetchDebugData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('http://localhost:3000/health', {
-        headers: {
-          'X-Debug-Key': key,
-        },
-      });
+      const response = await fetch('http://localhost:3000/health');
 
       if (!response.ok) {
         throw new Error(`Failed to fetch debug data: ${response.statusText}`);
@@ -100,19 +95,16 @@ export function Debug() {
       }
 
       setDebugData(result);
-      setAuthenticated(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
-      setAuthenticated(false);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleKeySubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchDebugData(debugKey);
-  };
+  useEffect(() => {
+    fetchDebugData();
+  }, [fetchDebugData]);
 
   const formatBytes = (bytes: number) => {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -136,53 +128,6 @@ export function Debug() {
     return parts.join(' ') || '0s';
   };
 
-  if (!authenticated) {
-    return (
-      <div className="p-8 max-w-md mx-auto">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <div className="flex items-center mb-4">
-            <div className="flex-shrink-0">
-              <span className="text-2xl">🔒</span>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-lg font-medium text-red-800">Debug Access Required</h3>
-              <p className="text-sm text-red-600 mt-1">
-                This page contains sensitive system information and requires authentication.
-              </p>
-            </div>
-          </div>
-
-          <form onSubmit={handleKeySubmit} className="space-y-4">
-            <div>
-              <label htmlFor="debugKey" className="block text-sm font-medium text-red-700">
-                Debug Key
-              </label>
-              <input
-                type="password"
-                id="debugKey"
-                value={debugKey}
-                onChange={(e) => setDebugKey(e.target.value)}
-                className="mt-1 block w-full border border-red-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
-                placeholder="Enter debug access key"
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-red-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50"
-            >
-              {loading ? 'Authenticating...' : 'Access Debug Info'}
-            </button>
-          </form>
-
-          {error && <div className="mt-4 text-sm text-red-600 bg-red-100 p-3 rounded">{error}</div>}
-        </div>
-      </div>
-    );
-  }
-
   if (loading) {
     return (
       <div className="p-8 text-center">
@@ -199,7 +144,7 @@ export function Debug() {
           <h3 className="text-lg font-medium text-red-800 mb-2">Error</h3>
           <p className="text-red-600">{error}</p>
           <button
-            onClick={() => fetchDebugData(debugKey)}
+            onClick={() => fetchDebugData()}
             className="mt-4 bg-red-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-red-700"
           >
             Retry
@@ -223,7 +168,7 @@ export function Debug() {
           Generated at {new Date(debugData.timestamp).toLocaleString()}
         </p>
         <button
-          onClick={() => fetchDebugData(debugKey)}
+          onClick={() => fetchDebugData()}
           className="mt-4 bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700"
         >
           🔄 Refresh Data

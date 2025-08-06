@@ -1,9 +1,13 @@
+import dotenv from 'dotenv';
+
 import Database from 'better-sqlite3';
 import fs from 'fs';
 import { Kysely, SqliteDialect } from 'kysely';
 import path from 'path';
 import type { DB as DatabaseSchema } from '../types/database';
 import { MigrationProvider } from './MigrationProvider';
+
+dotenv.config();
 
 // Module-scoped singleton variables
 let _db: Kysely<DatabaseSchema>;

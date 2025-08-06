@@ -40,7 +40,11 @@ export const errorHandler = (
   const requestId = req.headers['x-request-id'] as string || 
     `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-  if (error instanceof ValidationError) {
+  // Check if error has a status property (set by effectToExpress adapter)
+  if ((error as any).status) {
+    statusCode = (error as any).status;
+    message = error.message;
+  } else if (error instanceof ValidationError) {
     statusCode = error.statusCode;
     message = error.message;
     code = 'VALIDATION_ERROR';

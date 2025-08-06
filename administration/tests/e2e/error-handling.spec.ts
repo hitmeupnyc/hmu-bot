@@ -8,13 +8,12 @@ test.describe('Error Handling', () => {
     // Wait for page to load
     await page.waitForLoadState('domcontentloaded');
     
-    // Should show 404 or redirect to home
-    // Check if we're redirected to home or showing error
-    const dashboardHeading = page.getByRole('heading', { name: 'Dashboard' });
-    const errorText = page.getByText(/not found|404/i);
+    // Should show 404 page
+    await expect(page.getByRole('heading', { name: '404' })).toBeVisible();
+    await expect(page.getByText('Page not found')).toBeVisible();
     
-    // Wait for either condition
-    await expect(dashboardHeading.or(errorText)).toBeVisible();
+    // Should have link to dashboard
+    await expect(page.getByRole('link', { name: 'Go to Dashboard' })).toBeVisible();
   });
 
   test('should handle network errors when loading members', async ({ page }) => {

@@ -61,7 +61,7 @@ test.describe('Event Advanced Features', () => {
     // Ensure we have an event
     const hasEvents = await page.locator('tbody tr').count() > 0;
     if (!hasEvents) {
-      test.skip();
+      expect(hasEvents).toBeGreaterThan(0);
       return;
     }
     
@@ -127,7 +127,7 @@ test.describe('Event Advanced Features', () => {
     // Ensure we have an event
     const hasEvents = await page.locator('tbody tr').count() > 0;
     if (!hasEvents) {
-      test.skip();
+      expect(hasEvents).toBeGreaterThan(0);
       return;
     }
     

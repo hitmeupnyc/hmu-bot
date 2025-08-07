@@ -156,7 +156,7 @@ test.describe('Member CRUD Operations', () => {
     await expect(memberRow.getByText('Professional')).toBeVisible();
   });
 
-  test.skip('should edit an existing member', async ({ page }) => {
+  test('should edit an existing member', async ({ page }) => {
     await page.goto('/');
     
     // Navigate to members page
@@ -226,8 +226,7 @@ test.describe('Member CRUD Operations', () => {
     await expect(page.getByText('alice.johnson@example.com')).toBeVisible();
   });
 
-  test.skip('should delete a member with confirmation', async ({ page }) => {
-    // Skip this test as delete functionality may not be fully implemented
+  test('should delete a member with confirmation', async ({ page }) => {
     await page.goto('/');
     
     // Navigate to members page

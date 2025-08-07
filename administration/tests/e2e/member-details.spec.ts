@@ -211,7 +211,7 @@ test.describe('Member Details Page', () => {
     // If no active members, skip this test
     const activeCount = await activeRow.count();
     if (activeCount === 0) {
-      test.skip();
+      expect(activeCount).toBeGreaterThan(0);
       return;
     }
     

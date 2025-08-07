@@ -148,7 +148,7 @@ test.describe('Error Handling', () => {
     // Ensure there's at least one event
     const hasEvents = await page.locator('tbody tr').count() > 0;
     if (!hasEvents) {
-      test.skip();
+      expect(hasEvents).toBeGreaterThan(0);
       return;
     }
     

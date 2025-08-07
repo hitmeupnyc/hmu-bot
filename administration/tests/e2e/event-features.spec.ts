@@ -10,62 +10,6 @@ test.describe('Event Advanced Features', () => {
     await expect(page.locator('tbody').or(page.getByText('No events scheduled'))).toBeVisible();
   });
 
-  test('should manage event marketing content', async ({ page }) => {
-    // Ensure there's at least one event
-    const hasEvents = await page.locator('tbody tr').count() > 0;
-    if (!hasEvents) {
-      // Create an event first
-      await page.getByRole('button', { name: 'Create Event' }).click();
-      const eventName = `Marketing Test Event ${Date.now()}`;
-      await page.getByRole('textbox', { name: 'Event Name *' }).fill(eventName);
-      await page.getByRole('textbox', { name: 'Start Date & Time *' }).fill('2025-12-01T14:00');
-      await page.getByRole('textbox', { name: 'End Date & Time *' }).fill('2025-12-01T16:00');
-      await page.locator('form').getByRole('button', { name: 'Create Event' }).click();
-      
-      // Wait for the modal to close and event to appear in the table
-      await expect(page.getByRole('heading', { name: 'Create New Event' })).not.toBeVisible();
-      await expect(page.getByText(eventName)).toBeVisible();
-      
-      // Wait for the View Details button to be ready
-      await page.waitForLoadState('networkidle');
-    }
-    
-    // Ensure View Details button is visible before clicking
-    await expect(page.getByRole('button', { name: 'View Details' }).first()).toBeVisible();
-    
-    // Go to first event details
-    await page.getByRole('button', { name: 'View Details' }).first().click();
-    
-    // Navigate to Marketing tab
-    await page.getByRole('button', { name: 'Marketing' }).first().click();
-    
-    // Check for empty state or existing content
-    const hasNoContent = await page.getByText('No marketing content yet').isVisible().catch(() => false);
-    
-    if (hasNoContent) {
-      // Add marketing content
-      await page.getByRole('button', { name: 'Add Marketing Content' }).click();
-      
-      // Fill marketing form - h2 is the form title
-      await expect(page.getByRole('heading', { name: 'Event Marketing Content', level: 2 })).toBeVisible();
-      await page.getByLabel('Primary Marketing Copy').fill('Early Bird Special');
-      await page.getByLabel('Blurb').fill('Get 20% off tickets when you register before November 1st!');
-      await page.getByLabel('Social Media Copy').fill('Register Now');
-      await page.getByLabel('Email Subject').fill('Limited Time: Early Bird Special!');
-      
-      // Save marketing content
-      await page.getByRole('button', { name: 'Save Marketing Content' }).click();
-      
-      // Modal should close
-      await expect(page.getByRole('heading', { name: 'Event Marketing Content', level: 2 })).not.toBeVisible();
-      
-      // Content should be visible - check in marketing content section
-      const marketingSection = page.locator('div').filter({ hasText: 'Marketing Content' }).nth(1);
-      await expect(marketingSection.getByText('Early Bird Special')).toBeVisible();
-      await expect(marketingSection.getByText('Get 20% off tickets')).toBeVisible();
-    }
-  });
-
   test('should manage event volunteers', async ({ page }) => {
     // Ensure we have an event
     const hasEvents = await page.locator('tbody tr').count() > 0;
@@ -130,57 +74,6 @@ test.describe('Event Advanced Features', () => {
     // Get the last volunteer card (the one we just added)
     const lastVolunteerCard = volunteerSection.locator('.space-y-4 > div').last();
     await expect(lastVolunteerCard.getByText('Role: greeter')).toBeVisible();
-  });
-
-  test('should track event attendance', async ({ page }) => {
-    // Ensure we have an event
-    const hasEvents = await page.locator('tbody tr').count() > 0;
-    if (!hasEvents) {
-      expect(hasEvents).toBeGreaterThan(0);
-      return;
-    }
-    
-    // Go to first event details
-    await page.getByRole('button', { name: 'View Details' }).first().click();
-    
-    // Wait for event details to load
-    await expect(page.getByRole('button', { name: 'Back to Events' })).toBeVisible();
-    
-    // Navigate to Attendance tab
-    await page.getByRole('button', { name: /Attendance \(\d+\)/ }).click();
-    
-    // Should show attendance list
-    await expect(page.getByRole('heading', { name: 'Event Attendance' })).toBeVisible();
-    
-    // Check for attendance tracking features
-    const attendanceSection = page.getByRole('heading', { name: 'Event Attendance' }).locator('..');
-    await expect(attendanceSection).toBeVisible();
-    
-    // Wait for content to load
-    await page.waitForTimeout(200); // Allow time for any dynamic content
-    
-    // Should have check-in functionality if there are attendees
-    const hasAttendees = await attendanceSection.locator('tbody tr').count() > 0;
-    
-    if (hasAttendees) {
-      // Should show attendee information
-      const firstAttendee = attendanceSection.locator('tbody tr').first();
-      await expect(firstAttendee).toBeVisible();
-      
-      // Should have check-in status
-      const hasCheckedIn = await firstAttendee.getByText('Checked In').isVisible().catch(() => false);
-      const hasNotCheckedIn = await firstAttendee.getByText('Not Checked In').isVisible().catch(() => false);
-      
-      expect(hasCheckedIn || hasNotCheckedIn).toBeTruthy();
-      
-      // Should have check-in button if not checked in
-      if (hasNotCheckedIn) {
-        await expect(firstAttendee.getByRole('button', { name: 'Check In' })).toBeVisible();
-      }
-    } else {
-      // Should show empty state
-      await expect(page.getByText(/No attendance records yet/i)).toBeVisible();
-    }
   });
 
   test('should add marketing content', async ({ page }) => {

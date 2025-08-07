@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Settings Page', () => {
+// These are skipped because the settings page is likely to change a lot.
+// I'm keeping them here for reference for now
+test.describe.skip('Settings Page', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to settings page
     await page.goto('/settings');

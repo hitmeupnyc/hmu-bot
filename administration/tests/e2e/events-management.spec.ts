@@ -70,11 +70,19 @@ test.describe('Events Management System', () => {
     // Submit the form
     await page.locator('form').getByRole('button', { name: 'Create Event' }).click();
     
-    // Wait for form to close and page to update
+    // Wait for navigation to event details page
+    await page.waitForURL(/\/events\/\d+/);
     await page.waitForLoadState('networkidle');
     
-    // Verify the event was created and appears in the list
-    await expect(page.getByText(eventName)).toBeVisible({ timeout: 5000 });
+    // Verify we're on the event details page with the correct event
+    await expect(page.getByRole('heading', { name: eventName })).toBeVisible();
+    
+    // Navigate back to events list to verify it appears there
+    await page.getByRole('link', { name: 'Events' }).click();
+    await page.waitForLoadState('networkidle');
+    
+    // Verify the event appears in the list
+    await expect(page.getByText(eventName)).toBeVisible();
     
     // Check that we have more events in the table than we started with
     const finalEventRows = page.locator('tbody tr');

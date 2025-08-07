@@ -101,7 +101,7 @@ export function useUpdateMember() {
 
   return useMutation({
     mutationFn: async ({ id, ...memberData }: MemberFormData & { id: number }): Promise<Member> => {
-      const response = await api.put<MemberResponse>(`/members/${id}`, memberData);
+      const response = await api.put<MemberResponse>(`/members/${id}`, { id, ...memberData });
       return response.data.data;
     },
     onSuccess: (updatedMember) => {

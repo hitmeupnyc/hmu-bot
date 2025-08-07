@@ -230,20 +230,34 @@ test.describe('Member CRUD Operations', () => {
     // Navigate to members page
     await page.getByRole('link', { name: 'Members' }).click();
     
-    // Wait for members to load
+    // Wait for members to load and network to settle
+    await page.waitForLoadState('networkidle');
     await expect(page.locator('tbody tr').first()).toBeVisible();
     
     // Count initial members
     const initialRows = await page.locator('tbody tr').count();
+    expect(initialRows).toBeGreaterThan(0);
     
-    // Setup dialog handler to accept confirmation
-    page.on('dialog', dialog => dialog.accept());
+    // Setup dialog handler BEFORE clicking delete button
+    page.once('dialog', dialog => {
+      dialog.accept();
+    });
     
-    // Find a member row and click delete button (second button)
+    // Find the last member row and click its delete button
     const memberRow = page.locator('tbody tr').last();
-    await memberRow.locator('button').last().click(); // Delete button
+    const deleteButton = memberRow.locator('button').last();
     
-    // Wait for the delete operation to complete and verify row count changed
-    await expect(page.locator('tbody tr')).toHaveCount(initialRows - 1, { timeout: 10000 });
+    // Ensure the button is visible and clickable
+    await expect(deleteButton).toBeVisible();
+    await deleteButton.click();
+    
+    // Wait for the delete API call and UI update
+    await page.waitForResponse(response => 
+      response.url().includes('/api/members/') && 
+      response.request().method() === 'DELETE'
+    );
+    
+    // Wait for the row count to decrease
+    await expect(page.locator('tbody tr')).toHaveCount(initialRows - 1, { timeout: 5000 });
   });
 });

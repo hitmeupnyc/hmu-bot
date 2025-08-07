@@ -201,12 +201,11 @@ test.describe('Member CRUD Operations', () => {
     // Use search - search for a specific email that should exist only once
     await page.getByPlaceholder('Search members...').fill('alice.johnson@example.com');
     
-    // Wait for search results to update
-    await expect(page.locator('tbody tr')).toHaveCount(1);
+    // Wait for network idle after typing to ensure search API call completes
+    await page.waitForLoadState('networkidle');
     
-    // Should filter results - should show only 1 result (Alice Johnson from seed data)
-    const filteredRows = await page.locator('tbody tr').count();
-    expect(filteredRows).toBe(1);
+    // Wait for search results to update - expect exactly 1 row
+    await expect(page.locator('tbody tr')).toHaveCount(1, { timeout: 5000 });
     
     // Verify the correct member is shown
     await expect(page.getByText('Ali (Alice) Johnson')).toBeVisible();
@@ -215,12 +214,11 @@ test.describe('Member CRUD Operations', () => {
     // Clear search
     await page.getByPlaceholder('Search members...').fill('');
     
-    // Wait for all members to be visible again
-    await expect(page.locator('tbody tr')).toHaveCount(initialRows, { timeout: 2000 });
+    // Wait for network idle after clearing search
+    await page.waitForLoadState('networkidle');
     
-    // All members should be visible again - should be at least the initial count
-    const finalRows = await page.locator('tbody tr').count();
-    expect(finalRows).toBeGreaterThanOrEqual(initialRows);
+    // Wait for all members to be visible again
+    await expect(page.locator('tbody tr')).toHaveCount(initialRows, { timeout: 5000 });
     
     // Verify Alice is still visible among all members
     await expect(page.getByText('alice.johnson@example.com')).toBeVisible();

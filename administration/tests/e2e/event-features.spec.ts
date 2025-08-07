@@ -21,8 +21,17 @@ test.describe('Event Advanced Features', () => {
       await page.getByRole('textbox', { name: 'Start Date & Time *' }).fill('2025-12-01T14:00');
       await page.getByRole('textbox', { name: 'End Date & Time *' }).fill('2025-12-01T16:00');
       await page.locator('form').getByRole('button', { name: 'Create Event' }).click();
+      
+      // Wait for the modal to close and event to appear in the table
+      await expect(page.getByRole('heading', { name: 'Create New Event' })).not.toBeVisible();
       await expect(page.getByText(eventName)).toBeVisible();
+      
+      // Wait for the View Details button to be ready
+      await page.waitForLoadState('networkidle');
     }
+    
+    // Ensure View Details button is visible before clicking
+    await expect(page.getByRole('button', { name: 'View Details' }).first()).toBeVisible();
     
     // Go to first event details
     await page.getByRole('button', { name: 'View Details' }).first().click();

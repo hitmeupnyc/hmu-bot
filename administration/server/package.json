@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "dev:e2e": "DATABASE_PATH=./data/test.db tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "vitest --run",
@@ -12,8 +13,9 @@
     "lint": "eslint src/**/*.ts",
     "typecheck": "tsc --noEmit",
     "db:migrate": "kysely migrate",
-    "db:migrate:latest": "mkdir -p data && kysely migrate latest",
+    "db:migrate:latest": "mkdir -p ./data && kysely migrate latest",
     "db:seed": "kysely seed run",
+    "db:setup-test": "rm -f ./data/test.db && mkdir -p ./data && DATABASE_PATH=./data/test.db npm run db:migrate:latest && DATABASE_PATH=./data/test.db npm run db:seed",
     "db:codegen": "kysely-codegen --dialect sqlite --url ./data/club.db --out-file ./src/types/database.ts"
   },
   "dependencies": {

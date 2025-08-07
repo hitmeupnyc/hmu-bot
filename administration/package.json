@@ -11,10 +11,11 @@
   "packageManager": "npm@10.5.0",
   "scripts": {
     "dev": "turbo run dev --parallel",
+    "dev:e2e": "turbo run dev:e2e --parallel",
     "build": "turbo run build",
     "test": "turbo run test",
     "test:watch": "turbo run test:watch --parallel",
-    "test:e2e": "npm run test --workspace=tests",
+    "test:e2e": "npm run db:setup-test --workspace=server && npm run test --workspace=tests",
     "test:unit": "turbo run test --filter=!e2e",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",

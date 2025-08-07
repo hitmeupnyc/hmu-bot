@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:e2e": "vite",
     "build": "tsc && vite build",
     "test": "vitest --run",
     "test:watch": "vitest --watch",

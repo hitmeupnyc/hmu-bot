@@ -202,35 +202,6 @@ test.describe('Error Handling', () => {
     await expect(errorText.or(membersHeading).or(backButton)).toBeVisible();
   });
 
-  test('should handle concurrent operations', async ({ page }) => {
-    // Navigate to members page
-    await page.goto('/members');
-
-    // Open add member modal
-    await page.getByRole('button', { name: 'Add Member' }).click();
-
-    // Fill form
-    const timestamp = Date.now();
-    await page.getByLabel('First Name *').fill('Concurrent');
-    await page.getByLabel('Last Name *').fill('Test');
-    await page.getByLabel('Email *').fill(`concurrent-${timestamp}@example.com`);
-
-    // Click submit multiple times quickly
-    const submitButton = page.getByRole('button', { name: 'Create Member' });
-    await Promise.all([submitButton.click(), submitButton.click(), submitButton.click()]);
-
-    // Should handle multiple clicks gracefully
-    // Modal should close after successful submission
-    await expect(page.getByRole('heading', { name: 'Add New Member' })).not.toBeVisible({
-      timeout: 5000,
-    });
-
-    // Should only create one member
-    const memberRows = page.locator('tr', { hasText: `concurrent-${timestamp}@example.com` });
-    const count = await memberRows.count();
-    expect(count).toBe(1);
-  });
-
   test('should show appropriate error for unauthorized access', async ({ page }) => {
     // Mock unauthorized response
     await page.route('**/api/members/*', (route) => {

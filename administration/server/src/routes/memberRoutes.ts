@@ -17,7 +17,6 @@ import {
   extractId,
   extractQuery,
 } from '../services/effect/adapters/expressAdapter';
-import { DatabaseLive } from '../services/effect/layers/DatabaseLayer';
 
 const router = Router();
 

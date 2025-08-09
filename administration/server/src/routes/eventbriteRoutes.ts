@@ -77,7 +77,7 @@ router.post(
 router.get(
   '/events/:eventId',
   effectToExpress((req, res) =>
-    Effect.gen(function* () {
+    Effect.sync(() => {
       const { eventId } = req.params;
       // This would make a direct API call to Eventbrite
       // For now, returning a placeholder response
@@ -114,7 +114,7 @@ router.get(
 router.post(
   '/checkin/:attendeeId',
   effectToExpress((req, res) =>
-    Effect.gen(function* () {
+    Effect.sync(() => {
       const { attendeeId } = req.params;
       // This would make an API call to Eventbrite to check in the attendee
       // For now, returning a placeholder response

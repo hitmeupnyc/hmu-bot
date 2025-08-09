@@ -62,7 +62,7 @@ router.post(
 router.get(
   '/profile/:email',
   effectToExpress((req, res) =>
-    Effect.gen(function* () {
+    Effect.sync(() => {
       const { email } = req.params;
       // For now, returning a placeholder as getProfileByEmail is not in Effects
       return {
@@ -78,7 +78,7 @@ router.get(
 router.post(
   '/push/:memberId',
   effectToExpress((req, res) =>
-    Effect.gen(function* () {
+    Effect.sync(() => {
       const memberId = parseInt(req.params.memberId);
       // For now, returning a placeholder as individual push is not in Effects
       return {

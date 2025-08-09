@@ -37,7 +37,7 @@ const KlaviyoWebhookPayloadSchema = Schema.Struct({
   timestamp: Schema.String,
 });
 
-type KlaviyoWebhookPayload = typeof KlaviyoWebhookPayloadSchema.Type;
+export type KlaviyoWebhookPayload = typeof KlaviyoWebhookPayloadSchema.Type;
 
 /**
  * Load Klaviyo configuration

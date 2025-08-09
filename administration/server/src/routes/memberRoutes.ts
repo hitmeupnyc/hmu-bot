@@ -10,7 +10,6 @@ import {
   memberQuerySchema,
   updateMemberSchema,
 } from '../schemas/validation';
-import { AuditService } from '../services/AuditService';
 import * as MemberEffects from '../services/effect/MemberEffects';
 import {
   effectToExpress,
@@ -22,7 +21,6 @@ import {
 import { DatabaseLive } from '../services/effect/layers/DatabaseLayer';
 
 const router = Router();
-const auditService = AuditService.getInstance();
 
 // Apply audit middleware to all routes
 router.use(auditMiddleware);

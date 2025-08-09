@@ -4,7 +4,10 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { effectToExpress } from '../services/effect/adapters/expressAdapter';
-import { DatabaseService } from '../services/effect/context/DatabaseService';
+import {
+  DatabaseService,
+  IDatabaseService,
+} from '../services/effect/context/DatabaseService';
 
 const router = Router();
 
@@ -111,15 +114,21 @@ router.get(
 export { router as healthCheckRouter };
 
 // Helper function to build debug information
-const buildDebugInfo = (basicHealth: any, dbService: DatabaseService) =>
+const buildDebugInfo = (basicHealth: any, dbService: IDatabaseService) =>
   Effect.gen(function* () {
     // Get database table counts safely
     const tableCounts = yield* Effect.gen(function* () {
       const memberResult = yield* dbService.query(async (db) =>
-        db.selectFrom('members').select(db.fn.count('id').as('count')).executeTakeFirst()
+        db
+          .selectFrom('members')
+          .select(db.fn.count('id').as('count'))
+          .executeTakeFirst()
       );
       const eventResult = yield* dbService.query(async (db) =>
-        db.selectFrom('events').select(db.fn.count('id').as('count')).executeTakeFirst()
+        db
+          .selectFrom('events')
+          .select(db.fn.count('id').as('count'))
+          .executeTakeFirst()
       );
       const membershipResult = yield* dbService.query(async (db) =>
         db
@@ -133,7 +142,11 @@ const buildDebugInfo = (basicHealth: any, dbService: DatabaseService) =>
         events: eventResult?.count || 0,
         memberships: membershipResult?.count || 0,
       };
-    }).pipe(Effect.catchAll(() => Effect.succeed({ error: 'Could not retrieve table counts' })));
+    }).pipe(
+      Effect.catchAll(() =>
+        Effect.succeed({ error: 'Could not retrieve table counts' })
+      )
+    );
 
     // Get git information safely
     const gitInfo = yield* Effect.try({
@@ -198,10 +211,18 @@ const buildDebugInfo = (basicHealth: any, dbService: DatabaseService) =>
         },
         environment: {
           NODE_ENV: process.env.NODE_ENV,
-          DATABASE_PATH: process.env.DATABASE_PATH ? '[CONFIGURED]' : '[NOT SET]',
-          KLAVIYO_API_KEY: process.env.KLAVIYO_API_KEY ? '[CONFIGURED]' : '[NOT SET]',
-          DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN ? '[CONFIGURED]' : '[NOT SET]',
-          PATREON_CLIENT_ID: process.env.PATREON_CLIENT_ID ? '[CONFIGURED]' : '[NOT SET]',
+          DATABASE_PATH: process.env.DATABASE_PATH
+            ? '[CONFIGURED]'
+            : '[NOT SET]',
+          KLAVIYO_API_KEY: process.env.KLAVIYO_API_KEY
+            ? '[CONFIGURED]'
+            : '[NOT SET]',
+          DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN
+            ? '[CONFIGURED]'
+            : '[NOT SET]',
+          PATREON_CLIENT_ID: process.env.PATREON_CLIENT_ID
+            ? '[CONFIGURED]'
+            : '[NOT SET]',
           PORT: process.env.PORT || '[DEFAULT: 3000]',
         },
         git: gitInfo,
@@ -210,7 +231,9 @@ const buildDebugInfo = (basicHealth: any, dbService: DatabaseService) =>
           .map(([name, addresses]) => ({
             name,
             addresses:
-              addresses?.filter((addr) => addr.family === 'IPv4').map((addr) => addr.address) || [],
+              addresses
+                ?.filter((addr) => addr.family === 'IPv4')
+                .map((addr) => addr.address) || [],
           })),
         time: {
           iso: new Date().toISOString(),
@@ -226,7 +249,8 @@ const buildDebugInfo = (basicHealth: any, dbService: DatabaseService) =>
 const getDatabaseInfo = () =>
   Effect.gen(function* () {
     const dbService = yield* DatabaseService;
-    const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../data/club.db');
+    const dbPath =
+      process.env.DATABASE_PATH || path.join(__dirname, '../../data/club.db');
     const absoluteDbPath = path.resolve(dbPath);
 
     // Get SQLite version information using raw SQLite operations

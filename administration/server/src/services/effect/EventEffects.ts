@@ -59,7 +59,9 @@ const getEventByIdInternal = (id: number) =>
 export const getEvents = (options: EventQueryOptions) =>
   Effect.gen(function* () {
     const db = yield* DatabaseService;
-    const validatedOptions = yield* Schema.decodeUnknown(EventQueryOptionsSchema)(options);
+    const validatedOptions = yield* Schema.decodeUnknown(
+      EventQueryOptionsSchema
+    )(options);
 
     const { page, limit, upcoming } = validatedOptions;
     const offset = (page - 1) * limit;
@@ -71,14 +73,24 @@ export const getEvents = (options: EventQueryOptions) =>
         .where((eb) => eb('flags', '&', 1), '=', 1); // Only active events
 
       if (upcoming) {
-        query = query.where('start_datetime', '>', sql<string>`datetime('now')`);
+        query = query.where(
+          'start_datetime',
+          '>',
+          sql<string>`datetime('now')`
+        );
       }
 
-      const countQuery = query.clearSelect().select((eb) => eb.fn.count('id').as('total'));
+      const countQuery = query
+        .clearSelect()
+        .select((eb) => eb.fn.count('id').as('total'));
 
       return Promise.all([
         countQuery.executeTakeFirst() as Promise<{ total: string }>,
-        query.orderBy('start_datetime', 'asc').limit(limit).offset(offset).execute(),
+        query
+          .orderBy('start_datetime', 'asc')
+          .limit(limit)
+          .offset(offset)
+          .execute(),
       ]);
     });
 
@@ -179,18 +191,26 @@ export const updateEvent = (data: UpdateEvent) =>
     }> = {};
 
     if (validatedData.name !== undefined) updateData.name = validatedData.name;
-    if (validatedData.description !== undefined) updateData.description = validatedData.description || null;
-    if (validatedData.start_datetime !== undefined) updateData.start_datetime = validatedData.start_datetime;
-    if (validatedData.end_datetime !== undefined) updateData.end_datetime = validatedData.end_datetime;
-    if (validatedData.flags !== undefined) updateData.flags = validatedData.flags;
-    if (validatedData.max_capacity !== undefined) updateData.max_capacity = validatedData.max_capacity || null;
+    if (validatedData.description !== undefined)
+      updateData.description = validatedData.description || null;
+    if (validatedData.start_datetime !== undefined)
+      updateData.start_datetime = validatedData.start_datetime;
+    if (validatedData.end_datetime !== undefined)
+      updateData.end_datetime = validatedData.end_datetime;
+    if (validatedData.flags !== undefined)
+      updateData.flags = validatedData.flags;
+    if (validatedData.max_capacity !== undefined)
+      updateData.max_capacity = validatedData.max_capacity || null;
     if (validatedData.required_membership_types !== undefined) {
-      updateData.required_membership_types = validatedData.required_membership_types
-        ? JSON.stringify(validatedData.required_membership_types)
-        : null;
+      updateData.required_membership_types =
+        validatedData.required_membership_types
+          ? JSON.stringify(validatedData.required_membership_types)
+          : null;
     }
-    if (validatedData.eventbrite_id !== undefined) updateData.eventbrite_id = validatedData.eventbrite_id || null;
-    if (validatedData.eventbrite_url !== undefined) updateData.eventbrite_url = validatedData.eventbrite_url || null;
+    if (validatedData.eventbrite_id !== undefined)
+      updateData.eventbrite_id = validatedData.eventbrite_id || null;
+    if (validatedData.eventbrite_url !== undefined)
+      updateData.eventbrite_url = validatedData.eventbrite_url || null;
 
     yield* db.query(async (db) =>
       db
@@ -240,7 +260,9 @@ export const getEventMarketing = (eventId: number) =>
 export const createEventMarketing = (data: CreateEventMarketing) =>
   Effect.gen(function* () {
     const db = yield* DatabaseService;
-    const validatedData = yield* Schema.decodeUnknown(CreateEventMarketingSchema)(data);
+    const validatedData = yield* Schema.decodeUnknown(
+      CreateEventMarketingSchema
+    )(data);
 
     // Ensure event exists
     yield* getEventByIdInternal(validatedData.event_id);
@@ -251,14 +273,17 @@ export const createEventMarketing = (data: CreateEventMarketing) =>
         .values({
           event_id: validatedData.event_id,
           primary_marketing_copy: validatedData.primary_marketing_copy || null,
-          secondary_marketing_copy: validatedData.secondary_marketing_copy || null,
+          secondary_marketing_copy:
+            validatedData.secondary_marketing_copy || null,
           blurb: validatedData.blurb || null,
           social_media_copy: validatedData.social_media_copy || null,
           email_subject: validatedData.email_subject || null,
           email_preview_text: validatedData.email_preview_text || null,
           seo_title: validatedData.seo_title || null,
           seo_description: validatedData.seo_description || null,
-          hashtags: validatedData.hashtags ? JSON.stringify(validatedData.hashtags) : null,
+          hashtags: validatedData.hashtags
+            ? JSON.stringify(validatedData.hashtags)
+            : null,
           marketing_images_json: validatedData.marketing_images
             ? JSON.stringify(validatedData.marketing_images)
             : null,
@@ -319,7 +344,9 @@ export const getEventVolunteers = (eventId: number) =>
 export const createVolunteer = (data: CreateVolunteer) =>
   Effect.gen(function* () {
     const db = yield* DatabaseService;
-    const validatedData = yield* Schema.decodeUnknown(CreateVolunteerSchema)(data);
+    const validatedData = yield* Schema.decodeUnknown(CreateVolunteerSchema)(
+      data
+    );
 
     // Ensure event exists
     yield* getEventByIdInternal(validatedData.event_id);
@@ -398,7 +425,9 @@ export const getEventAttendance = (eventId: number) =>
 export const createAttendance = (data: CreateAttendance) =>
   Effect.gen(function* () {
     const db = yield* DatabaseService;
-    const validatedData = yield* Schema.decodeUnknown(CreateAttendanceSchema)(data);
+    const validatedData = yield* Schema.decodeUnknown(CreateAttendanceSchema)(
+      data
+    );
 
     // Ensure event exists
     yield* getEventByIdInternal(validatedData.event_id);
@@ -413,7 +442,11 @@ export const createAttendance = (data: CreateAttendance) =>
       if (validatedData.member_id) {
         query = query.where('member_id', '=', validatedData.member_id);
       } else if (validatedData.eventbrite_attendee_id) {
-        query = query.where('eventbrite_attendee_id', '=', validatedData.eventbrite_attendee_id);
+        query = query.where(
+          'eventbrite_attendee_id',
+          '=',
+          validatedData.eventbrite_attendee_id
+        );
       }
 
       return query.executeTakeFirst();
@@ -421,7 +454,9 @@ export const createAttendance = (data: CreateAttendance) =>
 
     if (existing) {
       const identifier =
-        validatedData.member_id?.toString() || validatedData.eventbrite_attendee_id || 'unknown';
+        validatedData.member_id?.toString() ||
+        validatedData.eventbrite_attendee_id ||
+        'unknown';
       return yield* new AttendanceAlreadyExists({
         eventId: validatedData.event_id,
         identifier,
@@ -526,5 +561,7 @@ export const getEventWithDetails = (id: number) =>
       eventbrite_link: undefined,
     };
 
-    return yield* Schema.decodeUnknown(EventWithDetailsSchema)(eventWithDetails);
+    return yield* Schema.decodeUnknown(EventWithDetailsSchema)(
+      eventWithDetails
+    );
   });

@@ -71,9 +71,13 @@ const createMemberFromKlaviyoProfile = (profile: KlaviyoProfile) =>
 /**
  * Sync Klaviyo profile to member database
  */
-export const syncKlaviyoProfile = (profile: KlaviyoProfile, syncOperationId: number) =>
+export const syncKlaviyoProfile = (
+  profile: KlaviyoProfile,
+  syncOperationId: number
+) =>
   Effect.gen(function* () {
-    const validatedProfile = yield* Schema.decodeUnknown(KlaviyoProfileSchema)(profile);
+    const validatedProfile =
+      yield* Schema.decodeUnknown(KlaviyoProfileSchema)(profile);
 
     // Look for existing member by email
     let member = yield* findMemberByEmail(validatedProfile.email);
@@ -91,18 +95,28 @@ export const syncKlaviyoProfile = (profile: KlaviyoProfile, syncOperationId: num
     }
 
     // Update Klaviyo integration
-    yield* upsertExternalIntegration(member.id, 'klaviyo', validatedProfile.id, {
-      email: validatedProfile.email,
-      phone_number: validatedProfile.phone_number,
-      location: validatedProfile.location,
-      properties: validatedProfile.properties,
-      consents: validatedProfile.consents,
-    });
+    yield* upsertExternalIntegration(
+      member.id,
+      'klaviyo',
+      validatedProfile.id,
+      {
+        email: validatedProfile.email,
+        phone_number: validatedProfile.phone_number,
+        location: validatedProfile.location,
+        properties: validatedProfile.properties,
+        consents: validatedProfile.consents,
+      }
+    );
 
     // Set email marketing flag
     yield* updateMemberFlag(member.id, 8, true); // Email subscriber flag
 
-    yield* updateSyncOperation(syncOperationId, 'success', 'Klaviyo profile synced', member.id);
+    yield* updateSyncOperation(
+      syncOperationId,
+      'success',
+      'Klaviyo profile synced',
+      member.id
+    );
     return member;
   });
 
@@ -111,7 +125,9 @@ export const syncKlaviyoProfile = (profile: KlaviyoProfile, syncOperationId: num
  */
 export const handleKlaviyoWebhook = (payload: KlaviyoWebhookPayload) =>
   Effect.gen(function* () {
-    const validatedPayload = yield* Schema.decodeUnknown(KlaviyoWebhookPayloadSchema)(payload);
+    const validatedPayload = yield* Schema.decodeUnknown(
+      KlaviyoWebhookPayloadSchema
+    )(payload);
 
     const syncOperation = yield* createSyncOperation({
       platform: 'klaviyo',
@@ -126,16 +142,26 @@ export const handleKlaviyoWebhook = (payload: KlaviyoWebhookPayload) =>
       switch (validatedPayload.event_type) {
         case 'profile.created':
         case 'profile.updated':
-          return yield* syncKlaviyoProfile(validatedPayload.profile, syncOperation.id);
+          return yield* syncKlaviyoProfile(
+            validatedPayload.profile,
+            syncOperation.id
+          );
 
-        case 'profile.unsubscribed':
+        case 'profile.unsubscribed': {
           // Handle unsubscribe
-          const member = yield* findMemberByEmail(validatedPayload.profile.email);
+          const member = yield* findMemberByEmail(
+            validatedPayload.profile.email
+          );
           if (member) {
             yield* updateMemberFlag(member.id, 8, false); // Remove email subscriber flag
-            yield* updateSyncOperation(syncOperation.id, 'success', 'Profile unsubscribed');
+            yield* updateSyncOperation(
+              syncOperation.id,
+              'success',
+              'Profile unsubscribed'
+            );
           }
           break;
+        }
 
         default:
           yield* updateSyncOperation(
@@ -188,10 +214,13 @@ export const bulkSyncKlaviyoProfiles = () =>
             payload_json: JSON.stringify(profile),
           });
 
-          return yield* Effect.match(syncKlaviyoProfile(profile, syncOperation.id), {
-            onFailure: () => ({ success: false, profileId: profile.id }),
-            onSuccess: () => ({ success: true, profileId: profile.id }),
-          });
+          return yield* Effect.match(
+            syncKlaviyoProfile(profile, syncOperation.id),
+            {
+              onFailure: () => ({ success: false, profileId: profile.id }),
+              onSuccess: () => ({ success: true, profileId: profile.id }),
+            }
+          );
         }),
       { concurrency: 10 }
     );

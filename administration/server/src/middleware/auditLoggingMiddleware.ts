@@ -1,6 +1,8 @@
+import { Effect, Exit } from 'effect';
 import { Request, Response, NextFunction } from 'express';
-import { AuditService } from '../services/AuditService';
-import { MemberService } from '../services/MemberService';
+import * as AuditEffects from '../services/effect/AuditEffects';
+import * as MemberEffects from '../services/effect/MemberEffects';
+import { DatabaseLive } from '../services/effect/layers/DatabaseLayer';
 
 // Extend Express Request/Response types
 declare global {
@@ -120,19 +122,22 @@ const auditPreMiddleware = (req: Request, res: Response, next: NextFunction) => 
   // For updates and deletes, capture the old data
   if ((action === 'update' || action === 'delete') && entityId && config.entityType === 'member') {
     // Capture old member data before modification with timeout
-    Promise.race([
-      MemberService.prototype.getMemberById.call(new MemberService(), entityId),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 1000))
-    ])
-      .then(oldData => {
-        res._auditOldData = oldData;
-      })
-      .catch(error => {
-        console.warn('Failed to capture old data for audit:', error.message);
-      })
-      .finally(() => {
-        next();
+    const getMemberEffect = MemberEffects.getMemberById(entityId).pipe(
+      Effect.provide(DatabaseLive),
+      Effect.timeout('1 second')
+    );
+
+    Effect.runPromiseExit(getMemberEffect).then(exit => {
+      Exit.match(exit, {
+        onFailure: (cause) => {
+          console.warn('Failed to capture old data for audit:', cause);
+        },
+        onSuccess: (oldData) => {
+          res._auditOldData = oldData;
+        }
       });
+      next();
+    });
   } else {
     next();
   }
@@ -149,7 +154,6 @@ const auditPostMiddleware = (req: Request, res: Response, next: NextFunction) =>
     return next();
   }
 
-  const auditService = AuditService.getInstance();
   const actionRaw = config.getAction?.(req) || 'unknown';
   const action = ['create', 'update', 'delete', 'view', 'search'].includes(actionRaw) 
     ? actionRaw as 'create' | 'update' | 'delete' | 'view' | 'search'
@@ -175,8 +179,17 @@ const auditPostMiddleware = (req: Request, res: Response, next: NextFunction) =>
   };
 
   // Log audit entry asynchronously (don't block response)
-  auditService.logEvent(auditData).catch(error => {
-    console.error('Failed to log audit event:', error);
+  const logEffect = AuditEffects.logAuditEvent(auditData).pipe(
+    Effect.provide(DatabaseLive)
+  );
+  
+  Effect.runPromiseExit(logEffect).then(exit => {
+    Exit.match(exit, {
+      onFailure: (cause) => {
+        console.error('Failed to log audit event:', cause);
+      },
+      onSuccess: () => {}
+    });
   });
 
   next();

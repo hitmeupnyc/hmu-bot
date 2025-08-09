@@ -173,9 +173,9 @@ const auditPostMiddleware = (req: Request, res: Response, next: NextFunction) =>
     action,
     userSessionId: req.auditInfo?.sessionId,
     userIp: req.auditInfo?.userIp,
-    oldValues: res._auditOldData,
-    newValues: action === 'create' || action === 'update' ? req.body : undefined,
-    metadata
+    oldValues: res._auditOldData ? JSON.stringify(res._auditOldData) : undefined,
+    newValues: action === 'create' || action === 'update' ? JSON.stringify(req.body) : undefined,
+    metadata: metadata ? JSON.stringify(metadata) : undefined
   };
 
   // Log audit entry asynchronously (don't block response)

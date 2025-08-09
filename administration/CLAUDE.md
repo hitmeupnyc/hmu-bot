@@ -11,6 +11,9 @@
 - Prefer using your Playwright MCP over curl.
 - When possible, avoid storing boolean values. Bitfields as flags are preferable to booleans in all situations, bitfields and flags.
 - Always use React Query in client apps.
+- Useful debug urls: 
+  - `http://localhost:5173/debug` includes `:3000/health/env` output via the web
+  - `http://localhost:3000/health`
 
 This set of commands provides comprehensive verification of:
 

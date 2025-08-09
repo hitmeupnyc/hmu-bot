@@ -1,6 +1,9 @@
 import { Effect, pipe, Schema } from 'effect';
 import { DatabaseService } from './context/DatabaseService';
-import { AuditLogEntrySchema, type AuditLogEntry } from './schemas/CommonSchemas';
+import {
+  AuditLogEntrySchema,
+  type AuditLogEntry,
+} from './schemas/CommonSchemas';
 
 /**
  * Log an audit event
@@ -8,7 +11,8 @@ import { AuditLogEntrySchema, type AuditLogEntry } from './schemas/CommonSchemas
 export const logAuditEvent = (entry: AuditLogEntry) =>
   Effect.gen(function* () {
     const db = yield* DatabaseService;
-    const validatedEntry = yield* Schema.decodeUnknown(AuditLogEntrySchema)(entry);
+    const validatedEntry =
+      yield* Schema.decodeUnknown(AuditLogEntrySchema)(entry);
 
     // Non-failing audit logging - errors are logged but don't throw
     return yield* pipe(
@@ -27,7 +31,9 @@ export const logAuditEvent = (entry: AuditLogEntry) =>
             new_values_json: validatedEntry.newValues
               ? JSON.stringify(validatedEntry.newValues)
               : null,
-            metadata_json: validatedEntry.metadata ? JSON.stringify(validatedEntry.metadata) : null,
+            metadata_json: validatedEntry.metadata
+              ? JSON.stringify(validatedEntry.metadata)
+              : null,
           })
           .execute()
       ),
@@ -43,7 +49,11 @@ export const logAuditEvent = (entry: AuditLogEntry) =>
 /**
  * Log member view event
  */
-export const logMemberView = (memberId: number, sessionId: string, userIp: string) =>
+export const logMemberView = (
+  memberId: number,
+  sessionId: string,
+  userIp: string
+) =>
   logAuditEvent({
     entityType: 'member',
     entityId: memberId,
@@ -93,7 +103,11 @@ export const logMemberCreate = (
 /**
  * Get audit logs for an entity
  */
-export const getAuditLogs = (entityType: string, entityId?: number, limit: number = 50) =>
+export const getAuditLogs = (
+  entityType: string,
+  entityId?: number,
+  limit: number = 50
+) =>
   Effect.gen(function* () {
     const db = yield* DatabaseService;
 

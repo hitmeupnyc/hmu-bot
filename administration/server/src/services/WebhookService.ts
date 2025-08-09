@@ -1,5 +1,7 @@
-import { prepare } from './DatabaseService';
+import { Effect } from 'effect';
 import { AppError } from '../middleware/errorHandler';
+import { DatabaseLive } from './effect/layers/DatabaseLayer';
+import * as JobSchedulerEffects from './effect/JobSchedulerEffects';
 import crypto from 'crypto';
 
 export class WebhookService {
@@ -7,8 +9,15 @@ export class WebhookService {
     // Verify webhook signature
     this.verifyEventbriteSignature(payload, headers);
 
-    // Queue the webhook for async processing
-    await this.queueWebhookProcessing('eventbrite', payload);
+    // Queue the webhook for async processing using Effect
+    await Effect.runPromise(
+      JobSchedulerEffects.queueWebhook({
+        platform: 'eventbrite',
+        eventType: payload.action || 'webhook',
+        payload,
+        timestamp: new Date().toISOString(),
+      }).pipe(Effect.provide(DatabaseLive))
+    );
 
     console.log('Eventbrite webhook queued for processing:', payload.action);
   }
@@ -17,8 +26,16 @@ export class WebhookService {
     // Verify webhook signature
     this.verifyPatreonSignature(payload, headers);
 
-    // Queue the webhook for async processing
-    await this.queueWebhookProcessing('patreon', payload);
+    // Queue the webhook for async processing using Effect
+    await Effect.runPromise(
+      JobSchedulerEffects.queueWebhook({
+        platform: 'patreon',
+        eventType: payload.data?.type || 'webhook',
+        payload,
+        signature: headers['x-patreon-signature'],
+        timestamp: new Date().toISOString(),
+      }).pipe(Effect.provide(DatabaseLive))
+    );
 
     console.log('Patreon webhook queued for processing:', payload.data?.type);
   }
@@ -27,8 +44,15 @@ export class WebhookService {
     // Verify webhook signature
     this.verifyKlaviyoSignature(payload, headers);
 
-    // Queue the webhook for async processing
-    await this.queueWebhookProcessing('klaviyo', payload);
+    // Queue the webhook for async processing using Effect
+    await Effect.runPromise(
+      JobSchedulerEffects.queueWebhook({
+        platform: 'klaviyo',
+        eventType: 'profile_update',
+        payload,
+        timestamp: new Date().toISOString(),
+      }).pipe(Effect.provide(DatabaseLive))
+    );
 
     console.log('Klaviyo webhook queued for processing');
   }
@@ -103,14 +127,5 @@ export class WebhookService {
     }
   }
 
-  private async queueWebhookProcessing(platform: string, payload: any): Promise<void> {
-    // For now, just log the sync operation to the database
-    // In production, this would use Redis/Bull for proper queue management
-    const stmt = prepare(`
-      INSERT INTO sync_operations (platform, operation_type, payload_json, status)
-      VALUES (?, ?, ?, ?)
-    `);
-
-    stmt.run(platform, 'webhook', JSON.stringify(payload), 'pending');
-  }
+  // Removed queueWebhookProcessing - now using JobSchedulerEffects.queueWebhook
 }

@@ -1,29 +1,50 @@
+import { Effect } from 'effect';
 import { Router } from 'express';
-import { WebhookService } from '../services/WebhookService';
-import { asyncHandler } from '../middleware/errorHandler';
+import * as WebhookEffects from '../services/effect/WebhookEffects';
+import { effectToExpress } from '../services/effect/adapters/expressAdapter';
 
 const router = Router();
-const webhookService = new WebhookService();
 
 // POST /api/webhooks/eventbrite - Eventbrite webhook handler
-router.post('/eventbrite', asyncHandler(async (req, res) => {
-  await webhookService.handleEventbriteWebhook(req.body, req.headers);
-  
-  res.status(200).json({ success: true });
-}));
+router.post(
+  '/eventbrite',
+  effectToExpress((req, res) =>
+    Effect.gen(function* () {
+      const result = yield* WebhookEffects.handleEventbriteWebhook(
+        req.body,
+        req.headers as Record<string, any>
+      );
+      return { success: true };
+    })
+  )
+);
 
 // POST /api/webhooks/patreon - Patreon webhook handler
-router.post('/patreon', asyncHandler(async (req, res) => {
-  await webhookService.handlePatreonWebhook(req.body, req.headers);
-  
-  res.status(200).json({ success: true });
-}));
+router.post(
+  '/patreon',
+  effectToExpress((req, res) =>
+    Effect.gen(function* () {
+      const result = yield* WebhookEffects.handlePatreonWebhook(
+        req.body,
+        req.headers as Record<string, any>
+      );
+      return { success: true };
+    })
+  )
+);
 
 // POST /api/webhooks/klaviyo - Klaviyo webhook handler
-router.post('/klaviyo', asyncHandler(async (req, res) => {
-  await webhookService.handleKlaviyoWebhook(req.body, req.headers);
-  
-  res.status(200).json({ success: true });
-}));
+router.post(
+  '/klaviyo',
+  effectToExpress((req, res) =>
+    Effect.gen(function* () {
+      const result = yield* WebhookEffects.handleKlaviyoWebhook(
+        req.body,
+        req.headers as Record<string, any>
+      );
+      return { success: true };
+    })
+  )
+);
 
 export { router as webhookRoutes };

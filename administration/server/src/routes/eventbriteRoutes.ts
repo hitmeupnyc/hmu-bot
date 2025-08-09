@@ -1,9 +1,13 @@
+import { Effect } from 'effect';
 import { Router } from 'express';
-import { EventbriteSyncService, EventbriteWebhookPayload } from '../services/EventbriteSyncService';
-import { asyncHandler } from '../middleware/errorHandler';
+import * as EventbriteSyncEffects from '../services/effect/EventbriteSyncEffects';
+import {
+  effectToExpress,
+  extractBody,
+  extractQuery,
+} from '../services/effect/adapters/expressAdapter';
 
 const router = Router();
-const eventbriteService = new EventbriteSyncService();
 
 // Webhook verification middleware (Eventbrite uses verification tokens)
 const verifyEventbriteWebhook = (req: any, res: any, next: any) => {
@@ -25,91 +29,102 @@ const verifyEventbriteWebhook = (req: any, res: any, next: any) => {
 };
 
 // POST /api/eventbrite/webhook - Handle Eventbrite webhooks
-router.post('/webhook', verifyEventbriteWebhook, asyncHandler(async (req, res) => {
-  const payload: EventbriteWebhookPayload = req.body;
-  
-  await eventbriteService.handleWebhook(payload);
-  
-  res.status(200).json({ message: 'Webhook processed successfully' });
-}));
+router.post(
+  '/webhook',
+  verifyEventbriteWebhook,
+  effectToExpress((req, res) =>
+    Effect.gen(function* () {
+      const payload = yield* extractBody<EventbriteSyncEffects.EventbriteWebhookPayload>(req);
+      yield* EventbriteSyncEffects.handleWebhook(payload);
+      return { message: 'Webhook processed successfully' };
+    })
+  )
+);
 
 // POST /api/eventbrite/sync/events - Manual bulk sync events
-router.post('/sync/events', asyncHandler(async (req, res) => {
-  const { organizer_id } = req.body;
-  
-  const result = await eventbriteService.bulkSyncEvents(organizer_id);
-  
-  res.json({
-    success: true,
-    message: `Events sync completed: ${result.synced} synced, ${result.errors} errors`,
-    data: result
-  });
-}));
+router.post(
+  '/sync/events',
+  effectToExpress((req, res) =>
+    Effect.gen(function* () {
+      const body = yield* extractBody<{ organizer_id?: string }>(req);
+      const result = yield* EventbriteSyncEffects.bulkSyncEvents(body.organizer_id);
+      return {
+        success: true,
+        message: `Events sync completed: ${result.synced} synced, ${result.errors} errors`,
+        data: result,
+      };
+    })
+  )
+);
 
 // POST /api/eventbrite/sync/attendees/:eventId - Bulk sync attendees for specific event
-router.post('/sync/attendees/:eventId', asyncHandler(async (req, res) => {
-  const { eventId } = req.params;
-  
-  const result = await eventbriteService.bulkSyncAttendees(eventId);
-  
-  res.json({
-    success: true,
-    message: `Attendees sync completed: ${result.synced} synced, ${result.errors} errors`,
-    data: result
-  });
-}));
+router.post(
+  '/sync/attendees/:eventId',
+  effectToExpress((req, res) =>
+    Effect.gen(function* () {
+      const { eventId } = req.params;
+      const result = yield* EventbriteSyncEffects.bulkSyncAttendees(eventId);
+      return {
+        success: true,
+        message: `Attendees sync completed: ${result.synced} synced, ${result.errors} errors`,
+        data: result,
+      };
+    })
+  )
+);
 
 // GET /api/eventbrite/events/:eventId - Get event details from Eventbrite
-router.get('/events/:eventId', asyncHandler(async (req, res) => {
-  const { eventId } = req.params;
-  
-  try {
-    // This would make a direct API call to Eventbrite
-    // For now, returning a placeholder response
-    res.json({
-      success: true,
-      message: 'Event details would be fetched from Eventbrite API',
-      eventId
-    });
-  } catch (error) {
-    res.status(404).json({ error: 'Event not found' });
-  }
-}));
+router.get(
+  '/events/:eventId',
+  effectToExpress((req, res) =>
+    Effect.sync(() => {
+      const { eventId } = req.params;
+      // This would make a direct API call to Eventbrite
+      // For now, returning a placeholder response
+      return {
+        success: true,
+        message: 'Event details would be fetched from Eventbrite API',
+        eventId,
+      };
+    })
+  )
+);
 
-// POST /api/eventbrite/events/:eventId/attendees - Get attendees for specific event
-router.get('/events/:eventId/attendees', asyncHandler(async (req, res) => {
-  const { eventId } = req.params;
-  const { page = 1 } = req.query;
-  
-  try {
-    // This would make a direct API call to Eventbrite
-    // For now, returning a placeholder response
-    res.json({
-      success: true,
-      message: 'Attendees would be fetched from Eventbrite API',
-      eventId,
-      page
-    });
-  } catch (error) {
-    res.status(404).json({ error: 'Event not found or no attendees' });
-  }
-}));
+// GET /api/eventbrite/events/:eventId/attendees - Get attendees for specific event
+router.get(
+  '/events/:eventId/attendees',
+  effectToExpress((req, res) =>
+    Effect.gen(function* () {
+      const { eventId } = req.params;
+      const query = yield* extractQuery<{ page?: number }>(req);
+      const { page = 1 } = query;
+      // This would make a direct API call to Eventbrite
+      // For now, returning a placeholder response
+      return {
+        success: true,
+        message: 'Attendees would be fetched from Eventbrite API',
+        eventId,
+        page,
+      };
+    })
+  )
+);
 
 // POST /api/eventbrite/checkin/:attendeeId - Check in attendee
-router.post('/checkin/:attendeeId', asyncHandler(async (req, res) => {
-  const { attendeeId } = req.params;
-  
-  try {
-    // This would make an API call to Eventbrite to check in the attendee
-    // For now, returning a placeholder response
-    res.json({
-      success: true,
-      message: 'Attendee checked in successfully',
-      attendeeId
-    });
-  } catch (error) {
-    res.status(400).json({ error: 'Failed to check in attendee' });
-  }
-}));
+router.post(
+  '/checkin/:attendeeId',
+  effectToExpress((req, res) =>
+    Effect.sync(() => {
+      const { attendeeId } = req.params;
+      // This would make an API call to Eventbrite to check in the attendee
+      // For now, returning a placeholder response
+      return {
+        success: true,
+        message: 'Attendee checked in successfully',
+        attendeeId,
+      };
+    })
+  )
+);
 
 export { router as eventbriteRoutes };

@@ -4,13 +4,18 @@ import fs from 'fs';
 import { Kysely, SqliteDialect } from 'kysely';
 import path from 'path';
 import type { DB as DatabaseSchema } from '../../../types/database';
-import { DatabaseService, makeDatabaseService } from '../context/DatabaseService';
+import {
+  DatabaseService,
+  makeDatabaseService,
+} from '../context/DatabaseService';
 import { ConnectionError } from '../errors/DatabaseErrors';
 
 export const DatabaseLive = Layer.effect(
   DatabaseService,
   Effect.gen(function* () {
-    const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../../../data/club.db');
+    const dbPath =
+      process.env.DATABASE_PATH ||
+      path.join(__dirname, '../../../../data/club.db');
 
     // Ensure data directory exists
     const dbDir = path.dirname(dbPath);

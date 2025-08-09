@@ -1,3 +1,5 @@
+import dotenv from 'dotenv';
+
 import Database from 'better-sqlite3';
 import fs from 'fs';
 import { Kysely, SqliteDialect } from 'kysely';
@@ -5,17 +7,23 @@ import path from 'path';
 import type { DB as DatabaseSchema } from '../types/database';
 import { MigrationProvider } from './MigrationProvider';
 
+dotenv.config();
+
 // Module-scoped singleton variables
 let _db: Kysely<DatabaseSchema>;
 let _sqliteDb: Database.Database;
 let _migrationProvider: MigrationProvider;
 let _initialized = false;
 
+const dbPath: string = process.env.DATABASE_PATH || '';
+if (!dbPath) {
+  throw new Error('DATABASE_PATH is not set');
+}
+
 // Initialize the database connection
 function initializeDatabase(): void {
   if (_initialized) return;
 
-  const dbPath = process.env.DATABASE_PATH || path.join(__dirname, './data/club.db');
 
   // Ensure data directory exists
   const dbDir = path.dirname(dbPath);
@@ -77,7 +85,6 @@ export function getDatabaseInfo() {
     initializeDatabase();
   }
 
-  const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../data/club.db');
   const absoluteDbPath = path.resolve(dbPath);
 
   // Get SQLite version information

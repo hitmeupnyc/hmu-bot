@@ -42,10 +42,13 @@ test.describe('Events Management System', () => {
   test('should create a new event successfully', async ({ page }) => {
     // Navigate to Events page
     await page.getByRole('link', { name: 'Events' }).click();
+    await page.waitForLoadState('networkidle');
     
     // Get initial count of events
     const initialEventRows = page.locator('tbody tr');
-    const initialCount = await initialEventRows.count();
+    // Wait for the table to be visible or handle empty state
+    const tableVisible = await page.locator('tbody').isVisible();
+    const initialCount = tableVisible ? await initialEventRows.count() : 0;
     
     // Click Create Event button
     await page.getByRole('button', { name: 'Create Event' }).click();
@@ -67,12 +70,24 @@ test.describe('Events Management System', () => {
     // Submit the form
     await page.locator('form').getByRole('button', { name: 'Create Event' }).click();
     
-    // Verify the event was created and appears in the list
-    await expect(page.getByText(eventName)).toBeAttached();
+    // Wait for navigation to event details page
+    await page.waitForURL(/\/events\/\d+/);
+    await page.waitForLoadState('networkidle');
+    
+    // Verify we're on the event details page with the correct event
+    await expect(page.getByRole('heading', { name: eventName })).toBeVisible();
+    
+    // Navigate back to events list to verify it appears there
+    await page.getByRole('link', { name: 'Events' }).click();
+    await page.waitForLoadState('networkidle');
+    
+    // Verify the event appears in the list
+    await expect(page.getByText(eventName)).toBeVisible();
     
     // Check that we have more events in the table than we started with
     const finalEventRows = page.locator('tbody tr');
-    const finalCount = await finalEventRows.count();
+    const finalTableVisible = await page.locator('tbody').isVisible();
+    const finalCount = finalTableVisible ? await finalEventRows.count() : 0;
     expect(finalCount).toBeGreaterThan(initialCount);
   });
 
@@ -120,6 +135,7 @@ test.describe('Events Management System', () => {
   test('should show volunteer form when Add Volunteer is clicked', async ({ page }) => {
     // Navigate to Events page and go to first event details
     await page.getByRole('link', { name: 'Events' }).click();
+    await page.waitForLoadState('networkidle');
     await page.getByRole('button', { name: 'View Details' }).first().click();
     
     // Navigate to Volunteers tab
@@ -136,6 +152,7 @@ test.describe('Events Management System', () => {
     await expect(page.getByText('Contact Email')).toBeVisible();
     await expect(page.getByText('Arrival Time')).toBeVisible();
     await expect(page.getByText('Departure Time')).toBeVisible();
+    // Check for the text labels (not using getByLabel since labels aren't properly associated)
     await expect(page.getByText('Special Instructions')).toBeVisible();
     await expect(page.getByText('Volunteer Notes')).toBeVisible();
     

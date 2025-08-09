@@ -43,9 +43,11 @@ export function EventDetails() {
 
   const fetchMembers = async () => {
     try {
-      // This would typically come from a MemberService
-      // For now, we'll use a placeholder
-      setMembers([]);
+      const response = await fetch('/api/members?limit=100');
+      if (response.ok) {
+        const data = await response.json();
+        setMembers(data.data || []);
+      }
     } catch (error) {
       console.error('Failed to fetch members:', error);
     }

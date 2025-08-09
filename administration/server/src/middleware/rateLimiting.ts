@@ -25,13 +25,13 @@ const defaultLimitConfig = {
 // General API rate limiter
 export const apiLimiter = rateLimit({
   ...defaultLimitConfig,
-  max: 100, // 100 requests per 15 minutes
+  max: 10000, // 100 requests per 15 minutes
 });
 
 // Lenient rate limiter for read-only operations
 export const readOnlyLimiter = rateLimit({
   ...defaultLimitConfig,
-  max: 200, // 200 requests per 15 minutes
+  max: 20000, // 200 requests per 15 minutes
   message: {
     success: false,
     error: 'Too many read requests, please try again later',

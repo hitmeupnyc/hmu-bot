@@ -63,7 +63,7 @@ export function Dashboard() {
                 <div key={member.id} className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-gray-900">
-                      {member.preferred_name || member.first_name} {member.last_name}
+                      <a href={`/members/${member.id}`}>{member.preferred_name || member.first_name} {member.last_name}</a>
                     </p>
                     <p className="text-sm text-gray-500">{member.email}</p>
                   </div>
@@ -98,7 +98,7 @@ export function Dashboard() {
             <div className="space-y-3">
               {upcomingEvents.slice(0, 5).map((event) => (
                 <div key={event.id} className="border-l-4 border-purple-200 pl-3">
-                  <p className="font-medium text-gray-900">{event.name}</p>
+                  <a href={`/events/${event.id}`}><p className="font-medium text-gray-900">{event.name}</p></a>
                   <p className="text-sm text-gray-500">
                     {new Date(event.start_datetime).toLocaleDateString()}
                   </p>

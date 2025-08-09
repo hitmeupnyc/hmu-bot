@@ -1,7 +1,7 @@
 ## Memory Management Guidelines
 
 - You can reliably restart the app by using `npm run dev:clear-ports; npm run dev > /dev/null 2>&1 &`
-  - The dev:clear-ports script properly handles orphaned processes that turbo --parallel doesn't clean up
+  - The ports:clear script properly handles orphaned processes that turbo --parallel doesn't clean up
   - You must always use ` > /dev/null 2>&1 &` when you run something in the background.
 - `/Users/vcarl/workspace/hmu-product/administration` is the project root. You can go in administration/client/ and administration/server/, but when starting the app, do so from administration/.
 - You expect to be able to access an IDE. If you can't, prompt me about it.
@@ -11,6 +11,9 @@
 - Prefer using your Playwright MCP over curl.
 - When possible, avoid storing boolean values. Bitfields as flags are preferable to booleans in all situations, bitfields and flags.
 - Always use React Query in client apps.
+- Useful debug urls: 
+  - `http://localhost:5173/debug` includes `:3000/health/env` output via the web
+  - `http://localhost:3000/health`
 
 This set of commands provides comprehensive verification of:
 
@@ -39,7 +42,6 @@ npm run lint:client
 
 # Check for unused/dead code
 npm run deadcode
-npm run deadcode:production
 ```
 
 ## 2. Type Checking
@@ -47,10 +49,6 @@ npm run deadcode:production
 ```bash
 # Type check all workspaces
 npm run typecheck
-
-# Type check specific services
-npm run typecheck:server
-npm run typecheck:client
 ```
 
 ## 3. Testing
@@ -58,13 +56,8 @@ npm run typecheck:client
 ```bash
 # Run all tests
 npm run test
-
-# Run tests for specific services
-npm run test:server
-npm run test:client
+npm run test:unit
 npm run test:e2e
-
-# Run tests in watch mode
 npm run test:watch
 
 # Run tests with coverage
@@ -91,14 +84,9 @@ docker compose up --build
 ## 5. Database Operations (Server-specific)
 
 ```bash
-# Run database migrations
 npm run db:migrate:latest
-
-# Seed the database
 npm run db:seed
-
-# Generate database types
-npm run db:codegen
+npm run --workspace=api-server db:codegen
 ```
 
 # Complete Verification Workflow

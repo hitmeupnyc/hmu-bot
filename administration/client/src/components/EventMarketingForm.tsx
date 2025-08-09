@@ -14,7 +14,7 @@ export const EventMarketingForm: React.FC<EventMarketingFormProps> = ({
   initialData,
   onSubmit,
   onCancel,
-  isLoading = false
+  isLoading = false,
 }) => {
   const [formData, setFormData] = useState<CreateEventMarketingRequest>({
     primary_marketing_copy: initialData?.primary_marketing_copy || '',
@@ -27,7 +27,7 @@ export const EventMarketingForm: React.FC<EventMarketingFormProps> = ({
     seo_description: initialData?.seo_description || '',
     hashtags: initialData?.hashtags || [],
     marketing_images: initialData?.marketing_images || [],
-    key_selling_points: initialData?.key_selling_points || []
+    key_selling_points: initialData?.key_selling_points || [],
   });
 
   const [hashtag, setHashtag] = useState('');
@@ -39,7 +39,7 @@ export const EventMarketingForm: React.FC<EventMarketingFormProps> = ({
   };
 
   const handleChange = (field: keyof CreateEventMarketingRequest, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const addHashtag = () => {
@@ -57,7 +57,10 @@ export const EventMarketingForm: React.FC<EventMarketingFormProps> = ({
 
   const addSellingPoint = () => {
     if (sellingPoint.trim() && !formData.key_selling_points?.includes(sellingPoint.trim())) {
-      handleChange('key_selling_points', [...(formData.key_selling_points || []), sellingPoint.trim()]);
+      handleChange('key_selling_points', [
+        ...(formData.key_selling_points || []),
+        sellingPoint.trim(),
+      ]);
       setSellingPoint('');
     }
   };
@@ -71,48 +74,48 @@ export const EventMarketingForm: React.FC<EventMarketingFormProps> = ({
   return (
     <div className="bg-white shadow rounded-lg p-6">
       <h2 className="text-xl font-semibold mb-6">Event Marketing Content</h2>
-      
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Primary Marketing Copy */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Primary Marketing Copy
+            <textarea
+              value={formData.primary_marketing_copy}
+              onChange={(e) => handleChange('primary_marketing_copy', e.target.value)}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Main marketing message for the event"
+            />
           </label>
-          <textarea
-            value={formData.primary_marketing_copy}
-            onChange={(e) => handleChange('primary_marketing_copy', e.target.value)}
-            rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Main marketing message for the event"
-          />
         </div>
 
         {/* Secondary Marketing Copy */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Secondary Marketing Copy
+            <textarea
+              value={formData.secondary_marketing_copy}
+              onChange={(e) => handleChange('secondary_marketing_copy', e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Supporting marketing content"
+            />
           </label>
-          <textarea
-            value={formData.secondary_marketing_copy}
-            onChange={(e) => handleChange('secondary_marketing_copy', e.target.value)}
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Supporting marketing content"
-          />
         </div>
 
         {/* Blurb */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Blurb
+            <input
+              type="text"
+              value={formData.blurb}
+              onChange={(e) => handleChange('blurb', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Short description/tagline"
+            />
           </label>
-          <input
-            type="text"
-            value={formData.blurb}
-            onChange={(e) => handleChange('blurb', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Short description/tagline"
-          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -120,28 +123,28 @@ export const EventMarketingForm: React.FC<EventMarketingFormProps> = ({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Social Media Copy
+              <textarea
+                value={formData.social_media_copy}
+                onChange={(e) => handleChange('social_media_copy', e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Optimized for social sharing"
+              />
             </label>
-            <textarea
-              value={formData.social_media_copy}
-              onChange={(e) => handleChange('social_media_copy', e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Optimized for social sharing"
-            />
           </div>
 
           {/* Email Subject */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Email Subject
+              <input
+                type="text"
+                value={formData.email_subject}
+                onChange={(e) => handleChange('email_subject', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Email campaign subject line"
+              />
             </label>
-            <input
-              type="text"
-              value={formData.email_subject}
-              onChange={(e) => handleChange('email_subject', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Email campaign subject line"
-            />
           </div>
         </div>
 
@@ -150,28 +153,28 @@ export const EventMarketingForm: React.FC<EventMarketingFormProps> = ({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Email Preview Text
+              <input
+                type="text"
+                value={formData.email_preview_text}
+                onChange={(e) => handleChange('email_preview_text', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Email preview/preheader text"
+              />
             </label>
-            <input
-              type="text"
-              value={formData.email_preview_text}
-              onChange={(e) => handleChange('email_preview_text', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Email preview/preheader text"
-            />
           </div>
 
           {/* SEO Title */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               SEO Title
+              <input
+                type="text"
+                value={formData.seo_title}
+                onChange={(e) => handleChange('seo_title', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="SEO optimized title"
+              />
             </label>
-            <input
-              type="text"
-              value={formData.seo_title}
-              onChange={(e) => handleChange('seo_title', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="SEO optimized title"
-            />
           </div>
         </div>
 
@@ -179,22 +182,20 @@ export const EventMarketingForm: React.FC<EventMarketingFormProps> = ({
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             SEO Description
+            <textarea
+              value={formData.seo_description}
+              onChange={(e) => handleChange('seo_description', e.target.value)}
+              rows={2}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Meta description for SEO"
+            />
           </label>
-          <textarea
-            value={formData.seo_description}
-            onChange={(e) => handleChange('seo_description', e.target.value)}
-            rows={2}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Meta description for SEO"
-          />
         </div>
 
         {/* Hashtags */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Hashtags
-          </label>
-          <div className="flex gap-2 mb-2">
             <input
               type="text"
               value={hashtag}
@@ -203,6 +204,8 @@ export const EventMarketingForm: React.FC<EventMarketingFormProps> = ({
               className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Add hashtag"
             />
+          </label>
+          <div className="flex gap-2 mb-2">
             <button
               type="button"
               onClick={addHashtag}
@@ -232,18 +235,18 @@ export const EventMarketingForm: React.FC<EventMarketingFormProps> = ({
 
         {/* Key Selling Points */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Key Selling Points
-          </label>
           <div className="flex gap-2 mb-2">
-            <input
-              type="text"
-              value={sellingPoint}
-              onChange={(e) => setSellingPoint(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSellingPoint())}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Add selling point"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Key Selling Points
+              <input
+                type="text"
+                value={sellingPoint}
+                onChange={(e) => setSellingPoint(e.target.value)}
+                onKeyUp={(e) => e.key === 'Enter' && (e.preventDefault(), addSellingPoint())}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Add selling point"
+              />
+            </label>
             <button
               type="button"
               onClick={addSellingPoint}

@@ -86,12 +86,15 @@ export function Events() {
           id: editingEvent.id,
           ...eventData
         });
+        setIsModalOpen(false);
+        setEditingEvent(null);
       } else {
-        await createEventMutation.mutateAsync(eventData);
+        const result = await createEventMutation.mutateAsync(eventData);
+        setIsModalOpen(false);
+        setEditingEvent(null);
+        // Redirect to the newly created event details page
+        navigate(`/events/${result.data.id}`);
       }
-      
-      setIsModalOpen(false);
-      setEditingEvent(null);
     } catch (error) {
       console.error('Failed to save event:', error);
       alert('Failed to save event. Please try again.');

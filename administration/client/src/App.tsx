@@ -6,6 +6,7 @@ import { EventDetails } from '@/pages/EventDetails';
 import { Events } from '@/pages/Events';
 import { MemberDetails } from '@/pages/MemberDetails';
 import { Members } from '@/pages/Members';
+import { NotFound } from '@/pages/NotFound';
 import { Settings } from '@/pages/Settings';
 import { Route, Routes } from 'react-router-dom';
 
@@ -21,6 +22,7 @@ function App() {
         <Route path="/settings" element={<Settings />} />
         <Route path="/apply" element={<Apply />} />
         <Route path="/debug" element={<Debug />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>
   );

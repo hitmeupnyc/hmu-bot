@@ -126,5 +126,10 @@ export const getAuditLogs = (
       return query.execute();
     });
 
-    return logs;
+    return logs.map((log) => ({
+      ...log,
+      metadata: log.metadata_json ? JSON.parse(log.metadata_json) : null,
+      oldValues: log.old_values_json ? JSON.parse(log.old_values_json) : null,
+      newValues: log.new_values_json ? JSON.parse(log.new_values_json) : null,
+    }));
   });

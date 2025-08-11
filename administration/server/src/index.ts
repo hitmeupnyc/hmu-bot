@@ -7,6 +7,7 @@ import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { auth } from './auth';
+import { requireAuth, optionalAuth } from './middleware/auth';
 import { errorHandler } from './middleware/errorHandler';
 import { apiLimiter } from './middleware/rateLimiting';
 import { applicationRoutes } from './routes/applicationRoutes';
@@ -98,20 +99,24 @@ const initializeJobScheduler = async () => {
 // Initialize the job scheduler
 initializeJobScheduler();
 
-// Routes
+// Public routes (no auth required)
 app.use('/health', healthCheckRouter);
-app.use('/api/members', memberRoutes);
-app.use('/api/events', eventRoutes);
-app.use('/api/webhooks', webhookRoutes);
-app.use('/api/klaviyo', klaviyoRoutes);
-app.use('/api/eventbrite', eventbriteRoutes);
-app.use('/api/patreon', patreonRoutes);
-app.use('/api/discord', discordRoutes);
-app.use('/api/applications', applicationRoutes);
-app.use('/api/audit', auditRoutes);
+
+// Protected routes (require authentication)
+app.use('/api/members', requireAuth, memberRoutes);
+app.use('/api/events', requireAuth, eventRoutes);
+app.use('/api/audit', requireAuth, auditRoutes);
+app.use('/api/applications', requireAuth, applicationRoutes);
+
+// Admin/sync routes (require authentication)
+app.use('/api/webhooks', requireAuth, webhookRoutes);
+app.use('/api/klaviyo', requireAuth, klaviyoRoutes);
+app.use('/api/eventbrite', requireAuth, eventbriteRoutes);
+app.use('/api/patreon', requireAuth, patreonRoutes);
+app.use('/api/discord', requireAuth, discordRoutes);
 
 // Queue status endpoint (Effect-based)
-app.get('/api/queue/status', async (req, res) => {
+app.get('/api/queue/status', requireAuth, async (req, res) => {
   try {
     const stats = await Effect.runPromise(
       JobSchedulerEffects.getJobStats().pipe(Effect.provide(DatabaseLive))

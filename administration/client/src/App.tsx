@@ -1,4 +1,7 @@
 import { Layout } from '@/components/Layout';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { SimpleAppHeader } from '@/components/SimpleAppHeader';
+import { SimpleLoginPage } from '@/pages/SimpleLoginPage';
 import { Apply } from '@/pages/Apply';
 import { Dashboard } from '@/pages/Dashboard';
 import { Debug } from '@/pages/Debug';
@@ -12,19 +15,30 @@ import { Route, Routes } from 'react-router-dom';
 
 function App() {
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/members" element={<Members />} />
-        <Route path="/members/:id" element={<MemberDetails />} />
-        <Route path="/events" element={<Events />} />
-        <Route path="/events/:id" element={<EventDetails />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/apply" element={<Apply />} />
-        <Route path="/debug" element={<Debug />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Layout>
+    <Routes>
+      {/* Public routes */}
+      <Route path="/login" element={<SimpleLoginPage />} />
+      
+      {/* Protected routes */}
+      <Route path="/*" element={
+        <ProtectedRoute>
+          <SimpleAppHeader />
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/members" element={<Members />} />
+              <Route path="/members/:id" element={<MemberDetails />} />
+              <Route path="/events" element={<Events />} />
+              <Route path="/events/:id" element={<EventDetails />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/apply" element={<Apply />} />
+              <Route path="/debug" element={<Debug />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Layout>
+        </ProtectedRoute>
+      } />
+    </Routes>
   );
 }
 

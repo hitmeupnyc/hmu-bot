@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
 
 interface AuditLogEntry {
   id: number;
@@ -22,15 +22,23 @@ interface AuditResponse {
 /**
  * Hook to fetch audit log entries for a member
  */
-export function useMemberAuditLog(memberId: number, enabled = true) {
+export function useAuditLog(
+  entityType: string,
+  entityId: number,
+  enabled = true
+) {
   return useQuery({
-    queryKey: ['audit', 'member', memberId],
+    queryKey: ['audit', entityType, entityId],
     queryFn: async (): Promise<AuditLogEntry[]> => {
-      const response = await api.get<AuditResponse>(`/audit/member/${memberId}`);
+      const response = await api.get<AuditResponse>(`/audit`, {
+        params: {
+          entity_type: entityType,
+          entity_id: entityId,
+        },
+      });
       return response.data.data;
     },
-    enabled: enabled && !!memberId,
+    enabled: enabled && !!entityId,
     staleTime: 30 * 1000, // 30 seconds
   });
 }
-

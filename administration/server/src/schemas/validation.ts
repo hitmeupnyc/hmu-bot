@@ -94,6 +94,28 @@ export const webhookPayloadSchema = z.object({
   timestamp: dateStringSchema.optional()
 });
 
+// Audit log schemas
+export const auditQuerySchema = z.object({
+  entity_type: z.enum(['member', 'event', 'audit_log']).default('member'),
+  entity_id: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().min(1).max(500).default(50),
+  page: z.coerce.number().int().min(1).default(1),
+  action: z.enum(['create', 'update', 'delete', 'view', 'search']).optional(),
+  start_date: dateStringSchema.optional(),
+  end_date: dateStringSchema.optional()
+}).refine(
+  (data) => {
+    if (data.start_date && data.end_date) {
+      return new Date(data.start_date) <= new Date(data.end_date);
+    }
+    return true;
+  },
+  {
+    message: 'End date must be after or equal to start date',
+    path: ['end_date']
+  }
+);
+
 // Export type inference helpers
 export type CreateMemberRequest = z.infer<typeof createMemberSchema>;
 export type UpdateMemberRequest = z.infer<typeof updateMemberSchema>;
@@ -102,4 +124,5 @@ export type UpdateEventRequest = z.infer<typeof updateEventSchema>;
 export type ApplicationFormData = z.infer<typeof applicationFormSchema>;
 export type IdParam = z.infer<typeof idParamSchema>;
 export type PaginationQuery = z.infer<typeof paginationSchema>;
+export type AuditQuery = z.infer<typeof auditQuerySchema>;
 export type WebhookPayload = z.infer<typeof webhookPayloadSchema>;

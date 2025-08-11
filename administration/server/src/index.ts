@@ -5,7 +5,6 @@ import { Effect } from 'effect';
 import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import { auditMiddleware as globalAuditMiddleware } from './middleware/auditLoggingMiddleware';
 import { errorHandler } from './middleware/errorHandler';
 import { apiLimiter } from './middleware/rateLimiting';
 import { applicationRoutes } from './routes/applicationRoutes';
@@ -46,9 +45,6 @@ app.use(express.urlencoded({ extended: true }));
 
 // Rate limiting
 app.use('/api', apiLimiter);
-
-// Global audit middleware
-app.use(globalAuditMiddleware);
 
 // Initialize job scheduler (Effect-based)
 const initializeJobScheduler = async () => {

@@ -14,9 +14,9 @@ export const AuditLogEntrySchema = Schema.Struct({
   ),
   userSessionId: Schema.optional(Schema.String),
   userIp: Schema.optional(Schema.String),
-  oldValues: Schema.optional(Schema.String),
-  newValues: Schema.optional(Schema.String),
-  metadata: Schema.optional(Schema.String),
+  oldValues: Schema.optional(Schema.Object),
+  newValues: Schema.optional(Schema.Object),
+  metadata: Schema.optional(Schema.Object),
 });
 
 export type AuditLogEntry = typeof AuditLogEntrySchema.Type;

@@ -1,14 +1,28 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import {
+  ArrowLeftIcon,
+  ChatBubbleLeftIcon,
+  ClockIcon,
+  EnvelopeIcon,
+  PencilIcon,
+  TrashIcon,
+} from '@heroicons/react/24/outline';
 import { useMutation } from '@tanstack/react-query';
-import { PencilIcon, TrashIcon, ArrowLeftIcon, ClockIcon, ChatBubbleLeftIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
-import { useMember, useUpdateMember, useDeleteMember } from '../hooks/useMembers';
-import { useMemberAuditLog } from '../hooks/useAudit';
-import { MemberFormData } from '../types';
-import { Modal } from '../components/Modal';
+import { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { MemberForm } from '../components/MemberForm';
+import { Modal } from '../components/Modal';
+import { useAuditLog } from '../hooks/useAudit';
+import {
+  useDeleteMember,
+  useMember,
+  useUpdateMember,
+} from '../hooks/useMembers';
 import { api } from '../lib/api';
-import { getAccessLevelName, getAccessLevelColor } from '../utils/authorization';
+import { MemberFormData } from '../types';
+import {
+  getAccessLevelColor,
+  getAccessLevelName,
+} from '../utils/authorization';
 
 export function MemberDetails() {
   const { id } = useParams<{ id: string }>();
@@ -22,7 +36,11 @@ export function MemberDetails() {
 
   const memberId = parseInt(id || '0', 10);
   const { data: member, isLoading, error } = useMember(memberId, !!id);
-  const { data: auditLog, isLoading: auditLoading, refetch: refetchAuditLog } = useMemberAuditLog(memberId, !!id);
+  const {
+    data: auditLog,
+    isLoading: auditLoading,
+    refetch: refetchAuditLog,
+  } = useAuditLog('member', memberId, !!id);
   const updateMember = useUpdateMember();
   const deleteMember = useDeleteMember();
 
@@ -31,25 +49,28 @@ export function MemberDetails() {
       id: 'welcome',
       name: 'Welcome Email',
       subject: 'Welcome to Our Community!',
-      body: 'Hi {{first_name}},\n\nWelcome to our community! We\'re excited to have you join us.\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\n\nBest regards,\nThe Team'
+      body: "Hi {{first_name}},\n\nWelcome to our community! We're excited to have you join us.\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\n\nBest regards,\nThe Team",
     },
     {
       id: 'reminder',
       name: 'Event Reminder',
       subject: 'Upcoming Event Reminder',
-      body: 'Hello {{preferred_name || first_name}},\n\nThis is a friendly reminder about our upcoming event.\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.\n\nSee you there!\nEvent Team'
+      body: 'Hello {{preferred_name || first_name}},\n\nThis is a friendly reminder about our upcoming event.\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.\n\nSee you there!\nEvent Team',
     },
     {
       id: 'follow_up',
       name: 'Follow-up',
       subject: 'Following up with you',
-      body: 'Dear {{first_name}},\n\nI wanted to follow up on our recent conversation.\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore.\n\nPlease let me know if you have any questions.\n\nBest,\nAdmin Team'
-    }
+      body: 'Dear {{first_name}},\n\nI wanted to follow up on our recent conversation.\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore.\n\nPlease let me know if you have any questions.\n\nBest,\nAdmin Team',
+    },
   ];
 
   const addNoteMutation = useMutation({
     mutationFn: async ({ content }: { content: string }) => {
-      const response = await api.post(`/members/${memberId}/notes`, { content, tags: [] });
+      const response = await api.post(`/members/${memberId}/notes`, {
+        content,
+        tags: [],
+      });
       return response.data;
     },
     onSuccess: () => {
@@ -75,8 +96,12 @@ export function MemberDetails() {
 
   const handleDeleteMember = async () => {
     if (!member) return;
-    
-    if (!confirm(`Are you sure you want to delete ${member.first_name} ${member.last_name}?`)) {
+
+    if (
+      !confirm(
+        `Are you sure you want to delete ${member.first_name} ${member.last_name}?`
+      )
+    ) {
       return;
     }
 
@@ -92,7 +117,7 @@ export function MemberDetails() {
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplate(templateId);
     if (templateId) {
-      const template = emailTemplates.find(t => t.id === templateId);
+      const template = emailTemplates.find((t) => t.id === templateId);
       if (template) {
         setEmailSubject(template.subject);
         setEmailBody(template.body);
@@ -111,7 +136,9 @@ export function MemberDetails() {
 
     // In a real implementation, this would call an API to send the email
     // For now, we'll just show an alert
-    alert(`Email would be sent to ${member.email}\n\nSubject: ${emailSubject}\n\nBody: ${emailBody.substring(0, 100)}...\n\nThis is a placeholder implementation.`);
+    alert(
+      `Email would be sent to ${member.email}\n\nSubject: ${emailSubject}\n\nBody: ${emailBody.substring(0, 100)}...\n\nThis is a placeholder implementation.`
+    );
     setIsEmailModalOpen(false);
     setSelectedTemplate('');
     setEmailSubject('');
@@ -127,7 +154,7 @@ export function MemberDetails() {
 
   const handleSubmitNote = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!noteContent.trim()) {
       return;
     }
@@ -141,7 +168,7 @@ export function MemberDetails() {
   };
 
   const getDisplayName = (member: any) => {
-    return member.preferred_name 
+    return member.preferred_name
       ? `${member.preferred_name} (${member.first_name}) ${member.last_name}`
       : `${member.first_name} ${member.last_name}`;
   };
@@ -149,12 +176,14 @@ export function MemberDetails() {
   const getStatusBadge = (member: any) => {
     const isActive = member.flags & 1;
     const isProfessional = member.flags & 2;
-    
+
     return (
       <div className="flex flex-wrap gap-1">
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-          isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}>
+        <span
+          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+            isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}
+        >
           {isActive ? 'Active' : 'Inactive'}
         </span>
         {isProfessional && (
@@ -162,9 +191,11 @@ export function MemberDetails() {
             Professional
           </span>
         )}
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-          getAccessLevelColor(member.access_level || 1)
-        }`}>
+        <span
+          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getAccessLevelColor(
+            member.access_level || 1
+          )}`}
+        >
           {getAccessLevelName(member.access_level || 1)}
         </span>
       </div>
@@ -181,20 +212,21 @@ export function MemberDetails() {
 
   if (error || !member) {
     // Check if it's a 403 Unauthorized error
-    const is403Error = error && 
-      typeof error === 'object' && 
-      'response' in error && 
+    const is403Error =
+      error &&
+      typeof error === 'object' &&
+      'response' in error &&
       (error as any).response?.status === 403;
-    
+
     return (
       <div className="text-center py-12">
         <div className="text-red-600 mb-4">
-          {is403Error 
-            ? "You don't have permission to access this member's details" 
-            : "Failed to load member details"}
+          {is403Error
+            ? "You don't have permission to access this member's details"
+            : 'Failed to load member details'}
         </div>
         <div className="space-x-4">
-          <button 
+          <button
             onClick={() => navigate(is403Error ? '/dashboard' : '/members')}
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
             data-testid="back-to-members-btn"
@@ -202,7 +234,7 @@ export function MemberDetails() {
             {is403Error ? 'Go to Dashboard' : 'Back to Members'}
           </button>
           {!is403Error && (
-            <button 
+            <button
               onClick={() => window.location.reload()}
               className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700"
             >
@@ -227,13 +259,16 @@ export function MemberDetails() {
             <ArrowLeftIcon className="h-5 w-5" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900" data-testid="member-name-heading">
+            <h1
+              className="text-3xl font-bold text-gray-900"
+              data-testid="member-name-heading"
+            >
               {getDisplayName(member)}
             </h1>
             <p className="text-gray-600">{member.email}</p>
           </div>
         </div>
-        
+
         <div className="flex space-x-3">
           <button
             onClick={() => setIsEmailModalOpen(true)}
@@ -265,16 +300,24 @@ export function MemberDetails() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Basic Information */}
         <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Basic Information
+          </h2>
           <dl className="space-y-3">
             <div>
               <dt className="text-sm font-medium text-gray-500">Full Name</dt>
-              <dd className="text-sm text-gray-900">{member.first_name} {member.last_name}</dd>
+              <dd className="text-sm text-gray-900">
+                {member.first_name} {member.last_name}
+              </dd>
             </div>
             {member.preferred_name && (
               <div>
-                <dt className="text-sm font-medium text-gray-500">Preferred Name</dt>
-                <dd className="text-sm text-gray-900">{member.preferred_name}</dd>
+                <dt className="text-sm font-medium text-gray-500">
+                  Preferred Name
+                </dt>
+                <dd className="text-sm text-gray-900">
+                  {member.preferred_name}
+                </dd>
               </div>
             )}
             <div>
@@ -289,10 +332,14 @@ export function MemberDetails() {
             )}
             <div>
               <dt className="text-sm font-medium text-gray-500">Status</dt>
-              <dd className="text-sm text-gray-900">{getStatusBadge(member)}</dd>
+              <dd className="text-sm text-gray-900">
+                {getStatusBadge(member)}
+              </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">Member Since</dt>
+              <dt className="text-sm font-medium text-gray-500">
+                Member Since
+              </dt>
               <dd className="text-sm text-gray-900">
                 {new Date(member.created_at).toLocaleDateString()}
               </dd>
@@ -302,16 +349,24 @@ export function MemberDetails() {
 
         {/* Additional Information */}
         <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Additional Information</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Additional Information
+          </h2>
           <dl className="space-y-3">
             {member.sponsor_notes && (
               <div>
-                <dt className="text-sm font-medium text-gray-500">Sponsor Notes</dt>
-                <dd className="text-sm text-gray-900 whitespace-pre-wrap">{member.sponsor_notes}</dd>
+                <dt className="text-sm font-medium text-gray-500">
+                  Sponsor Notes
+                </dt>
+                <dd className="text-sm text-gray-900 whitespace-pre-wrap">
+                  {member.sponsor_notes}
+                </dd>
               </div>
             )}
             <div>
-              <dt className="text-sm font-medium text-gray-500">Last Updated</dt>
+              <dt className="text-sm font-medium text-gray-500">
+                Last Updated
+              </dt>
               <dd className="text-sm text-gray-900">
                 {new Date(member.updated_at).toLocaleDateString()}
               </dd>
@@ -326,7 +381,7 @@ export function MemberDetails() {
           <ChatBubbleLeftIcon className="h-5 w-5 mr-2" />
           Notes
         </h2>
-        
+
         <form onSubmit={handleSubmitNote} className="mb-4">
           <div className="flex gap-3">
             <textarea
@@ -356,75 +411,107 @@ export function MemberDetails() {
           <ClockIcon className="h-5 w-5 mr-2" />
           Activity History
         </h2>
-        
+
         {auditLoading ? (
-          <div className="text-gray-500 text-sm">Loading activity history...</div>
+          <div className="text-gray-500 text-sm">
+            Loading activity history...
+          </div>
         ) : !auditLog || auditLog.length === 0 ? (
           <div className="text-gray-500 text-sm">No activity recorded yet.</div>
         ) : (
           <div className="space-y-4">
-            {auditLog.filter(entry => entry.action !== 'view').map((entry) => (
-              <div key={entry.id} className="border-l-4 border-blue-200 pl-4 py-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      entry.action === 'create' ? 'bg-green-100 text-green-800' :
-                      entry.action === 'update' ? 'bg-yellow-100 text-yellow-800' :
-                      entry.action === 'delete' ? 'bg-red-100 text-red-800' :
-                      entry.action === 'view' ? 'bg-blue-100 text-blue-800' :
-                      entry.action === 'note' ? 'bg-purple-100 text-purple-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {entry.action.charAt(0).toUpperCase() + entry.action.slice(1)}
-                    </span>
-                    <span className="text-sm text-gray-600">
-                      {new Date(entry.created_at).toLocaleString()}
+            {auditLog
+              .filter((entry) => entry.action !== 'view')
+              .map((entry) => (
+                <div
+                  key={entry.id}
+                  className="border-l-4 border-blue-200 pl-4 py-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          entry.action === 'create'
+                            ? 'bg-green-100 text-green-800'
+                            : entry.action === 'update'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : entry.action === 'delete'
+                                ? 'bg-red-100 text-red-800'
+                                : entry.action === 'view'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : entry.action === 'note'
+                                    ? 'bg-purple-100 text-purple-800'
+                                    : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {entry.action.charAt(0).toUpperCase() +
+                          entry.action.slice(1)}
+                      </span>
+                      <span className="text-sm text-gray-600">
+                        {new Date(entry.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                    <span className="text-xs text-gray-400">
+                      Session: {entry.user_session_id.slice(0, 8)}... | IP:{' '}
+                      {entry.user_ip}
                     </span>
                   </div>
-                  <span className="text-xs text-gray-400">
-                    Session: {entry.user_session_id.slice(0, 8)}... | IP: {entry.user_ip}
-                  </span>
+
+                  {entry.action === 'update' &&
+                    entry.oldValues &&
+                    entry.newValues && (
+                      <div className="mt-2 text-sm">
+                        <div className="text-gray-600 mb-1">Changes made:</div>
+                        <div className="bg-gray-50 rounded p-2 space-y-1">
+                          {Object.keys(entry.newValues).map((key) => {
+                            const oldValue = entry.oldValues?.[key];
+                            const newValue = entry.newValues?.[key];
+
+                            if (
+                              oldValue !== newValue &&
+                              key !== 'id' &&
+                              key !== 'updated_at'
+                            ) {
+                              return (
+                                <div key={key} className="text-xs">
+                                  <span className="font-medium capitalize">
+                                    {key.replace(/_/g, ' ')}:
+                                  </span>
+                                  <span className="text-red-600 line-through ml-1">
+                                    {String(oldValue || '(empty)')}
+                                  </span>
+                                  <span className="mx-1">→</span>
+                                  <span className="text-green-600">
+                                    {String(newValue || '(empty)')}
+                                  </span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                  {entry.action === 'create' && entry.newValues && (
+                    <div className="mt-2 text-sm">
+                      <div className="text-gray-600">
+                        Member created with initial data
+                      </div>
+                    </div>
+                  )}
+
+                  {entry.action === 'note' && entry.metadata && (
+                    <div className="mt-2 text-sm">
+                      <div className="bg-purple-50 rounded p-3 border-l-2 border-purple-200">
+                        <div className="text-gray-800 whitespace-pre-wrap">
+                          {entry.metadata.content}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                
-                {entry.action === 'update' && entry.oldValues && entry.newValues && (
-                  <div className="mt-2 text-sm">
-                    <div className="text-gray-600 mb-1">Changes made:</div>
-                    <div className="bg-gray-50 rounded p-2 space-y-1">
-                      {Object.keys(entry.newValues).map((key) => {
-                        const oldValue = entry.oldValues?.[key];
-                        const newValue = entry.newValues?.[key];
-                        
-                        if (oldValue !== newValue && key !== 'id' && key !== 'updated_at') {
-                          return (
-                            <div key={key} className="text-xs">
-                              <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>
-                              <span className="text-red-600 line-through ml-1">{String(oldValue || '(empty)')}</span>
-                              <span className="mx-1">→</span>
-                              <span className="text-green-600">{String(newValue || '(empty)')}</span>
-                            </div>
-                          );
-                        }
-                        return null;
-                      })}
-                    </div>
-                  </div>
-                )}
-                
-                {entry.action === 'create' && entry.newValues && (
-                  <div className="mt-2 text-sm">
-                    <div className="text-gray-600">Member created with initial data</div>
-                  </div>
-                )}
-                
-                {entry.action === 'note' && entry.metadata && (
-                  <div className="mt-2 text-sm">
-                    <div className="bg-purple-50 rounded p-3 border-l-2 border-purple-200">
-                      <div className="text-gray-800 whitespace-pre-wrap">{entry.metadata.content}</div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+              ))}
           </div>
         )}
       </div>
@@ -452,9 +539,13 @@ export function MemberDetails() {
         <div className="space-y-4">
           <div>
             <p className="text-sm text-gray-600 mb-3">
-              Send email to: <span className="font-medium">{member?.email}</span>
+              Send email to:{' '}
+              <span className="font-medium">{member?.email}</span>
             </p>
-            <label htmlFor="emailTemplate" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="emailTemplate"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Choose Template (Optional)
             </label>
             <select
@@ -473,7 +564,10 @@ export function MemberDetails() {
           </div>
 
           <div>
-            <label htmlFor="emailSubject" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="emailSubject"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Subject
             </label>
             <input
@@ -487,7 +581,10 @@ export function MemberDetails() {
           </div>
 
           <div>
-            <label htmlFor="emailBody" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="emailBody"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Message
             </label>
             <textarea
@@ -501,9 +598,13 @@ export function MemberDetails() {
           </div>
 
           <div className="bg-blue-50 p-3 rounded-md">
-            <h4 className="font-medium text-blue-900 mb-1">Available Variables:</h4>
+            <h4 className="font-medium text-blue-900 mb-1">
+              Available Variables:
+            </h4>
             <p className="text-sm text-blue-700">
-              You can use these placeholders: <code>{'{{first_name}}'}</code>, <code>{'{{last_name}}'}</code>, <code>{'{{preferred_name}}'}</code>, <code>{'{{email}}'}</code>
+              You can use these placeholders: <code>{'{{first_name}}'}</code>,{' '}
+              <code>{'{{last_name}}'}</code>,{' '}
+              <code>{'{{preferred_name}}'}</code>, <code>{'{{email}}'}</code>
             </p>
           </div>
 

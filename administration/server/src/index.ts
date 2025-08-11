@@ -7,7 +7,7 @@ import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { auth } from './auth';
-import { requireAuth, optionalAuth } from './middleware/auth';
+import { requireAuth } from './middleware/auth';
 import { errorHandler } from './middleware/errorHandler';
 import { apiLimiter } from './middleware/rateLimiting';
 import { applicationRoutes } from './routes/applicationRoutes';

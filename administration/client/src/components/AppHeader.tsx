@@ -1,7 +1,7 @@
-import { signOut } from '../lib/auth-client';
 import { useAuth } from '../contexts/AuthContext';
+import { signOut } from '../lib/auth-client';
 
-export function SimpleAppHeader() {
+export function AppHeader() {
   const { session, isLoading } = useAuth();
 
   const handleSignOut = async () => {
@@ -32,7 +32,7 @@ export function SimpleAppHeader() {
             HMU Administration
           </h1>
         </div>
-        
+
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2 text-sm text-gray-600">
             <span>👤</span>
@@ -41,7 +41,7 @@ export function SimpleAppHeader() {
               <span className="text-amber-600 text-xs">(unverified)</span>
             )}
           </div>
-          
+
           <button
             onClick={handleSignOut}
             className="flex items-center space-x-1 px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded"

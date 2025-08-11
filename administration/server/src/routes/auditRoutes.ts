@@ -1,65 +1,42 @@
-import { Effect } from 'effect';
+/**
+ * Audit Routes
+ * 
+ * Defines all audit log related API endpoints.
+ * Delegates business logic to AuditController.
+ * Provides endpoints for retrieving audit logs with proper validation and middleware.
+ */
+
 import { Router } from 'express';
-import { auditMiddleware } from '../middleware/auditMiddleware';
-import * as AuditEffects from '../services/effect/AuditEffects';
-import {
-  effectToExpress,
-  extractId,
-  extractQuery,
-} from '../services/effect/adapters/expressAdapter';
+import * as AuditController from '../controllers/AuditController';
+import { auditMiddlewares } from '../middleware/auditMiddlewareFactory';
+import { validate } from '../middleware/validation';
+import { auditQuerySchema, idParamSchema } from '../schemas/validation';
+import { effectToExpress } from '../services/effect/adapters/expressAdapter';
 
 const router = Router();
 
-// Apply audit middleware
-router.use(auditMiddleware);
+// Apply audit middleware for logging access to audit endpoints
+router.use(auditMiddlewares.auditLog);
 
-// GET /api/audit - Get audit log entries
+/**
+ * Audit Log Endpoints
+ * 
+ * These endpoints provide access to system audit logs with proper filtering,
+ * validation, and audit trail of who accessed what audit information.
+ */
+
+// GET /api/audit - Get audit log entries with filtering
 router.get(
   '/',
-  effectToExpress((req, res) =>
-    Effect.gen(function* () {
-      const query = yield* extractQuery(req);
-      const entityType = (query as any).entity_type as string;
-      const entityId = (query as any).entity_id
-        ? parseInt((query as any).entity_id as string)
-        : undefined;
-      const limit = (query as any).limit
-        ? parseInt((query as any).limit as string)
-        : 50;
-
-      const auditLogs = yield* AuditEffects.getAuditLogs(
-        entityType || 'member',
-        entityId,
-        limit
-      );
-
-      return {
-        success: true,
-        data: auditLogs,
-      };
-    })
-  )
+  validate({ query: auditQuerySchema }),
+  effectToExpress(AuditController.listAuditLogs)
 );
 
-// GET /api/audit/member/:id - Get audit log for specific member
+// GET /api/audit/member/:id - Get audit log for specific member  
 router.get(
   '/member/:id',
-  effectToExpress((req, res) =>
-    Effect.gen(function* () {
-      const memberId = yield* extractId(req);
-
-      const auditLogs = yield* AuditEffects.getAuditLogs(
-        'member',
-        memberId,
-        100
-      );
-
-      return {
-        success: true,
-        data: auditLogs,
-      };
-    })
-  )
+  validate({ params: idParamSchema }),
+  effectToExpress(AuditController.getMemberAuditLogs)
 );
 
 export { router as auditRoutes };

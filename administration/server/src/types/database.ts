@@ -9,6 +9,22 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
 
+export interface Account {
+  accessToken: string | null;
+  accessTokenExpiresAt: string | null;
+  accountId: string;
+  createdAt: string;
+  id: string;
+  idToken: string | null;
+  password: string | null;
+  providerId: string;
+  refreshToken: string | null;
+  refreshTokenExpiresAt: string | null;
+  scope: string | null;
+  updatedAt: string;
+  userId: string;
+}
+
 export interface AuditLog {
   action: string;
   created_at: Generated<string | null>;
@@ -208,6 +224,17 @@ export interface PaymentStatuses {
   sort_order: Generated<number | null>;
 }
 
+export interface Session {
+  createdAt: string;
+  expiresAt: string;
+  id: string;
+  ipAddress: string | null;
+  token: string;
+  updatedAt: string;
+  userAgent: string | null;
+  userId: string;
+}
+
 export interface SyncOperations {
   created_at: Generated<string | null>;
   error_message: string | null;
@@ -221,7 +248,27 @@ export interface SyncOperations {
   status: string;
 }
 
+export interface User {
+  createdAt: string;
+  email: string;
+  emailVerified: number;
+  id: string;
+  image: string | null;
+  name: string;
+  updatedAt: string;
+}
+
+export interface Verification {
+  createdAt: string | null;
+  expiresAt: string;
+  id: string;
+  identifier: string;
+  updatedAt: string | null;
+  value: string;
+}
+
 export interface DB {
+  account: Account;
   audit_log: AuditLog;
   event_attendance: EventAttendance;
   eventbrite_events: EventbriteEvents;
@@ -235,5 +282,8 @@ export interface DB {
   members: Members;
   membership_types: MembershipTypes;
   payment_statuses: PaymentStatuses;
+  session: Session;
   sync_operations: SyncOperations;
+  user: User;
+  verification: Verification;
 }

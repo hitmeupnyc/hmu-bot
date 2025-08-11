@@ -1,10 +1,12 @@
 import dotenv from 'dotenv';
 
+import { toNodeHandler } from 'better-auth/node';
 import cors from 'cors';
 import { Effect } from 'effect';
 import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import { auth } from './auth';
 import { errorHandler } from './middleware/errorHandler';
 import { apiLimiter } from './middleware/rateLimiting';
 import { applicationRoutes } from './routes/applicationRoutes';
@@ -39,9 +41,22 @@ app.use(
 // Logging
 app.use(morgan('combined'));
 
-// Body parsing
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+// Auth routes (before body parsing middleware)
+app.all('/api/auth/*', toNodeHandler(auth));
+
+// Body parsing (exclude auth routes as Better Auth handles its own body parsing)
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/auth/')) {
+    return next();
+  }
+  express.json({ limit: '10mb' })(req, res, next);
+});
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/auth/')) {
+    return next();
+  }
+  express.urlencoded({ extended: true })(req, res, next);
+});
 
 // Rate limiting
 app.use('/api', apiLimiter);

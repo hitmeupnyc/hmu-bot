@@ -1,17 +1,21 @@
+import {
+  DocumentArrowUpIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashIcon,
+} from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { PlusIcon, PencilIcon, TrashIcon, DocumentArrowUpIcon } from '@heroicons/react/24/outline';
-import { Member, MemberFormData, ApplicationFormData } from '../types';
-import { Modal } from '../components/Modal';
-import { MemberForm } from '../components/MemberForm';
 import { CsvImport } from '../components/CsvImport';
-import { 
-  useMembers, 
-  useCreateMember, 
-  useUpdateMember, 
+import { MemberForm } from '../components/MemberForm';
+import { Modal } from '../components/Modal';
+import {
+  useCreateMember,
   useDeleteMember,
-  usePrefetchMember 
+  useMembers,
+  useUpdateMember,
 } from '../hooks/useMembers';
+import { ApplicationFormData, Member, MemberFormData } from '../types';
 
 export function Members() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,16 +26,15 @@ export function Members() {
   const [csvImportLoading, setCsvImportLoading] = useState(false);
 
   // React Query hooks
-  const { data, isLoading, error } = useMembers({ 
-    page: currentPage, 
-    limit: 20, 
-    search: searchTerm || undefined 
+  const { data, isLoading, error } = useMembers({
+    page: currentPage,
+    limit: 20,
+    search: searchTerm || undefined,
   });
-  
+
   const createMember = useCreateMember();
   const updateMember = useUpdateMember();
   const deleteMember = useDeleteMember();
-  const prefetchMember = usePrefetchMember();
 
   const members = data?.members || [];
   const pagination = data?.pagination;
@@ -47,7 +50,11 @@ export function Members() {
   };
 
   const handleDeleteMember = async (member: Member) => {
-    if (!confirm(`Are you sure you want to delete ${member.first_name} ${member.last_name}?`)) {
+    if (
+      !confirm(
+        `Are you sure you want to delete ${member.first_name} ${member.last_name}?`
+      )
+    ) {
       return;
     }
 
@@ -70,7 +77,7 @@ export function Members() {
           email: formData.email,
           pronouns: formData.pronouns || '',
           sponsor_notes: formData.sponsor_notes || '',
-          is_professional_affiliate: formData.is_professional_affiliate
+          is_professional_affiliate: formData.is_professional_affiliate,
         });
       } else {
         await createMember.mutateAsync({
@@ -80,10 +87,10 @@ export function Members() {
           email: formData.email,
           pronouns: formData.pronouns || '',
           sponsor_notes: formData.sponsor_notes || '',
-          is_professional_affiliate: formData.is_professional_affiliate
+          is_professional_affiliate: formData.is_professional_affiliate,
         });
       }
-      
+
       setIsModalOpen(false);
       setEditingMember(null);
     } catch (error) {
@@ -94,7 +101,7 @@ export function Members() {
 
   const handleCsvImport = async (applications: ApplicationFormData[]) => {
     setCsvImportLoading(true);
-    
+
     try {
       const response = await fetch('/api/applications/bulk', {
         method: 'POST',
@@ -105,25 +112,31 @@ export function Members() {
       });
 
       const result = await response.json();
-      
-      if (response.ok || response.status === 207) { // 207 = Multi-Status (partial success)
+
+      if (response.ok || response.status === 207) {
+        // 207 = Multi-Status (partial success)
         const { imported, total, errors } = result.data;
-        
+
         if (errors && errors.length > 0) {
-          const errorDetails = errors.map((err: any) => 
-            `Row ${err.index}: ${err.email || 'Unknown'} - ${err.error}`
-          ).join('\n');
-          
-          alert(`Import completed with some errors:\n\nImported: ${imported}/${total}\n\nErrors:\n${errorDetails}`);
+          const errorDetails = errors
+            .map(
+              (err: any) =>
+                `Row ${err.index}: ${err.email || 'Unknown'} - ${err.error}`
+            )
+            .join('\n');
+
+          alert(
+            `Import completed with some errors:\n\nImported: ${imported}/${total}\n\nErrors:\n${errorDetails}`
+          );
         } else {
           alert(`Successfully imported all ${imported} applications!`);
         }
-        
+
         setShowCsvImport(false);
       } else {
         throw new Error(result.error || 'Failed to import applications');
       }
-      
+
       // Refresh the members list
       // Note: React Query will automatically refetch due to mutations
     } catch (error) {
@@ -135,7 +148,7 @@ export function Members() {
   };
 
   const getDisplayName = (member: Member) => {
-    return member.preferred_name 
+    return member.preferred_name
       ? `${member.preferred_name} (${member.first_name}) ${member.last_name}`
       : `${member.first_name} ${member.last_name}`;
   };
@@ -143,12 +156,14 @@ export function Members() {
   const getStatusBadge = (member: Member) => {
     const isActive = member.flags & 1;
     const isProfessional = member.flags & 2;
-    
+
     return (
       <div className="flex space-x-1">
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-          isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}>
+        <span
+          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+            isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}
+        >
           {isActive ? 'Active' : 'Inactive'}
         </span>
         {isProfessional && (
@@ -165,7 +180,7 @@ export function Members() {
     return (
       <div className="text-center py-12">
         <div className="text-red-600 mb-4">Failed to load members</div>
-        <button 
+        <button
           onClick={() => window.location.reload()}
           className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
         >
@@ -180,14 +195,14 @@ export function Members() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Members</h1>
         <div className="flex space-x-3">
-          <button 
+          <button
             onClick={() => setShowCsvImport(true)}
             className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center hover:bg-green-700"
           >
             <DocumentArrowUpIcon className="h-5 w-5 mr-2" />
             Import CSV
           </button>
-          <button 
+          <button
             onClick={handleCreateMember}
             disabled={createMember.isPending}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center hover:bg-blue-700 disabled:opacity-50"
@@ -237,25 +252,27 @@ export function Members() {
             <tbody className="bg-white divide-y divide-gray-200">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                  <td
+                    colSpan={5}
+                    className="px-6 py-4 text-center text-gray-500"
+                  >
                     Loading members...
                   </td>
                 </tr>
               ) : members.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                  <td
+                    colSpan={5}
+                    className="px-6 py-4 text-center text-gray-500"
+                  >
                     No members found. Start by adding your first member!
                   </td>
                 </tr>
               ) : (
                 members.map((member) => (
-                  <tr 
-                    key={member.id} 
-                    className="hover:bg-gray-50"
-                    onMouseEnter={() => prefetchMember(member.id)}
-                  >
+                  <tr key={member.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <Link 
+                      <Link
                         to={`/members/${member.id}`}
                         className="text-sm font-medium text-blue-600 hover:text-blue-900"
                       >
@@ -263,10 +280,14 @@ export function Members() {
                       </Link>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{member.email}</div>
+                      <div className="text-sm text-gray-900">
+                        {member.email}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{member.pronouns || '-'}</div>
+                      <div className="text-sm text-gray-900">
+                        {member.pronouns || '-'}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(member)}
@@ -300,7 +321,7 @@ export function Members() {
           <div className="px-6 py-3 border-t border-gray-200">
             <div className="flex justify-between items-center">
               <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1 || isLoading}
                 className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded disabled:opacity-50"
               >
@@ -310,7 +331,9 @@ export function Members() {
                 Page {currentPage} of {pagination.totalPages}
               </span>
               <button
-                onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))
+                }
                 disabled={currentPage === pagination.totalPages || isLoading}
                 className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded disabled:opacity-50"
               >
@@ -341,10 +364,10 @@ export function Members() {
       </Modal>
 
       {showCsvImport && (
-        <CsvImport 
-          onImport={handleCsvImport} 
+        <CsvImport
+          onImport={handleCsvImport}
           onClose={() => setShowCsvImport(false)}
-          isLoading={csvImportLoading} 
+          isLoading={csvImportLoading}
         />
       )}
     </div>

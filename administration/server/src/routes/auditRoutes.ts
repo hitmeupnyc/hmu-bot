@@ -8,15 +8,11 @@
 
 import { Router } from 'express';
 import * as AuditController from '../controllers/AuditController';
-import { auditMiddlewares } from '../middleware/auditMiddlewareFactory';
 import { validate } from '../middleware/validation';
 import { auditQuerySchema } from '../schemas/validation';
 import { effectToExpress } from '../services/effect/adapters/expressAdapter';
 
 const router = Router();
-
-// Apply audit middleware for logging access to audit endpoints
-router.use(auditMiddlewares.auditLog);
 
 /**
  * Audit Log Endpoints

@@ -47,60 +47,6 @@ export const logAuditEvent = (entry: AuditLogEntry) =>
   });
 
 /**
- * Log member view event
- */
-export const logMemberView = (
-  memberId: number,
-  sessionId: string,
-  userIp: string
-) =>
-  logAuditEvent({
-    entityType: 'member',
-    entityId: memberId,
-    action: 'view',
-    userSessionId: sessionId,
-    userIp,
-  });
-
-/**
- * Log member update event
- */
-export const logMemberUpdate = (
-  memberId: number,
-  oldValues: any,
-  newValues: any,
-  sessionId: string,
-  userIp: string
-) =>
-  logAuditEvent({
-    entityType: 'member',
-    entityId: memberId,
-    action: 'update',
-    userSessionId: sessionId,
-    userIp,
-    oldValues,
-    newValues,
-  });
-
-/**
- * Log member creation event
- */
-export const logMemberCreate = (
-  memberId: number,
-  memberData: any,
-  sessionId?: string,
-  userIp?: string
-) =>
-  logAuditEvent({
-    entityType: 'member',
-    entityId: memberId,
-    action: 'create',
-    userSessionId: sessionId,
-    userIp,
-    newValues: memberData,
-  });
-
-/**
  * Get audit logs for an entity
  */
 export const getAuditLogs = (

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as MemberController from '../controllers/MemberController';
-import { auditMiddleware } from '../middleware/auditMiddleware';
+import { auditMiddleware } from '../middleware/auditLogging';
 import { apiLimiter, readOnlyLimiter } from '../middleware/rateLimiting';
 import { validate } from '../middleware/validation';
 import {
@@ -13,11 +13,11 @@ import { effectToExpress } from '../services/effect/adapters/expressAdapter';
 
 /**
  * Member Routes
- * 
+ *
  * This router defines all member-related API endpoints.
  * Route handlers are delegated to the MemberController for better
  * separation of concerns and improved testability.
- * 
+ *
  * Middleware Stack:
  * 1. Audit middleware (applied globally)
  * 2. Rate limiting (read-only or API limits)
@@ -26,9 +26,6 @@ import { effectToExpress } from '../services/effect/adapters/expressAdapter';
  */
 
 const router = Router();
-
-// Apply audit middleware to all routes
-router.use(auditMiddleware);
 
 // ============================================================================
 // Core CRUD Operations
@@ -53,6 +50,7 @@ router.get(
   '/:id',
   readOnlyLimiter,
   validate({ params: idParamSchema }),
+  auditMiddleware('member'),
   effectToExpress(MemberController.getMember)
 );
 
@@ -64,6 +62,7 @@ router.post(
   '/',
   apiLimiter,
   validate({ body: createMemberSchema }),
+  auditMiddleware('member'),
   effectToExpress(MemberController.createMember)
 );
 
@@ -78,6 +77,7 @@ router.put(
     params: idParamSchema,
     body: updateMemberSchema,
   }),
+  auditMiddleware('member'),
   effectToExpress(MemberController.updateMember)
 );
 
@@ -89,6 +89,7 @@ router.delete(
   '/:id',
   apiLimiter,
   validate({ params: idParamSchema }),
+  auditMiddleware('member'),
   effectToExpress(MemberController.deleteMember)
 );
 
@@ -104,6 +105,7 @@ router.get(
   '/:id/memberships',
   readOnlyLimiter,
   validate({ params: idParamSchema }),
+  auditMiddleware('member-memberships'),
   effectToExpress(MemberController.getMemberMemberships)
 );
 
@@ -115,19 +117,8 @@ router.get(
   '/:id/events',
   readOnlyLimiter,
   validate({ params: idParamSchema }),
+  auditMiddleware('member-events'),
   effectToExpress(MemberController.getMemberEvents)
-);
-
-/**
- * POST /api/members/:id/notes
- * Add a note to a member's profile
- * Note: Currently lacks validation schema - consider adding one
- */
-router.post(
-  '/:id/notes',
-  apiLimiter,
-  validate({ params: idParamSchema }),
-  effectToExpress(MemberController.addMemberNote)
 );
 
 export { router as memberRoutes };

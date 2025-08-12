@@ -4,6 +4,7 @@ import { magicLink } from 'better-auth/plugins';
 import Database from 'better-sqlite3';
 import { Effect } from 'effect';
 import path from 'path';
+import { EmailService, getEmailServiceLayer } from './services/effect/EmailEffects';
 
 // Get database path from environment or use default
 const dbPath =
@@ -23,18 +24,27 @@ export const auth: ReturnType<typeof betterAuth> = betterAuth({
   plugins: [
     magicLink({
       sendMagicLink: async ({ email, url, token }, request) => {
-        // Development stub - will be replaced with actual email service
-        console.log(`[MAGIC LINK] Sending to ${email}`);
-        console.log(`[MAGIC LINK] URL: ${url}`);
-        console.log(`[MAGIC LINK] Token: ${token}`);
+        // Use Effect-based email service
+        const emailLayer = getEmailServiceLayer();
         
-        // TODO: Integrate with actual email service
-        // For now, log to console for development
-        return Effect.runPromise(
-          Effect.sync(() => {
-            console.log(`[EMAIL STUB] Magic link email would be sent to ${email}`);
-          })
-        );
+        const sendEmailEffect = Effect.gen(function* () {
+          const emailService = yield* EmailService;
+          yield* emailService.sendMagicLink(email, url);
+        });
+        
+        try {
+          await Effect.runPromise(
+            sendEmailEffect.pipe(Effect.provide(emailLayer))
+          );
+        } catch (error) {
+          console.error('Failed to send magic link email:', error);
+          // Don't fail the auth flow if email fails in development
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[FALLBACK] Magic link URL: ${url}`);
+          } else {
+            throw error;
+          }
+        }
       },
       expiresIn: 60 * 15, // 15 minutes
     }),

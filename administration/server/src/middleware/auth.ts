@@ -30,18 +30,19 @@ export const requireAuth = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     // Get session from Better Auth
     const session = await auth.api.getSession({
-      headers: req.headers as Headers,
+      headers: req.headers as any, // Better Auth expects a Headers object
     });
 
     if (!session) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Authentication required',
         code: 'UNAUTHENTICATED',
       });
+      return;
     }
 
     // Attach session to request for use in route handlers
@@ -49,7 +50,7 @@ export const requireAuth = async (
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);
-    return res.status(401).json({
+    res.status(401).json({
       error: 'Authentication failed',
       code: 'AUTH_ERROR',
     });
@@ -64,10 +65,10 @@ export const optionalAuth = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     const session = await auth.api.getSession({
-      headers: req.headers as Headers,
+      headers: req.headers as any, // Better Auth expects a Headers object
     });
 
     if (session) {
@@ -85,12 +86,13 @@ export const optionalAuth = async (
  * Must be used after requireAuth
  */
 export const requireAccessLevel = (minLevel: number) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     if (!req.session) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Authentication required',
         code: 'UNAUTHENTICATED',
       });
+      return;
     }
 
     // TODO: Check user's access level from members table

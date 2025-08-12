@@ -417,21 +417,26 @@ const checkMembership = async (c: any, email: string) => {
   const lcEmail = cleanEmail(email);
 
   const memberList = getEmailListFromSheetValues(sheetData.values);
-  const match = memberList.find((e) => e[2].toLowerCase().includes(lcEmail));
+  const match = memberList.find((e) => e[1].toLowerCase().includes(lcEmail));
 
   console.log(JSON.stringify(match));
 
   if (match) {
+    const [vetted, _email, play] = match;
     return {
-      isPrivate: match[0] === "Full Member" && match[8] === "TRUE",
+      isPrivate: vetted === "Full Member" && play === "TRUE",
     };
   }
 
   return { isVetted: false, isPrivate: false };
 };
 
-const getEmailListFromSheetValues = (sheetValues) =>
-  sheetValues.filter((x) => Boolean(x)) as string[];
+const getEmailListFromSheetValues = (
+  sheetValues: Array<Array<string | undefined>>,
+): (readonly [string, string, string])[] =>
+  sheetValues
+    .map((x) => [x[0] || "", x[2] || "", x[8] || ""] as const)
+    .filter((x) => x.every((i) => typeof i === "string"));
 
 export default app;
 

@@ -1,11 +1,22 @@
 services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - server
+      - client
+    restart: unless-stopped
+
   server:
     build:
       context: .
       dockerfile: ./server/Dockerfile
       target: production
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     environment:
       - NODE_ENV=production
       - DATABASE_PATH=/app/data/club.db
@@ -41,8 +52,8 @@ services:
     build:
       context: .
       dockerfile: ./client/Dockerfile
-    ports:
-      - "5173:5173"
+    expose:
+      - "5173"
     depends_on:
       server:
         condition: service_healthy

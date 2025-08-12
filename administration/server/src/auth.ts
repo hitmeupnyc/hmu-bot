@@ -1,10 +1,12 @@
 import { betterAuth } from 'better-auth';
-import type { Auth } from 'better-auth';
 import { magicLink } from 'better-auth/plugins';
 import Database from 'better-sqlite3';
 import { Effect } from 'effect';
 import path from 'path';
-import { EmailService, getEmailServiceLayer } from './services/effect/EmailEffects';
+import {
+  EmailService,
+  getEmailServiceLayer,
+} from './services/effect/EmailEffects';
 
 // Get database path from environment or use default
 const dbPath =
@@ -13,7 +15,7 @@ const dbPath =
 export const auth: ReturnType<typeof betterAuth> = betterAuth({
   database: new Database(dbPath),
 
-  baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
+  baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:5173',
 
   // Disable email/password since we only use magic links
   emailAndPassword: {
@@ -26,12 +28,12 @@ export const auth: ReturnType<typeof betterAuth> = betterAuth({
       sendMagicLink: async ({ email, url, token }, request) => {
         // Use Effect-based email service
         const emailLayer = getEmailServiceLayer();
-        
+
         const sendEmailEffect = Effect.gen(function* () {
           const emailService = yield* EmailService;
           yield* emailService.sendMagicLink(email, url);
         });
-        
+
         try {
           await Effect.runPromise(
             sendEmailEffect.pipe(Effect.provide(emailLayer))
@@ -61,9 +63,7 @@ export const auth: ReturnType<typeof betterAuth> = betterAuth({
   },
 
   // CORS configuration
-  trustedOrigins: [
-    process.env.CLIENT_URL || 'http://localhost:5173',
-  ],
+  trustedOrigins: [process.env.CLIENT_URL || 'http://localhost:5173'],
 
   // Advanced configuration
   advanced: {

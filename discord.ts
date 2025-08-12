@@ -5,22 +5,23 @@ export async function fetchEmailFromCode(
   oauthDestination: string,
 ) {
   try {
+    const body = `client_id=${clientId}&client_secret=${clientSecret}&grant_type=authorization_code&code=${code}&redirect_uri=${encodeURIComponent(
+      oauthDestination,
+    )}`;
     const res = await retry(() =>
       fetch("https://discord.com/api/oauth2/token", {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: `client_id=${clientId}&client_secret=${clientSecret}&grant_type=authorization_code&code=${code}&redirect_uri=${encodeURIComponent(
-          oauthDestination,
-        )}`,
+        body,
       }),
     );
     const data = await res.json();
     console.log(
       "[discord][fetchEmailFromCode]",
       res.status,
-      res.ok ? "" : data,
+      res.ok ? "" : { data, body },
     );
     const identityRes = await fetch("https://discord.com/api/users/@me", {
       headers: {

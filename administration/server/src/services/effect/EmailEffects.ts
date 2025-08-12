@@ -1,4 +1,4 @@
-import { Effect, Context, Layer, Config, Data } from 'effect';
+import { Context, Data, Effect, Layer } from 'effect';
 
 // Email Errors
 export class EmailSendError extends Data.TaggedError('EmailSendError')<{
@@ -12,17 +12,17 @@ export class EmailConfigError extends Data.TaggedError('EmailConfigError')<{
 }> {}
 
 // Email Service Interface
-export interface EmailService {
+export interface IEmailService {
   readonly sendMagicLink: (
     recipient: string,
-    magicLinkUrl: string,
+    magicLinkUrl: string
   ) => Effect.Effect<void, EmailSendError>;
-  
+
   readonly sendVerificationCode: (
     recipient: string,
-    code: string,
+    code: string
   ) => Effect.Effect<void, EmailSendError>;
-  
+
   readonly sendRawEmail: (params: {
     recipient: string;
     subject: string;
@@ -31,7 +31,7 @@ export interface EmailService {
   }) => Effect.Effect<void, EmailSendError>;
 }
 
-export const EmailService = Context.GenericTag<EmailService>('EmailService');
+export const EmailService = Context.GenericTag<IEmailService>('EmailService');
 
 // Mailjet Configuration
 interface MailjetConfig {
@@ -44,7 +44,7 @@ interface MailjetConfig {
 const makeMailjetConfig = Effect.gen(function* () {
   const apiKey = process.env.MAILJET_API_KEY || '';
   const apiSecret = process.env.MAILJET_API_SECRET || '';
-  
+
   if (!apiKey || !apiSecret) {
     return yield* Effect.fail(
       new EmailConfigError({
@@ -52,12 +52,12 @@ const makeMailjetConfig = Effect.gen(function* () {
       })
     );
   }
-  
+
   return {
     apiKey,
     apiSecret,
-    fromEmail: process.env.EMAIL_FROM || 'hello@hitmeupnyc.com',
-    fromName: process.env.EMAIL_FROM_NAME || 'Hit Me Up community',
+    fromEmail: process.env.EMAIL_FROM || 'hello@hmu.test',
+    fromName: process.env.EMAIL_FROM_NAME || 'local env – hmu-administration',
   } satisfies MailjetConfig;
 });
 
@@ -99,18 +99,18 @@ const sendMailjetEmail = (
           ],
         }),
       });
-      
+
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(
           `Mailjet API error: ${response.status} - ${JSON.stringify(result)}`
         );
       }
-      
+
       // Log successful send
       console.log(`Email sent to ${recipient}: ${response.status}`, result);
-      
+
       return result;
     },
     catch: (error) =>
@@ -122,7 +122,7 @@ const sendMailjetEmail = (
   });
 
 // Email Service Implementation
-const makeEmailService = (config: MailjetConfig): EmailService => ({
+const makeEmailService = (config: MailjetConfig): IEmailService => ({
   sendMagicLink: (recipient, magicLinkUrl) =>
     Effect.gen(function* () {
       const subject = 'Sign in to HMU Administration';
@@ -151,10 +151,16 @@ const makeEmailService = (config: MailjetConfig): EmailService => ({
           </p>
         </div>
       `;
-      
-      yield* sendMailjetEmail(config, recipient, subject, textContent, htmlContent);
+
+      yield* sendMailjetEmail(
+        config,
+        recipient,
+        subject,
+        textContent,
+        htmlContent
+      );
     }),
-  
+
   sendVerificationCode: (recipient, code) =>
     Effect.gen(function* () {
       const subject = 'Your HMU confirmation code';
@@ -176,10 +182,16 @@ const makeEmailService = (config: MailjetConfig): EmailService => ({
           </p>
         </div>
       `;
-      
-      yield* sendMailjetEmail(config, recipient, subject, textContent, htmlContent);
+
+      yield* sendMailjetEmail(
+        config,
+        recipient,
+        subject,
+        textContent,
+        htmlContent
+      );
     }),
-  
+
   sendRawEmail: ({ recipient, subject, textContent, htmlContent }) =>
     sendMailjetEmail(config, recipient, subject, textContent, htmlContent),
 });
@@ -196,57 +208,55 @@ export const EmailServiceLive = Layer.effect(
 );
 
 // Development layer - logs to console
-export const EmailServiceDev = Layer.succeed(
-  EmailService,
-  {
-    sendMagicLink: (recipient, magicLinkUrl) =>
-      Effect.gen(function* () {
-        yield* Effect.log('📧 [DEV EMAIL] Magic Link');
-        yield* Effect.log(`  To: ${recipient}`);
-        yield* Effect.log(`  URL: ${magicLinkUrl}`);
-        console.log('\n' + '='.repeat(60));
-        console.log('🔗 MAGIC LINK (Development Mode)');
-        console.log('='.repeat(60));
-        console.log(`To: ${recipient}`);
-        console.log(`URL: ${magicLinkUrl}`);
-        console.log('='.repeat(60) + '\n');
-      }),
-    
-    sendVerificationCode: (recipient, code) =>
-      Effect.gen(function* () {
-        yield* Effect.log('📧 [DEV EMAIL] Verification Code');
-        yield* Effect.log(`  To: ${recipient}`);
-        yield* Effect.log(`  Code: ${code}`);
-        console.log('\n' + '='.repeat(60));
-        console.log('🔢 VERIFICATION CODE (Development Mode)');
-        console.log('='.repeat(60));
-        console.log(`To: ${recipient}`);
-        console.log(`Code: ${code}`);
-        console.log('='.repeat(60) + '\n');
-      }),
-    
-    sendRawEmail: ({ recipient, subject, textContent }) =>
-      Effect.gen(function* () {
-        yield* Effect.log('📧 [DEV EMAIL] Raw Email');
-        yield* Effect.log(`  To: ${recipient}`);
-        yield* Effect.log(`  Subject: ${subject}`);
-        yield* Effect.log(`  Content: ${textContent.substring(0, 100)}...`);
-      }),
-  }
-);
+export const EmailServiceDev = Layer.succeed(EmailService, {
+  sendMagicLink: (recipient, magicLinkUrl) =>
+    Effect.gen(function* () {
+      yield* Effect.log('📧 [DEV EMAIL] Magic Link');
+      yield* Effect.log(`  To: ${recipient}`);
+      yield* Effect.log(`  URL: ${magicLinkUrl}`);
+      console.log('\n' + '='.repeat(60));
+      console.log('🔗 MAGIC LINK (Development Mode)');
+      console.log('='.repeat(60));
+      console.log(`To: ${recipient}`);
+      console.log(`URL: ${magicLinkUrl}`);
+      console.log('='.repeat(60) + '\n');
+    }),
+
+  sendVerificationCode: (recipient, code) =>
+    Effect.gen(function* () {
+      yield* Effect.log('📧 [DEV EMAIL] Verification Code');
+      yield* Effect.log(`  To: ${recipient}`);
+      yield* Effect.log(`  Code: ${code}`);
+      console.log('\n' + '='.repeat(60));
+      console.log('🔢 VERIFICATION CODE (Development Mode)');
+      console.log('='.repeat(60));
+      console.log(`To: ${recipient}`);
+      console.log(`Code: ${code}`);
+      console.log('='.repeat(60) + '\n');
+    }),
+
+  sendRawEmail: ({ recipient, subject, textContent }) =>
+    Effect.gen(function* () {
+      yield* Effect.log('📧 [DEV EMAIL] Raw Email');
+      yield* Effect.log(`  To: ${recipient}`);
+      yield* Effect.log(`  Subject: ${subject}`);
+      yield* Effect.log(`  Content: ${textContent.substring(0, 100)}...`);
+    }),
+});
 
 // Helper to get the appropriate layer based on environment
 export const getEmailServiceLayer = () => {
   const isDevelopment = process.env.NODE_ENV !== 'production';
-  const hasMailjetConfig = 
-    process.env.MAILJET_API_KEY && 
-    process.env.MAILJET_API_SECRET;
-  
+  const hasMailjetConfig =
+    process.env.MAILJET_KEY && process.env.MAILJET_SECRET;
+
   if (isDevelopment && !hasMailjetConfig) {
-    console.log('📧 Using development email service (console logging)');
+    console.log(
+      `📧 Using development email service (console logging, ${hasMailjetConfig ? 'mailjet configured' : 'mailjet NOT configured'})`
+    );
     return EmailServiceDev;
   }
-  
+
   console.log('📧 Using Mailjet email service');
   return EmailServiceLive;
 };

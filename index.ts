@@ -390,7 +390,10 @@ app.get("/oauth", async (c) => {
       );
     }
   } catch (e) {
-    console.error("Something went wrong:", e);
+    console.error(
+      "Something went wrong:",
+      e instanceof Error ? e.message + e.stack : e,
+    );
     return c.html(
       layout(
         "<p>Oh no, something went wrong while checking your membership! Please report this to the Discord admins, this shouldn't have been possible.</p>",

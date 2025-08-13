@@ -7,8 +7,8 @@ import {
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CsvImport } from '../components/CsvImport';
-import { MemberForm } from '../components/MemberForm';
 import { Modal } from '../components/Modal';
+import { EditMemberForm } from '../features/MemberDetails/components/EditMemberForm';
 import {
   useCreateMember,
   useDeleteMember,
@@ -352,7 +352,7 @@ export function Members() {
         }}
         title={editingMember ? 'Edit Member' : 'Add New Member'}
       >
-        <MemberForm
+        <EditMemberForm
           member={editingMember || undefined}
           onSubmit={handleFormSubmit}
           onCancel={() => {

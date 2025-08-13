@@ -1,14 +1,19 @@
 import { useState } from 'react';
-import { Member, MemberFormData } from '../types';
+import { Member, MemberFormData } from '../../../types';
 
-interface MemberFormProps {
+interface EditMemberFormProps {
   member?: Member;
   onSubmit: (data: MemberFormData) => void;
   onCancel: () => void;
   isLoading?: boolean;
 }
 
-export function MemberForm({ member, onSubmit, onCancel, isLoading = false }: MemberFormProps) {
+export function EditMemberForm({
+  member,
+  onSubmit,
+  onCancel,
+  isLoading = false,
+}: EditMemberFormProps) {
   const [formData, setFormData] = useState<MemberFormData>({
     first_name: member?.first_name || '',
     last_name: member?.last_name || '',
@@ -49,11 +54,14 @@ export function MemberForm({ member, onSubmit, onCancel, isLoading = false }: Me
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value, type } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      [name]:
+        type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
     }));
   };
 
@@ -61,7 +69,10 @@ export function MemberForm({ member, onSubmit, onCancel, isLoading = false }: Me
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="first_name"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             First Name *
           </label>
           <input
@@ -73,8 +84,8 @@ export function MemberForm({ member, onSubmit, onCancel, isLoading = false }: Me
             value={formData.first_name}
             onChange={handleChange}
             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-              errors.first_name 
-                ? 'border-red-300 focus:ring-red-500' 
+              errors.first_name
+                ? 'border-red-300 focus:ring-red-500'
                 : 'border-gray-300 focus:ring-blue-500'
             }`}
           />
@@ -84,7 +95,10 @@ export function MemberForm({ member, onSubmit, onCancel, isLoading = false }: Me
         </div>
 
         <div>
-          <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="last_name"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Last Name *
           </label>
           <input
@@ -95,8 +109,8 @@ export function MemberForm({ member, onSubmit, onCancel, isLoading = false }: Me
             value={formData.last_name}
             onChange={handleChange}
             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-              errors.last_name 
-                ? 'border-red-300 focus:ring-red-500' 
+              errors.last_name
+                ? 'border-red-300 focus:ring-red-500'
                 : 'border-gray-300 focus:ring-blue-500'
             }`}
           />
@@ -106,7 +120,10 @@ export function MemberForm({ member, onSubmit, onCancel, isLoading = false }: Me
         </div>
 
         <div>
-          <label htmlFor="preferred_name" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="preferred_name"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Preferred Name
           </label>
           <input
@@ -120,7 +137,10 @@ export function MemberForm({ member, onSubmit, onCancel, isLoading = false }: Me
         </div>
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Email *
           </label>
           <input
@@ -132,8 +152,8 @@ export function MemberForm({ member, onSubmit, onCancel, isLoading = false }: Me
             value={formData.email}
             onChange={handleChange}
             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-              errors.email 
-                ? 'border-red-300 focus:ring-red-500' 
+              errors.email
+                ? 'border-red-300 focus:ring-red-500'
                 : 'border-gray-300 focus:ring-blue-500'
             }`}
           />
@@ -143,7 +163,10 @@ export function MemberForm({ member, onSubmit, onCancel, isLoading = false }: Me
         </div>
 
         <div>
-          <label htmlFor="pronouns" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="pronouns"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Pronouns
           </label>
           <input
@@ -166,13 +189,18 @@ export function MemberForm({ member, onSubmit, onCancel, isLoading = false }: Me
               onChange={handleChange}
               className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
-            <span className="ml-2 text-sm text-gray-700">Professional Affiliate</span>
+            <span className="ml-2 text-sm text-gray-700">
+              Professional Affiliate
+            </span>
           </label>
         </div>
       </div>
 
       <div>
-        <label htmlFor="sponsor_notes" className="block text-sm font-medium text-gray-700 mb-2">
+        <label
+          htmlFor="sponsor_notes"
+          className="block text-sm font-medium text-gray-700 mb-2"
+        >
           Sponsor Notes
         </label>
         <textarea

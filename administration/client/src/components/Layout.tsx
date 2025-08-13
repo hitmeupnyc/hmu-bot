@@ -1,11 +1,11 @@
-import { ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
 import {
-  HomeIcon,
-  UsersIcon,
   CalendarIcon,
   CogIcon,
+  HomeIcon,
+  UsersIcon,
 } from '@heroicons/react/24/outline';
+import { ReactNode } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
 interface LayoutProps {
   children: ReactNode;
@@ -26,11 +26,6 @@ export function Layout({ children }: LayoutProps) {
       <div className="flex">
         {/* Sidebar */}
         <div className="w-64 bg-white shadow-lg">
-          <div className="p-6">
-            <h1 className="text-xl font-bold text-gray-900">
-              Club Management
-            </h1>
-          </div>
           <nav className="mt-6">
             {navigation.map((item) => {
               const isActive = location.pathname === item.href;
@@ -54,9 +49,7 @@ export function Layout({ children }: LayoutProps) {
 
         {/* Main content */}
         <div className="flex-1">
-          <main className="p-8">
-            {children}
-          </main>
+          <main className="p-8">{children}</main>
         </div>
       </div>
     </div>

@@ -1,181 +1,46 @@
-import {
-  DocumentArrowUpIcon,
-  PencilIcon,
-  PlusIcon,
-  TrashIcon,
-} from '@heroicons/react/24/outline';
+import { CsvImport } from '@/components/CsvImport';
+import { DocumentArrowUpIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { CsvImport } from '../components/CsvImport';
-import { Modal } from '../components/Modal';
-import { EditMemberForm } from '../features/MemberDetails/components/EditMemberForm';
 import {
-  useCreateMember,
-  useDeleteMember,
-  useMembers,
-  useUpdateMember,
-} from '../hooks/useMembers';
-import { ApplicationFormData, Member, MemberFormData } from '../types';
+  MemberFormModal,
+  MemberGrid,
+  MemberPagination,
+} from '../features/Members/components';
+import { useMemberCrud } from '../features/Members/hooks/useMemberCrud';
+import { useMemberCsvImport } from '../features/Members/hooks/useMemberCsvImport';
+import { useMembers } from '../hooks/useMembers';
 
 export function Members() {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingMember, setEditingMember] = useState<Member | null>(null);
-  const [showCsvImport, setShowCsvImport] = useState(false);
-  const [csvImportLoading, setCsvImportLoading] = useState(false);
 
-  // React Query hooks
+  const [showCsvImport, setShowCsvImport] = useState(false);
+
   const { data, isLoading, error } = useMembers({
     page: currentPage,
     limit: 20,
     search: searchTerm || undefined,
   });
 
-  const createMember = useCreateMember();
-  const updateMember = useUpdateMember();
-  const deleteMember = useDeleteMember();
+  const {
+    isModalOpen,
+    editingMember,
+    handleCreateMember,
+    handleEditMember,
+    handleDeleteMember,
+    handleFormSubmit,
+    closeModal,
+    isCreatePending,
+    isUpdatePending,
+    isDeletePending,
+    isFormLoading,
+  } = useMemberCrud();
+
+  const { handleCsvImport, isCsvImportLoading } = useMemberCsvImport();
 
   const members = data?.members || [];
   const pagination = data?.pagination;
 
-  const handleCreateMember = () => {
-    setEditingMember(null);
-    setIsModalOpen(true);
-  };
-
-  const handleEditMember = (member: Member) => {
-    setEditingMember(member);
-    setIsModalOpen(true);
-  };
-
-  const handleDeleteMember = async (member: Member) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete ${member.first_name} ${member.last_name}?`
-      )
-    ) {
-      return;
-    }
-
-    try {
-      await deleteMember.mutateAsync(member.id);
-    } catch (error) {
-      console.error('Failed to delete member:', error);
-      alert('Failed to delete member. Please try again.');
-    }
-  };
-
-  const handleFormSubmit = async (formData: MemberFormData) => {
-    try {
-      if (editingMember) {
-        await updateMember.mutateAsync({
-          id: editingMember.id,
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          preferred_name: formData.preferred_name || '',
-          email: formData.email,
-          pronouns: formData.pronouns || '',
-          sponsor_notes: formData.sponsor_notes || '',
-          is_professional_affiliate: formData.is_professional_affiliate,
-        });
-      } else {
-        await createMember.mutateAsync({
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          preferred_name: formData.preferred_name || '',
-          email: formData.email,
-          pronouns: formData.pronouns || '',
-          sponsor_notes: formData.sponsor_notes || '',
-          is_professional_affiliate: formData.is_professional_affiliate,
-        });
-      }
-
-      setIsModalOpen(false);
-      setEditingMember(null);
-    } catch (error) {
-      console.error('Failed to save member:', error);
-      alert('Failed to save member. Please try again.');
-    }
-  };
-
-  const handleCsvImport = async (applications: ApplicationFormData[]) => {
-    setCsvImportLoading(true);
-
-    try {
-      const response = await fetch('/api/applications/bulk', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ applications }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok || response.status === 207) {
-        // 207 = Multi-Status (partial success)
-        const { imported, total, errors } = result.data;
-
-        if (errors && errors.length > 0) {
-          const errorDetails = errors
-            .map(
-              (err: any) =>
-                `Row ${err.index}: ${err.email || 'Unknown'} - ${err.error}`
-            )
-            .join('\n');
-
-          alert(
-            `Import completed with some errors:\n\nImported: ${imported}/${total}\n\nErrors:\n${errorDetails}`
-          );
-        } else {
-          alert(`Successfully imported all ${imported} applications!`);
-        }
-
-        setShowCsvImport(false);
-      } else {
-        throw new Error(result.error || 'Failed to import applications');
-      }
-
-      // Refresh the members list
-      // Note: React Query will automatically refetch due to mutations
-    } catch (error) {
-      console.error('Error importing applications:', error);
-      alert('Failed to import applications. Please try again.');
-    } finally {
-      setCsvImportLoading(false);
-    }
-  };
-
-  const getDisplayName = (member: Member) => {
-    return member.preferred_name
-      ? `${member.preferred_name} (${member.first_name}) ${member.last_name}`
-      : `${member.first_name} ${member.last_name}`;
-  };
-
-  const getStatusBadge = (member: Member) => {
-    const isActive = member.flags & 1;
-    const isProfessional = member.flags & 2;
-
-    return (
-      <div className="flex space-x-1">
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-          }`}
-        >
-          {isActive ? 'Active' : 'Inactive'}
-        </span>
-        {isProfessional && (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-            Professional
-          </span>
-        )}
-      </div>
-    );
-  };
-
-  // Show error state
   if (error) {
     return (
       <div className="text-center py-12">
@@ -204,7 +69,7 @@ export function Members() {
           </button>
           <button
             onClick={handleCreateMember}
-            disabled={createMember.isPending}
+            disabled={isCreatePending}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center hover:bg-blue-700 disabled:opacity-50"
           >
             <PlusIcon className="h-5 w-5 mr-2" />
@@ -213,161 +78,44 @@ export function Members() {
         </div>
       </div>
 
-      <div className="bg-white shadow rounded-lg">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center space-x-4">
-            <div className="flex-1">
-              <input
-                type="text"
-                placeholder="Search members..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Pronouns
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {isLoading ? (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-6 py-4 text-center text-gray-500"
-                  >
-                    Loading members...
-                  </td>
-                </tr>
-              ) : members.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-6 py-4 text-center text-gray-500"
-                  >
-                    No members found. Start by adding your first member!
-                  </td>
-                </tr>
-              ) : (
-                members.map((member) => (
-                  <tr key={member.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Link
-                        to={`/members/${member.id}`}
-                        className="text-sm font-medium text-blue-600 hover:text-blue-900"
-                      >
-                        {getDisplayName(member)}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {member.email}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {member.pronouns || '-'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(member)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleEditMember(member)}
-                          disabled={updateMember.isPending}
-                          className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteMember(member)}
-                          disabled={deleteMember.isPending}
-                          className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {pagination && pagination.totalPages > 1 && (
-          <div className="px-6 py-3 border-t border-gray-200">
-            <div className="flex justify-between items-center">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1 || isLoading}
-                className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <span className="text-sm text-gray-700">
-                Page {currentPage} of {pagination.totalPages}
-              </span>
-              <button
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))
-                }
-                disabled={currentPage === pagination.totalPages || isLoading}
-                className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+      <div className="mt-4">
+        <MemberGrid
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          members={members}
+          isLoading={isLoading}
+          onEdit={handleEditMember}
+          onDelete={handleDeleteMember}
+          isEditPending={isUpdatePending}
+          isDeletePending={isDeletePending}
+        >
+          {pagination && (
+            <MemberPagination
+              currentPage={currentPage}
+              totalPages={pagination.totalPages}
+              isLoading={isLoading}
+              onPageChange={setCurrentPage}
+            />
+          )}
+        </MemberGrid>
       </div>
 
-      <Modal
+      <MemberFormModal
         isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingMember(null);
-        }}
-        title={editingMember ? 'Edit Member' : 'Add New Member'}
-      >
-        <EditMemberForm
-          member={editingMember || undefined}
-          onSubmit={handleFormSubmit}
-          onCancel={() => {
-            setIsModalOpen(false);
-            setEditingMember(null);
-          }}
-          isLoading={createMember.isPending || updateMember.isPending}
-        />
-      </Modal>
+        editingMember={editingMember}
+        onSubmit={handleFormSubmit}
+        onClose={closeModal}
+        isLoading={isFormLoading}
+      />
 
       {showCsvImport && (
         <CsvImport
-          onImport={handleCsvImport}
+          onImport={async (applications) => {
+            await handleCsvImport(applications);
+            setShowCsvImport(false);
+          }}
           onClose={() => setShowCsvImport(false)}
-          isLoading={csvImportLoading}
+          isLoading={isCsvImportLoading}
         />
       )}
     </div>

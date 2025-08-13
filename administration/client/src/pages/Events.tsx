@@ -1,7 +1,11 @@
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { EventFormModal, EventGrid } from '../features/Events/components';
+import {
+  EventFormModal,
+  EventGrid,
+  EventTableRow,
+} from '../features/Events/components';
 import { useEventCrud } from '../features/Events/hooks/useEventCrud';
 import { useEvents } from '../hooks/useEvents';
 import { Event } from '../types';
@@ -74,17 +78,24 @@ export function Events() {
       <EventGrid
         events={events}
         isLoading={loading}
-        onEdit={(event) => {
-          setEditingEvent(event);
-          setIsModalOpen(true);
-        }}
-        onDelete={handleDeleteEvent}
-        onView={handleViewEvent}
-        isEditPending={false}
-        isDeletePending={false}
         filter={filter}
         onFilterChange={setFilter}
-      />
+      >
+        {events.map((event) => (
+          <EventTableRow
+            key={event.id}
+            event={event}
+            onEdit={(event) => {
+              setEditingEvent(event);
+              setIsModalOpen(true);
+            }}
+            onDelete={handleDeleteEvent}
+            onView={handleViewEvent}
+            isEditPending={false}
+            isDeletePending={false}
+          />
+        ))}
+      </EventGrid>
 
       <EventFormModal
         isOpen={isModalOpen}

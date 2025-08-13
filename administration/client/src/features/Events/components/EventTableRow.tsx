@@ -1,4 +1,5 @@
-import { PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { Link } from 'react-router-dom';
 import { Event } from '../../../types';
 import { EventStatusBadge } from './EventStatusBadge';
 
@@ -6,7 +7,6 @@ interface EventTableRowProps {
   event: Event;
   onEdit: (event: Event) => void;
   onDelete: (event: Event) => void;
-  onView: (event: Event) => void;
   isEditPending: boolean;
   isDeletePending: boolean;
 }
@@ -15,7 +15,6 @@ export function EventTableRow({
   event,
   onEdit,
   onDelete,
-  onView,
   isEditPending,
   isDeletePending,
 }: EventTableRowProps) {
@@ -28,7 +27,12 @@ export function EventTableRow({
       <td className="px-6 py-4">
         <div>
           <div className="text-sm font-medium text-gray-900">
-            {event.name}
+            <Link
+              className="text-blue-600 hover:text-blue-900"
+              to={`/events/${event.id}`}
+            >
+              {event.name}
+            </Link>
           </div>
           {event.description && (
             <div className="text-sm text-gray-500 truncate max-w-xs">
@@ -53,13 +57,6 @@ export function EventTableRow({
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
         <div className="flex space-x-2">
-          <button
-            onClick={() => onView(event)}
-            className="text-green-600 hover:text-green-900"
-            title="View Details"
-          >
-            <EyeIcon className="h-4 w-4" />
-          </button>
           <button
             onClick={() => onEdit(event)}
             disabled={isEditPending}

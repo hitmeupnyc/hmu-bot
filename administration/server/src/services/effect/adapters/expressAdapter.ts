@@ -1,8 +1,16 @@
 import { Cause, Effect, Exit } from 'effect';
 import type { NextFunction, Request, Response } from 'express';
-import { ConnectionError, DatabaseError, TransactionError } from '../errors/DatabaseErrors';
+import {
+  ConnectionError,
+  DatabaseError,
+  TransactionError,
+} from '../errors/DatabaseErrors';
 import { EventNotFound, EventValidationError } from '../errors/EventErrors';
-import { EmailAlreadyExists, MemberNotFound, MemberValidationError } from '../errors/MemberErrors';
+import {
+  EmailAlreadyExists,
+  MemberNotFound,
+  MemberValidationError,
+} from '../errors/MemberErrors';
 import { DatabaseLive } from '../layers/DatabaseLayer';
 
 /**
@@ -63,6 +71,7 @@ export const effectToExpress =
       Exit.match(result, {
         onFailure: (cause) => {
           const error = Cause.failureOption(cause);
+          console.error(cause);
           if (error._tag === 'Some') {
             next(toExpressError(error.value));
           } else {
@@ -117,18 +126,4 @@ export const extractQuery = <T>(req: Request): Effect.Effect<T, Error> =>
   Effect.try({
     try: () => req.query as T,
     catch: (error) => new Error(`Invalid query parameters: ${String(error)}`),
-  });
-
-/**
- * Audit info extractor for routes that need it
- */
-export const extractAuditInfo = (
-  req: Request
-): Effect.Effect<{ sessionId: string; userIp: string }, Error> =>
-  Effect.try({
-    try: () => ({
-      sessionId: (req as any).session?.id || 'anonymous',
-      userIp: req.ip || (req as any).connection?.remoteAddress || 'unknown',
-    }),
-    catch: (error) => new Error(`Failed to extract audit info: ${String(error)}`),
   });

@@ -116,10 +116,7 @@ export const getMembers = (options: MemberQueryOptions) =>
 /**
  * Get member by ID with optional audit logging
  */
-export const getMemberById = (
-  id: number,
-  auditInfo?: { sessionId: string; userIp: string }
-) =>
+export const getMemberById = (id: number) =>
   Effect.gen(function* () {
     const member = yield* getMemberByIdInternal(id);
 
@@ -203,10 +200,7 @@ export const createMember = (data: CreateMember) =>
 /**
  * Update an existing member
  */
-export const updateMember = (
-  data: UpdateMember,
-  auditInfo?: { sessionId: string; userIp: string }
-) =>
+export const updateMember = (data: UpdateMember) =>
   Effect.gen(function* () {
     const db = yield* DatabaseService;
     const validatedData = yield* Schema.decodeUnknown(UpdateMemberSchema)(data);

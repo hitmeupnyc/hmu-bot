@@ -13,6 +13,8 @@ export const AuditLogEntrySchema = Schema.Struct({
     Schema.Literal('note')
   ),
   userSessionId: Schema.optional(Schema.String),
+  userId: Schema.optional(Schema.String),
+  userEmail: Schema.optional(Schema.String),
   userIp: Schema.optional(Schema.String),
   oldValues: Schema.optional(Schema.Object),
   newValues: Schema.optional(Schema.Object),

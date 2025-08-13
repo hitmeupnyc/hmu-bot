@@ -28,8 +28,9 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Handle unauthorized access
-      console.warn('Unauthorized access');
+      // Handle unauthorized access - redirect to login
+      console.warn('Unauthorized access, redirecting to login');
+      window.location.href = '/login';
     } else if (error.response?.status >= 500) {
       // Handle server errors
       console.error('Server error:', error.response.data);

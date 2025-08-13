@@ -25,6 +25,8 @@ export const logAuditEvent = (entry: AuditLogEntry) =>
             action: validatedEntry.action,
             user_session_id: validatedEntry.userSessionId || null,
             user_ip: validatedEntry.userIp || null,
+            user_email: validatedEntry.userEmail || null,
+            user_id: validatedEntry.userId || null,
             old_values_json: validatedEntry.oldValues
               ? JSON.stringify(validatedEntry.oldValues)
               : null,

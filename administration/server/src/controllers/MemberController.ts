@@ -3,7 +3,6 @@ import type { Request, Response } from 'express';
 import * as AuditEffects from '../services/effect/AuditEffects';
 import * as MemberEffects from '../services/effect/MemberEffects';
 import {
-  extractAuditInfo,
   extractBody,
   extractId,
   extractQuery,
@@ -47,8 +46,7 @@ export const listMembers = (req: Request, res: Response) =>
 export const getMember = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const id = yield* extractId(req);
-    const auditInfo = yield* extractAuditInfo(req);
-    const member = yield* MemberEffects.getMemberById(id, auditInfo);
+    const member = yield* MemberEffects.getMemberById(id);
 
     return createSuccessResponse(member);
   });
@@ -78,12 +76,8 @@ export const updateMember = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const id = yield* extractId(req);
     const updateData = yield* extractBody<any>(req);
-    const auditInfo = yield* extractAuditInfo(req);
 
-    const member = yield* MemberEffects.updateMember(
-      { ...updateData, id },
-      auditInfo
-    );
+    const member = yield* MemberEffects.updateMember({ ...updateData, id });
 
     return createSuccessResponseWithMessage(
       member,
@@ -155,16 +149,15 @@ export const addMemberNote = (req: Request, res: Response) =>
     // Verify member exists
     yield* MemberEffects.getMemberById(id);
 
-    // Extract audit information for logging
-    const auditInfo = yield* extractAuditInfo(req);
-
     // Log note creation as an audit event
     yield* AuditEffects.logAuditEvent({
       entityType: 'member',
       entityId: id,
       action: 'note',
-      userSessionId: auditInfo.sessionId,
-      userIp: auditInfo.userIp,
+      userSessionId: req.session?.id || 'anonymous',
+      userId: req.session?.user.id || 'anonymous',
+      userEmail: req.session?.user.email || 'anonymous',
+      userIp: req.ip || req.socket?.remoteAddress || 'unknown',
       oldValues: undefined,
       newValues: undefined,
       metadata: {

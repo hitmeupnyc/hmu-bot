@@ -1,4 +1,4 @@
-import { Effect, Exit } from 'effect';
+import { Effect } from 'effect';
 import { NextFunction, Request, Response } from 'express';
 import * as AuditEffects from '../services/effect/AuditEffects';
 import { DatabaseLive } from '../services/effect/layers/DatabaseLayer';
@@ -52,8 +52,14 @@ const matchRequest = (
 
 export const auditMiddleware =
   (entityType: string) => (req: Request, res: Response, next: NextFunction) => {
+    const auditInfo = {
+      sessionId: req.session?.id || 'anonymous',
+      userId: req.session?.user.id || 'anonymous',
+      userEmail: req.session?.user.email || 'anonymous',
+      userIp: req.ip || req.socket?.remoteAddress || 'unknown',
+    };
+
     res.on('finish', () => {
-      console.log('auditPostMiddleware', res.statusCode);
       // Only log successful operations (2xx/3xx status codes)
       if (res.statusCode < 200 || res.statusCode >= 400) {
         return next();
@@ -70,8 +76,7 @@ export const auditMiddleware =
         entityType,
         entityId,
         action,
-        userSessionId: req.auditInfo?.sessionId,
-        userIp: req.auditInfo?.userIp,
+        ...auditInfo,
         oldValues: res._auditOldData ? res._auditOldData : undefined,
         newValues:
           action === 'create' || action === 'update' ? req.body : undefined,
@@ -79,20 +84,9 @@ export const auditMiddleware =
       };
 
       // Log audit entry asynchronously (don't block response)
-      const logEffect = AuditEffects.logAuditEvent(auditData).pipe(
-        Effect.provide(DatabaseLive)
+      Effect.runPromiseExit(
+        AuditEffects.logAuditEvent(auditData).pipe(Effect.provide(DatabaseLive))
       );
-
-      console.log('Logging audit event:', auditData);
-
-      Effect.runPromiseExit(logEffect).then((exit) => {
-        Exit.match(exit, {
-          onFailure: (cause) => {
-            console.error('Failed to log audit event:', cause);
-          },
-          onSuccess: () => {},
-        });
-      });
     });
     next();
   };

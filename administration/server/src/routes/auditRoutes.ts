@@ -9,7 +9,7 @@
 import { Router } from 'express';
 import * as AuditController from '../controllers/AuditController';
 import { validate } from '../middleware/validation';
-import { auditQuerySchema } from '../schemas/validation';
+import { auditBodySchema, auditQuerySchema } from '../schemas/validation';
 import { effectToExpress } from '../services/effect/adapters/expressAdapter';
 
 const router = Router();
@@ -26,6 +26,12 @@ router.get(
   '/',
   validate({ query: auditQuerySchema }),
   effectToExpress(AuditController.listAuditLogs)
+);
+
+router.post(
+  '/',
+  validate({ body: auditBodySchema }),
+  effectToExpress(AuditController.addAuditEvent)
 );
 
 export { router as auditRoutes };

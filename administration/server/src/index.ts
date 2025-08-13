@@ -1,10 +1,13 @@
 import dotenv from 'dotenv';
 
+import { toNodeHandler } from 'better-auth/node';
 import cors from 'cors';
 import { Effect } from 'effect';
 import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import { auth } from './auth';
+import { requireAuth } from './middleware/auth';
 import { errorHandler } from './middleware/errorHandler';
 import { apiLimiter } from './middleware/rateLimiting';
 import { applicationRoutes } from './routes/applicationRoutes';
@@ -39,9 +42,22 @@ app.use(
 // Logging
 app.use(morgan('combined'));
 
-// Body parsing
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+// Auth routes (before body parsing middleware)
+app.all('/api/auth/*', toNodeHandler(auth));
+
+// Body parsing (exclude auth routes as Better Auth handles its own body parsing)
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/auth/')) {
+    return next();
+  }
+  express.json({ limit: '10mb' })(req, res, next);
+});
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/auth/')) {
+    return next();
+  }
+  express.urlencoded({ extended: true })(req, res, next);
+});
 
 // Rate limiting
 app.use('/api', apiLimiter);
@@ -83,20 +99,24 @@ const initializeJobScheduler = async () => {
 // Initialize the job scheduler
 initializeJobScheduler();
 
-// Routes
+// Public routes (no auth required)
 app.use('/health', healthCheckRouter);
-app.use('/api/members', memberRoutes);
-app.use('/api/events', eventRoutes);
-app.use('/api/webhooks', webhookRoutes);
-app.use('/api/klaviyo', klaviyoRoutes);
-app.use('/api/eventbrite', eventbriteRoutes);
-app.use('/api/patreon', patreonRoutes);
-app.use('/api/discord', discordRoutes);
-app.use('/api/applications', applicationRoutes);
-app.use('/api/audit', auditRoutes);
+
+// Protected routes (require authentication)
+app.use('/api/members', requireAuth, memberRoutes);
+app.use('/api/events', requireAuth, eventRoutes);
+app.use('/api/audit', requireAuth, auditRoutes);
+app.use('/api/applications', requireAuth, applicationRoutes);
+
+// Admin/sync routes (require authentication)
+app.use('/api/webhooks', requireAuth, webhookRoutes);
+app.use('/api/klaviyo', requireAuth, klaviyoRoutes);
+app.use('/api/eventbrite', requireAuth, eventbriteRoutes);
+app.use('/api/patreon', requireAuth, patreonRoutes);
+app.use('/api/discord', requireAuth, discordRoutes);
 
 // Queue status endpoint (Effect-based)
-app.get('/api/queue/status', async (req, res) => {
+app.get('/api/queue/status', requireAuth, async (req, res) => {
   try {
     const stats = await Effect.runPromise(
       JobSchedulerEffects.getJobStats().pipe(Effect.provide(DatabaseLive))

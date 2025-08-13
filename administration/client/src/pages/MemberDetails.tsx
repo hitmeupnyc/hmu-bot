@@ -452,8 +452,9 @@ export function MemberDetails() {
                       </span>
                     </div>
                     <span className="text-xs text-gray-400">
-                      Session: {entry.user_session_id.slice(0, 8)}... | IP:{' '}
-                      {entry.user_ip}
+                      Session:{' '}
+                      {(entry.user_session_id || 'unknown').slice(0, 8)}... |
+                      IP: {entry.user_ip}
                     </span>
                   </div>
 

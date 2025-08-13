@@ -6,9 +6,11 @@
  */
 
 import { Effect } from 'effect';
+import { decodeUnknown } from 'effect/Schema';
 import { Request, Response } from 'express';
 import * as AuditEffects from '../services/effect/AuditEffects';
 import { extractQuery } from '../services/effect/adapters/expressAdapter';
+import { AuditSchema } from '../services/effect/schemas/AuditSchema';
 import { createSuccessResponse } from './helpers/responseFormatters';
 
 /**
@@ -37,4 +39,36 @@ export const listAuditLogs = (req: Request, res: Response) =>
     );
 
     return createSuccessResponse(auditLogs);
+  });
+
+/**
+ * Add an audit event
+ *
+ * @param req Express request object with validated body parameters
+ * @param res Express response object
+ * @returns Effect containing success response with audit log
+ */
+export const addAuditEvent = (req: Request, res: Response) =>
+  Effect.gen(function* () {
+    const { entity_type, entity_id, action, metadata, oldValues, newValues } =
+      yield* decodeUnknown(AuditSchema)(req.body);
+
+    // Log note creation as an audit event
+    yield* AuditEffects.logAuditEvent({
+      entityType: entity_type,
+      entityId: entity_id,
+      action: action,
+      userSessionId: req.session?.id || 'anonymous',
+      userId: req.session?.user.id || 'anonymous',
+      userEmail: req.session?.user.email || 'anonymous',
+      userIp: req.ip || req.socket?.remoteAddress || 'unknown',
+      oldValues: oldValues,
+      newValues: newValues,
+      metadata: metadata,
+    });
+
+    return {
+      success: true,
+      message: 'Audit event added successfully',
+    };
   });

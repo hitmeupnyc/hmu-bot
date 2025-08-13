@@ -34,6 +34,8 @@ export interface AuditLog {
   metadata_json: string | null;
   new_values_json: string | null;
   old_values_json: string | null;
+  user_email: string | null;
+  user_id: string | null;
   user_ip: string | null;
   user_session_id: string | null;
 }

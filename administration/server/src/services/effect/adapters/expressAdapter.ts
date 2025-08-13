@@ -118,17 +118,3 @@ export const extractQuery = <T>(req: Request): Effect.Effect<T, Error> =>
     try: () => req.query as T,
     catch: (error) => new Error(`Invalid query parameters: ${String(error)}`),
   });
-
-/**
- * Audit info extractor for routes that need it
- */
-export const extractAuditInfo = (
-  req: Request
-): Effect.Effect<{ sessionId: string; userIp: string }, Error> =>
-  Effect.try({
-    try: () => ({
-      sessionId: (req as any).session?.id || 'anonymous',
-      userIp: req.ip || (req as any).connection?.remoteAddress || 'unknown',
-    }),
-    catch: (error) => new Error(`Failed to extract audit info: ${String(error)}`),
-  });

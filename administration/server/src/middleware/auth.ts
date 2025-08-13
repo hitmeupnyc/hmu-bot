@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { auth } from '../auth';
 
 // Extend Express Request type to include session
@@ -10,13 +10,10 @@ declare global {
           id: string;
           email: string;
           name: string;
-          emailVerified: boolean;
         };
-        session: {
-          id: string;
-          userId: string;
-          expiresAt: Date;
-        };
+        id: string;
+        userId: string;
+        expiresAt: Date;
       };
     }
   }
@@ -46,7 +43,7 @@ export const requireAuth = async (
     }
 
     // Attach session to request for use in route handlers
-    req.session = session;
+    req.session = { ...session.session, user: session.user };
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);
@@ -72,7 +69,7 @@ export const optionalAuth = async (
     });
 
     if (session) {
-      req.session = session;
+      req.session = { ...session.session, user: session.user };
     }
     next();
   } catch (error) {
@@ -86,7 +83,11 @@ export const optionalAuth = async (
  * Must be used after requireAuth
  */
 export const requireAccessLevel = (minLevel: number) => {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     if (!req.session) {
       res.status(401).json({
         error: 'Authentication required',

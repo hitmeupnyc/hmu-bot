@@ -1,16 +1,18 @@
 import { api } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 
-interface AuditLogEntry {
+export interface AuditLogEntry {
   id: number;
   entity_type: string;
   entity_id: number;
   action: string;
-  user_session_id: string;
+  user_session_id?: string;
   user_ip: string;
-  oldValues: Record<string, any> | null;
-  newValues: Record<string, any> | null;
-  metadata: Record<string, any> | null;
+  user_email: string;
+  user_id: string;
+  oldValues?: Record<string, any> | null;
+  newValues?: Record<string, any> | null;
+  metadata?: Record<string, any> | null;
   created_at: string;
 }
 

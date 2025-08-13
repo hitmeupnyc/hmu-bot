@@ -1,4 +1,5 @@
 import { Context, Data, Effect, Layer } from 'effect';
+import logger from '../../utils/logger';
 
 // Email Errors
 export class EmailSendError extends Data.TaggedError('EmailSendError')<{
@@ -72,7 +73,7 @@ const sendMailjetEmail = (
   Effect.tryPromise({
     try: async () => {
       const authString = btoa(`${config.apiKey}:${config.apiSecret}`);
-      
+
       const response = await fetch('https://api.mailjet.com/v3.1/send', {
         method: 'POST',
         headers: {
@@ -109,7 +110,7 @@ const sendMailjetEmail = (
       }
 
       // Log successful send
-      console.log(`Email sent to ${recipient}: ${response.status}`, result);
+      logger.info(`Email sent to ${recipient}: ${response.status}`, result);
 
       return result;
     },
@@ -214,12 +215,12 @@ export const EmailServiceDev = Layer.succeed(EmailService, {
       yield* Effect.log('📧 [DEV EMAIL] Magic Link');
       yield* Effect.log(`  To: ${recipient}`);
       yield* Effect.log(`  URL: ${magicLinkUrl}`);
-      console.log('\n' + '='.repeat(60));
-      console.log('🔗 MAGIC LINK (Development Mode)');
-      console.log('='.repeat(60));
-      console.log(`To: ${recipient}`);
-      console.log(`URL: ${magicLinkUrl}`);
-      console.log('='.repeat(60) + '\n');
+      logger.info('\n' + '='.repeat(60));
+      logger.info('🔗 MAGIC LINK (Development Mode)');
+      logger.info('='.repeat(60));
+      logger.info(`To: ${recipient}`);
+      logger.info(`URL: ${magicLinkUrl}`);
+      logger.info('='.repeat(60) + '\n');
     }),
 
   sendVerificationCode: (recipient, code) =>
@@ -227,12 +228,12 @@ export const EmailServiceDev = Layer.succeed(EmailService, {
       yield* Effect.log('📧 [DEV EMAIL] Verification Code');
       yield* Effect.log(`  To: ${recipient}`);
       yield* Effect.log(`  Code: ${code}`);
-      console.log('\n' + '='.repeat(60));
-      console.log('🔢 VERIFICATION CODE (Development Mode)');
-      console.log('='.repeat(60));
-      console.log(`To: ${recipient}`);
-      console.log(`Code: ${code}`);
-      console.log('='.repeat(60) + '\n');
+      logger.info('\n' + '='.repeat(60));
+      logger.info('🔢 VERIFICATION CODE (Development Mode)');
+      logger.info('='.repeat(60));
+      logger.info(`To: ${recipient}`);
+      logger.info(`Code: ${code}`);
+      logger.info('='.repeat(60) + '\n');
     }),
 
   sendRawEmail: ({ recipient, subject, textContent }) =>
@@ -251,12 +252,12 @@ export const getEmailServiceLayer = () => {
     process.env.MAILJET_KEY && process.env.MAILJET_SECRET;
 
   if (isDevelopment && !hasMailjetConfig) {
-    console.log(
+    logger.info(
       `📧 Using development email service (console logging, ${hasMailjetConfig ? 'mailjet configured' : 'mailjet NOT configured'})`
     );
     return EmailServiceDev;
   }
 
-  console.log('📧 Using Mailjet email service');
+  logger.info('📧 Using Mailjet email service');
   return EmailServiceLive;
 };

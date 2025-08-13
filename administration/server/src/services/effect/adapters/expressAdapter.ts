@@ -1,8 +1,16 @@
 import { Cause, Effect, Exit } from 'effect';
 import type { NextFunction, Request, Response } from 'express';
-import { ConnectionError, DatabaseError, TransactionError } from '../errors/DatabaseErrors';
+import {
+  ConnectionError,
+  DatabaseError,
+  TransactionError,
+} from '../errors/DatabaseErrors';
 import { EventNotFound, EventValidationError } from '../errors/EventErrors';
-import { EmailAlreadyExists, MemberNotFound, MemberValidationError } from '../errors/MemberErrors';
+import {
+  EmailAlreadyExists,
+  MemberNotFound,
+  MemberValidationError,
+} from '../errors/MemberErrors';
 import { DatabaseLive } from '../layers/DatabaseLayer';
 
 /**
@@ -63,6 +71,7 @@ export const effectToExpress =
       Exit.match(result, {
         onFailure: (cause) => {
           const error = Cause.failureOption(cause);
+          console.error(cause);
           if (error._tag === 'Some') {
             next(toExpressError(error.value));
           } else {

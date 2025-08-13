@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { ApiResponse } from '../types';
-import { ValidationError } from './validation';
 import logger from '../utils/logger';
+import { ValidationError } from './validation';
 
 export class AppError extends Error {
   public statusCode: number;
@@ -17,7 +17,6 @@ export class AppError extends Error {
     Error.captureStackTrace(this, this.constructor);
   }
 }
-
 
 interface ErrorResponse extends ApiResponse {
   code?: string;
@@ -37,7 +36,8 @@ export const errorHandler = (
   let errors: Array<{ field: string; message: string }> | undefined;
 
   // Generate unique request ID for tracking
-  const requestId = req.headers['x-request-id'] as string || 
+  const requestId =
+    (req.headers['x-request-id'] as string) ||
     `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   // Check if error has a status property (set by effectToExpress adapter)
@@ -73,10 +73,8 @@ export const errorHandler = (
 
   // Log error with appropriate level
   const logLevel = statusCode >= 500 ? 'error' : 'warn';
-  logger[logLevel]('API Error', {
+  logger[logLevel]('API Error', error, {
     requestId,
-    message: error.message,
-    stack: error.stack,
     statusCode,
     code,
     path: req.path,
@@ -84,7 +82,7 @@ export const errorHandler = (
     userAgent: req.get('User-Agent'),
     ip: req.ip,
     timestamp: new Date().toISOString(),
-    ...(errors && { validationErrors: errors })
+    ...(errors && { validationErrors: errors }),
   });
 
   const response: ErrorResponse = {
@@ -93,10 +91,10 @@ export const errorHandler = (
     code,
     requestId,
     ...(errors && { errors }),
-    ...(process.env.NODE_ENV === 'development' && { 
+    ...(process.env.NODE_ENV === 'development' && {
       stack: error.stack,
-      originalError: error.message 
-    })
+      originalError: error.message,
+    }),
   };
 
   res.status(statusCode).json(response);

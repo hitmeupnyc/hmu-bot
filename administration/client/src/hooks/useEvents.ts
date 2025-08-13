@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { Event, CreateEventRequest, UpdateEventRequest } from '@/types';
+import { Event, CreateEventRequest, UpdateEventRequest, EventWithDetails } from '@/types';
 
 interface EventsResponse {
   success: boolean;
@@ -23,6 +23,8 @@ const eventKeys = {
   all: ['events'] as const,
   lists: () => [...eventKeys.all, 'list'] as const,
   list: (params: GetEventsParams) => [...eventKeys.lists(), params] as const,
+  details: () => [...eventKeys.all, 'details'] as const,
+  detail: (id: number) => [...eventKeys.details(), id] as const,
 };
 
 export function useEvents(params: GetEventsParams = {}) {
@@ -37,6 +39,18 @@ export function useEvents(params: GetEventsParams = {}) {
       events: data.data,
       pagination: data.pagination,
     }),
+  });
+}
+
+export function useEventDetails(id: number, enabled: boolean = true) {
+  return useQuery({
+    queryKey: eventKeys.detail(id),
+    queryFn: async (): Promise<EventWithDetails> => {
+      const response = await api.get(`/events/${id}/details`);
+      return response.data.data;
+    },
+    enabled: enabled && id > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 

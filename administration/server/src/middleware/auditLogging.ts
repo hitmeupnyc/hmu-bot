@@ -73,8 +73,8 @@ export const auditMiddleware =
 
       // Prepare audit data
       const auditData = {
-        entityType,
-        entityId,
+        entity_type: entityType,
+        entity_id: entityId,
         action,
         ...auditInfo,
         oldValues: res._auditOldData ? res._auditOldData : undefined,

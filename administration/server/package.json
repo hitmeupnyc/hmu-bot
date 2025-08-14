@@ -16,7 +16,7 @@
     "db:migrate:latest": "mkdir -p ./data && kysely migrate latest",
     "db:seed": "kysely seed run",
     "db:setup-test": "rm -f ./data/test.db && mkdir -p ./data && DATABASE_PATH=./data/test.db npm run db:migrate:latest && DATABASE_PATH=./data/test.db npm run db:seed",
-    "db:codegen": "kysely-codegen --dialect sqlite --url ./data/club.db --out-file ./src/types/database.ts"
+    "db:codegen": "kysely-codegen --dialect sqlite --url ./data/club.db --out-file ./src/types/index.ts"
   },
   "dependencies": {
     "@types/uuid": "^10.0.0",

@@ -1,9 +1,9 @@
 import axios from 'axios';
 import { Effect, pipe } from 'effect';
 import * as Schema from 'effect/Schema';
-import type { Event, Member } from '../../types';
 import * as BaseSyncEffects from './BaseSyncEffects';
 import { DatabaseService } from './context/DatabaseService';
+import { Event } from './schemas/EventSchemas';
 
 // Eventbrite API schemas
 export const EventbriteAttendeeSchema = Schema.Struct({
@@ -85,7 +85,8 @@ export const EventbriteWebhookPayloadSchema = Schema.Struct({
   }),
 });
 
-export type EventbriteWebhookPayload = typeof EventbriteWebhookPayloadSchema.Type;
+export type EventbriteWebhookPayload =
+  typeof EventbriteWebhookPayloadSchema.Type;
 
 // Error types
 export class EventbriteError {
@@ -101,7 +102,9 @@ const createEventbriteClient = () =>
   Effect.gen(function* () {
     const token = process.env.EVENTBRITE_API_TOKEN;
     if (!token) {
-      return yield* Effect.fail(new EventbriteError('Eventbrite API token not configured'));
+      return yield* Effect.fail(
+        new EventbriteError('Eventbrite API token not configured')
+      );
     }
 
     return axios.create({
@@ -154,18 +157,29 @@ const createEventFromEventbrite = (eventData: EventbriteEvent) =>
     };
 
     const result = yield* db.query(async (db) =>
-      db.insertInto('events').values(eventRecord).returning('id').executeTakeFirstOrThrow()
+      db
+        .insertInto('events')
+        .values(eventRecord)
+        .returning('id')
+        .executeTakeFirstOrThrow()
     );
 
     const newEvent = yield* db.query(async (db) =>
-      db.selectFrom('events').selectAll().where('id', '=', result.id).executeTakeFirstOrThrow()
+      db
+        .selectFrom('events')
+        .selectAll()
+        .where('id', '=', result.id)
+        .executeTakeFirstOrThrow()
     );
 
-    return newEvent as Event;
+    return newEvent;
   });
 
 // Update existing event from Eventbrite data
-const updateExistingEvent = (existingEvent: Event, eventData: EventbriteEvent) =>
+const updateExistingEvent = (
+  existingEvent: Event,
+  eventData: EventbriteEvent
+) =>
   Effect.gen(function* () {
     const db = yield* DatabaseService;
 
@@ -193,11 +207,15 @@ const updateExistingEvent = (existingEvent: Event, eventData: EventbriteEvent) =
         .executeTakeFirstOrThrow()
     );
 
-    return updatedEvent as Event;
+    return updatedEvent;
   });
 
 // Record event attendance
-const recordEventAttendance = (memberId: number, eventId: number, attendee: EventbriteAttendee) =>
+const recordEventAttendance = (
+  memberId: number,
+  eventId: number,
+  attendee: EventbriteAttendee
+) =>
   Effect.gen(function* () {
     const db = yield* DatabaseService;
 
@@ -213,7 +231,9 @@ const recordEventAttendance = (memberId: number, eventId: number, attendee: Even
         })
         .onConflict((oc) =>
           oc.columns(['event_id', 'member_id']).doUpdateSet({
-            checked_in_at: attendee.checked_in ? new Date().toISOString() : null,
+            checked_in_at: attendee.checked_in
+              ? new Date().toISOString()
+              : null,
             notes: `Eventbrite attendee ID: ${attendee.id}, Status: ${attendee.status}`,
           })
         )
@@ -221,58 +241,12 @@ const recordEventAttendance = (memberId: number, eventId: number, attendee: Even
     );
   });
 
-// Sync Eventbrite attendee
-export const syncAttendee = (attendee: EventbriteAttendee, eventId: string) =>
-  Effect.gen(function* () {
-    const validatedAttendee = yield* Schema.decodeUnknown(EventbriteAttendeeSchema)(attendee);
-
-    if (!validatedAttendee.profile.email) {
-      return null;
-    }
-
-    // Find or create member
-    const existingMember = yield* BaseSyncEffects.findMemberByEmail(
-      validatedAttendee.profile.email
-    );
-
-    let member: Member;
-    if (existingMember) {
-      member = yield* BaseSyncEffects.updateExistingMember(existingMember, {
-        first_name: validatedAttendee.profile.first_name,
-        last_name: validatedAttendee.profile.last_name,
-      });
-    } else {
-      member = yield* BaseSyncEffects.createBaseMember({
-        first_name: validatedAttendee.profile.first_name || 'Unknown',
-        last_name: validatedAttendee.profile.last_name || 'User',
-        email: validatedAttendee.profile.email,
-        flags: 1, // Active by default
-        date_added: new Date().toISOString(),
-      });
-    }
-
-    // Update external integration
-    yield* BaseSyncEffects.upsertExternalIntegration(
-      member.id,
-      'eventbrite',
-      validatedAttendee.id,
-      validatedAttendee,
-      1
-    );
-
-    // Record event attendance if we have the event
-    const localEvent = yield* findEventByEventbriteId(eventId);
-    if (localEvent) {
-      yield* recordEventAttendance(member.id, localEvent.id, validatedAttendee);
-    }
-
-    return member;
-  });
-
 // Sync Eventbrite event
 export const syncEvent = (eventData: EventbriteEvent) =>
   Effect.gen(function* () {
-    const validatedEvent = yield* Schema.decodeUnknown(EventbriteEventSchema)(eventData);
+    const validatedEvent = yield* Schema.decodeUnknown(EventbriteEventSchema)(
+      eventData
+    );
 
     const existingEvent = yield* findEventByEventbriteId(validatedEvent.id);
 
@@ -289,8 +263,10 @@ const processOrder = (orderUrl: string) =>
     const client = yield* createEventbriteClient();
 
     const orderResponse = yield* Effect.tryPromise({
-      try: () => client.get(orderUrl.replace('https://www.eventbriteapi.com/v3', '')),
-      catch: (error) => new EventbriteError(`Failed to fetch order: ${String(error)}`),
+      try: () =>
+        client.get(orderUrl.replace('https://www.eventbriteapi.com/v3', '')),
+      catch: (error) =>
+        new EventbriteError(`Failed to fetch order: ${String(error)}`),
     });
 
     const order = orderResponse.data;
@@ -298,32 +274,13 @@ const processOrder = (orderUrl: string) =>
     // Get attendees for this order
     const attendeesResponse = yield* Effect.tryPromise({
       try: () => client.get(`/orders/${order.id}/attendees/`),
-      catch: (error) => new EventbriteError(`Failed to fetch attendees: ${String(error)}`),
+      catch: (error) =>
+        new EventbriteError(`Failed to fetch attendees: ${String(error)}`),
     });
 
     const attendees: EventbriteAttendee[] = attendeesResponse.data.attendees;
 
-    // Sync all attendees
-    yield* Effect.forEach(attendees, (attendee) => syncAttendee(attendee, order.event_id), {
-      concurrency: 5,
-    });
-
     return { orderProcessed: order.id, attendeesCount: attendees.length };
-  });
-
-// Process single attendee
-const processAttendee = (attendeeUrl: string) =>
-  Effect.gen(function* () {
-    const client = yield* createEventbriteClient();
-
-    const response = yield* Effect.tryPromise({
-      try: () => client.get(attendeeUrl.replace('https://www.eventbriteapi.com/v3', '')),
-      catch: (error) => new EventbriteError(`Failed to fetch attendee: ${String(error)}`),
-    });
-
-    const attendee: EventbriteAttendee = response.data;
-
-    return yield* syncAttendee(attendee, attendee.event_id);
   });
 
 // Process event
@@ -332,8 +289,10 @@ const processEvent = (eventUrl: string) =>
     const client = yield* createEventbriteClient();
 
     const response = yield* Effect.tryPromise({
-      try: () => client.get(eventUrl.replace('https://www.eventbriteapi.com/v3', '')),
-      catch: (error) => new EventbriteError(`Failed to fetch event: ${String(error)}`),
+      try: () =>
+        client.get(eventUrl.replace('https://www.eventbriteapi.com/v3', '')),
+      catch: (error) =>
+        new EventbriteError(`Failed to fetch event: ${String(error)}`),
     });
 
     const eventData: EventbriteEvent = response.data;
@@ -344,7 +303,9 @@ const processEvent = (eventUrl: string) =>
 // Handle Eventbrite webhook
 export const handleWebhook = (payload: EventbriteWebhookPayload) =>
   Effect.gen(function* () {
-    const validatedPayload = yield* Schema.decodeUnknown(EventbriteWebhookPayloadSchema)(payload);
+    const validatedPayload = yield* Schema.decodeUnknown(
+      EventbriteWebhookPayloadSchema
+    )(payload);
     const { action } = validatedPayload.config;
     const { api_url } = validatedPayload;
 
@@ -364,12 +325,6 @@ export const handleWebhook = (payload: EventbriteWebhookPayload) =>
         case 'order.placed':
         case 'order.updated':
           result = yield* processOrder(api_url);
-          break;
-
-        case 'attendee.updated':
-        case 'attendee.checked_in':
-        case 'attendee.checked_out':
-          result = yield* processAttendee(api_url);
           break;
 
         case 'event.published':
@@ -426,7 +381,8 @@ export const bulkSyncEvents = (organizerId?: string) =>
 
       const response = yield* Effect.tryPromise({
         try: () => client.get('/events/', { params }),
-        catch: (error) => new EventbriteError(`Failed to fetch events: ${String(error)}`),
+        catch: (error) =>
+          new EventbriteError(`Failed to fetch events: ${String(error)}`),
       });
 
       const events: EventbriteEvent[] = response.data.events;
@@ -447,74 +403,11 @@ export const bulkSyncEvents = (organizerId?: string) =>
               pipe(
                 syncEvent(event),
                 Effect.tap(() =>
-                  BaseSyncEffects.updateSyncOperation(syncOp.id!, 'success', 'Event synced')
-                ),
-                Effect.map(() => ({ success: true })),
-                Effect.catchAll((error) =>
-                  pipe(
-                    BaseSyncEffects.updateSyncOperation(
-                      syncOp.id!,
-                      'failed',
-                      error instanceof Error ? error.message : 'Unknown error'
-                    ),
-                    Effect.map(() => ({ success: false }))
+                  BaseSyncEffects.updateSyncOperation(
+                    syncOp.id!,
+                    'success',
+                    'Event synced'
                   )
-                )
-              )
-            )
-          ),
-        { concurrency: 10 }
-      );
-
-      results.forEach((result) => {
-        if (result.success) {
-          synced++;
-        } else {
-          errors++;
-        }
-      });
-
-      hasMore = response.data.pagination.has_more_items;
-      page++;
-    }
-
-    return { synced, errors };
-  });
-
-// Bulk sync attendees for a specific event
-export const bulkSyncAttendees = (eventId: string) =>
-  Effect.gen(function* () {
-    const client = yield* createEventbriteClient();
-    let synced = 0;
-    let errors = 0;
-    let page = 1;
-    let hasMore = true;
-
-    while (hasMore) {
-      const response = yield* Effect.tryPromise({
-        try: () => client.get(`/events/${eventId}/attendees/`, { params: { page } }),
-        catch: (error) => new EventbriteError(`Failed to fetch attendees: ${String(error)}`),
-      });
-
-      const attendees: EventbriteAttendee[] = response.data.attendees;
-
-      // Process attendees in parallel
-      const results = yield* Effect.forEach(
-        attendees,
-        (attendee) =>
-          pipe(
-            BaseSyncEffects.createSyncOperation({
-              platform: 'eventbrite',
-              operation_type: 'bulk_sync',
-              external_id: attendee.id,
-              status: 'pending',
-              payload_json: JSON.stringify(attendee),
-            }),
-            Effect.flatMap((syncOp) =>
-              pipe(
-                syncAttendee(attendee, eventId),
-                Effect.tap(() =>
-                  BaseSyncEffects.updateSyncOperation(syncOp.id!, 'success', 'Attendee synced')
                 ),
                 Effect.map(() => ({ success: true })),
                 Effect.catchAll((error) =>

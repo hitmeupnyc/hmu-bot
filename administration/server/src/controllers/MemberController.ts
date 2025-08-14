@@ -151,8 +151,8 @@ export const addMemberNote = (req: Request, res: Response) =>
 
     // Log note creation as an audit event
     yield* AuditEffects.logAuditEvent({
-      entityType: 'member',
-      entityId: id,
+      entity_type: 'member',
+      entity_id: id,
       action: 'note',
       userSessionId: req.session?.id || 'anonymous',
       userId: req.session?.user.id || 'anonymous',

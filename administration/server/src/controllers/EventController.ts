@@ -1,19 +1,27 @@
-import type { Request, Response } from 'express';
 import { Effect } from 'effect';
-import type { 
-  CreateEventPayload, 
-  UpdateEventPayload, 
-  CreateEventMarketingPayload, 
-  CreateVolunteerPayload, 
-  CreateAttendancePayload 
-} from '../types/events';
+import type { Request, Response } from 'express';
 import * as EventEffects from '../services/effect/EventEffects';
-import { extractId, extractBody, extractQuery } from '../services/effect/adapters/expressAdapter';
-import { createSuccessResponse, createSuccessResponseWithMessage, createPaginatedResponse } from './helpers/responseFormatters';
+import {
+  extractBody,
+  extractId,
+  extractQuery,
+} from '../services/effect/adapters/expressAdapter';
+import {
+  CreateAttendance,
+  CreateEvent,
+  CreateEventMarketing,
+  CreateVolunteer,
+  UpdateEvent,
+} from '../services/effect/schemas/EventSchemas';
+import {
+  createPaginatedResponse,
+  createSuccessResponse,
+  createSuccessResponseWithMessage,
+} from './helpers/responseFormatters';
 
 /**
  * Event Controller
- * 
+ *
  * Handles all event-related business logic and orchestrates calls to EventEffects.
  * All functions return Effects for composability with the existing Effect-TS infrastructure.
  */
@@ -34,7 +42,7 @@ export const listEvents = (req: Request, res: Response) =>
     const upcoming = (query as any).upcoming === 'true';
 
     const result = yield* EventEffects.getEvents({ page, limit, upcoming });
-    
+
     return createPaginatedResponse(result.events, result.pagination);
   });
 
@@ -46,7 +54,7 @@ export const getEvent = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const id = yield* extractId(req);
     const event = yield* EventEffects.getEventById(id);
-    
+
     return createSuccessResponse(event);
   });
 
@@ -58,7 +66,7 @@ export const getEventDetails = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const id = yield* extractId(req);
     const eventDetails = yield* EventEffects.getEventWithDetails(id);
-    
+
     return createSuccessResponse(eventDetails);
   });
 
@@ -68,13 +76,16 @@ export const getEventDetails = (req: Request, res: Response) =>
  */
 export const createEvent = (req: Request, res: Response) =>
   Effect.gen(function* () {
-    const eventData = yield* extractBody<CreateEventPayload>(req);
+    const eventData = yield* extractBody<CreateEvent>(req);
     // Ensure flags has a default value (bitfield for active state)
     const eventWithFlags = { ...eventData, flags: eventData.flags ?? 1 };
     const event = yield* EventEffects.createEvent(eventWithFlags);
-    
+
     res.status(201);
-    return createSuccessResponseWithMessage(event, 'Event created successfully');
+    return createSuccessResponseWithMessage(
+      event,
+      'Event created successfully'
+    );
   });
 
 /**
@@ -84,12 +95,15 @@ export const createEvent = (req: Request, res: Response) =>
 export const updateEvent = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const id = yield* extractId(req);
-    const eventData = yield* extractBody<Partial<UpdateEventPayload>>(req);
-    
+    const eventData = yield* extractBody<Partial<UpdateEvent>>(req);
+
     const updatePayload = { ...eventData, id };
     const event = yield* EventEffects.updateEvent(updatePayload);
-    
-    return createSuccessResponseWithMessage(event, 'Event updated successfully');
+
+    return createSuccessResponseWithMessage(
+      event,
+      'Event updated successfully'
+    );
   });
 
 // =====================================
@@ -104,7 +118,7 @@ export const getEventMarketing = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const id = yield* extractId(req);
     const marketing = yield* EventEffects.getEventMarketing(id);
-    
+
     return createSuccessResponse(marketing);
   });
 
@@ -115,19 +129,15 @@ export const getEventMarketing = (req: Request, res: Response) =>
 export const createEventMarketing = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const eventId = yield* extractId(req);
-    const bodyData = yield* extractBody<CreateEventMarketingPayload>(req);
-    
-    // Transform marketing_images from MarketingImage[] to string[]
-    const transformedData = {
-      ...bodyData,
-      event_id: eventId,
-      marketing_images: bodyData.marketing_images?.map(img => img.url) || undefined
-    };
-    
-    const marketing = yield* EventEffects.createEventMarketing(transformedData);
-    
+    const bodyData = yield* extractBody<CreateEventMarketing>(req);
+
+    const marketing = yield* EventEffects.createEventMarketing(bodyData);
+
     res.status(201);
-    return createSuccessResponseWithMessage(marketing, 'Event marketing created successfully');
+    return createSuccessResponseWithMessage(
+      marketing,
+      'Event marketing created successfully'
+    );
   });
 
 // =====================================
@@ -142,7 +152,7 @@ export const getEventVolunteers = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const id = yield* extractId(req);
     const volunteers = yield* EventEffects.getEventVolunteers(id);
-    
+
     return createSuccessResponse(volunteers);
   });
 
@@ -153,20 +163,15 @@ export const getEventVolunteers = (req: Request, res: Response) =>
 export const createVolunteer = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const eventId = yield* extractId(req);
-    const bodyData = yield* extractBody<CreateVolunteerPayload>(req);
-    
-    // Transform complex arrays to simple string arrays
-    const transformedData = {
-      ...bodyData,
-      event_id: eventId,
-      equipment_needed: bodyData.equipment_needed?.map(eq => eq.name) || undefined,
-      skills_required: bodyData.skills_required?.map(skill => skill.name) || undefined
-    };
-    
-    const volunteer = yield* EventEffects.createVolunteer(transformedData);
-    
+    const bodyData = yield* extractBody<CreateVolunteer>(req);
+
+    const volunteer = yield* EventEffects.createVolunteer(bodyData);
+
     res.status(201);
-    return createSuccessResponseWithMessage(volunteer, 'Volunteer added successfully');
+    return createSuccessResponseWithMessage(
+      volunteer,
+      'Volunteer added successfully'
+    );
   });
 
 // =====================================
@@ -181,7 +186,7 @@ export const getEventAttendance = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const id = yield* extractId(req);
     const attendance = yield* EventEffects.getEventAttendance(id);
-    
+
     return createSuccessResponse(attendance);
   });
 
@@ -192,16 +197,19 @@ export const getEventAttendance = (req: Request, res: Response) =>
 export const createAttendance = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const eventId = yield* extractId(req);
-    const bodyData = yield* extractBody<CreateAttendancePayload>(req);
-    const attendanceData = { 
-      ...bodyData, 
+    const bodyData = yield* extractBody<CreateAttendance>(req);
+    const attendanceData = {
+      ...bodyData,
       event_id: eventId,
-      attendance_source: bodyData.attendance_source ?? 1 // Default to manual
+      attendance_source: bodyData.attendance_source ?? 1, // Default to manual
     };
     const attendance = yield* EventEffects.createAttendance(attendanceData);
-    
+
     res.status(201);
-    return createSuccessResponseWithMessage(attendance, 'Attendance record created successfully');
+    return createSuccessResponseWithMessage(
+      attendance,
+      'Attendance record created successfully'
+    );
   });
 
 /**
@@ -211,11 +219,17 @@ export const createAttendance = (req: Request, res: Response) =>
 export const checkInAttendee = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const attendanceId = yield* extractId(req);
-    const bodyData = yield* extractBody<{check_in_method: string}>(req);
-    
-    const attendance = yield* EventEffects.checkInAttendee(attendanceId, bodyData.check_in_method);
-    
-    return createSuccessResponseWithMessage(attendance, 'Attendee checked in successfully');
+    const bodyData = yield* extractBody<{ check_in_method: string }>(req);
+
+    const attendance = yield* EventEffects.checkInAttendee(
+      attendanceId,
+      bodyData.check_in_method
+    );
+
+    return createSuccessResponseWithMessage(
+      attendance,
+      'Attendee checked in successfully'
+    );
   });
 
 // =====================================
@@ -225,28 +239,36 @@ export const checkInAttendee = (req: Request, res: Response) =>
 /**
  * Check in member to event (legacy endpoint)
  * POST /api/events/:id/checkin
- * 
+ *
  * @deprecated This endpoint combines attendance creation and check-in.
  * New implementations should use separate attendance creation and check-in endpoints.
  */
 export const legacyCheckInMember = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const eventId = yield* extractId(req);
-    const bodyData = yield* extractBody<{member_id: number}>(req);
-    
+    const bodyData = yield* extractBody<{ member_id: number }>(req);
+
     // Create attendance record and check in
     const attendanceData = {
       event_id: eventId,
       member_id: bodyData.member_id,
       attendance_source: 1, // Manual
-      check_in_method: 'manual'
+      check_in_method: 'manual',
     };
-    
+
     const attendance = yield* EventEffects.createAttendance(attendanceData);
     if (!attendance.id) {
-      return yield* Effect.fail(new Error('Failed to create attendance record'));
+      return yield* Effect.fail(
+        new Error('Failed to create attendance record')
+      );
     }
-    const checkedIn = yield* EventEffects.checkInAttendee(attendance.id!, 'manual');
-    
-    return createSuccessResponseWithMessage(checkedIn, 'Member checked in successfully');
+    const checkedIn = yield* EventEffects.checkInAttendee(
+      attendance.id!,
+      'manual'
+    );
+
+    return createSuccessResponseWithMessage(
+      checkedIn,
+      'Member checked in successfully'
+    );
   });

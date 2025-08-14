@@ -1,18 +1,14 @@
 import { Effect, pipe, Schema } from 'effect';
 import { DatabaseService } from './context/DatabaseService';
-import {
-  AuditLogEntrySchema,
-  type AuditLogEntry,
-} from './schemas/CommonSchemas';
+import { Audit, AuditSchema } from './schemas/AuditSchema';
 
 /**
  * Log an audit event
  */
-export const logAuditEvent = (entry: AuditLogEntry) =>
+export const logAuditEvent = (entry: Audit) =>
   Effect.gen(function* () {
     const db = yield* DatabaseService;
-    const validatedEntry =
-      yield* Schema.decodeUnknown(AuditLogEntrySchema)(entry);
+    const validatedEntry = yield* Schema.decodeUnknown(AuditSchema)(entry);
 
     // Non-failing audit logging - errors are logged but don't throw
     return yield* pipe(
@@ -20,8 +16,8 @@ export const logAuditEvent = (entry: AuditLogEntry) =>
         db
           .insertInto('audit_log')
           .values({
-            entity_type: validatedEntry.entityType,
-            entity_id: validatedEntry.entityId || null,
+            entity_type: validatedEntry.entity_type,
+            entity_id: validatedEntry.entity_id || null,
             action: validatedEntry.action,
             user_session_id: validatedEntry.userSessionId || null,
             user_ip: validatedEntry.userIp || null,

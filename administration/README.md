@@ -17,39 +17,52 @@ npm run setup && npm run dev
 ## Daily Commands
 
 ```bash
-npm run dev           # Start everything
-npm test              # Run tests
-npm run lint          # Check code quality
-npm run reset         # Nuclear option if broken
+# Force any existing server to stop, then run in the background
+npm run ports:clear; npm run dev > /dev/null 2>&1 & 
+
+npm run dev         # Start everything
+npm run dev:e2e     # Start everything for E2E test run
+npm test            # Run tests
+npm run test:e2e    # Run E2E tests
+npm run lint        # Check code quality
+npm run typecheck   # Check types
+npm run ports:clear # Clear ports
 ```
-
-## External Services (Optional)
-
-### Discord Bot (Recommended)
-1. Create bot: https://discord.com/developers/applications
-2. Add to `.env`: `DISCORD_BOT_TOKEN=your_token`
-3. Test: `curl -X POST localhost:3000/api/discord/sync`
-
-### Other Services
-Copy `server/.env.example` to `server/.env` and add:
-- `KLAVIYO_API_KEY` - Email marketing
-- `EVENTBRITE_API_TOKEN` - Event management  
-- `PATREON_CLIENT_ID/SECRET` - Membership tiers
-
-## Troubleshooting
-
-**Database issues**: `npm run dev:db-reset`
-**Port conflicts**: `npm run ports:clear`
-**Everything broken**: `npm run reset`
 
 ## File Structure
 
 ```
 administration/
-├── server/          # Node.js API
-├── client/          # React frontend  
-├── tests/           # E2E tests
-└── notes/           # Technical decisions
+├── server/src/ # API server
+│   ├── routes/ # Route definitions
+│   │   └── memberRoutes.ts # Thin routing layer
+│   ├── controllers/ # Business logic
+│   │   ├── # business logic used in routes
+│   │   └── helpers/ # Shared utilities
+│   └── services/
+│       └── effect/
+│           ├── layers/ # Database layer with resource management
+│           ├── context/ # Database service interface & factory
+│           ├── schemas/ # Shared schemas (audit, Discord, etc.)
+│           ├── errors/ # Specific errors
+│           ├── examples/ # Usage examples and Express adapters
+│           └── # business logic
+├── client/src/ # React frontend  
+│   ├── routes/ # Route definitions
+│   ├── components/ # UI components
+│   ├── pages/ # Page components
+│   ├── hooks/ # Custom hooks
+│   ├── types/ # Custom types
+│   ├── features/ # Feature folders
+│   │   ├── FeatureName/
+│   │   │   ├── components/ # UI components
+│   │   │   │   └── index.ts # Barrel file export
+│   │   │   └── hooks/ # Custom hooks
+│   └── lib/
+│       ├── App.tsx
+│       └── main.tsx
+├── tests/ # E2E tests
+└── notes/ # Technical decisions
 ```
 
 ## Before Committing
@@ -57,7 +70,3 @@ administration/
 ```bash
 npm run lint && npm run typecheck && npm test
 ```
-
----
-
-**Need more details?** Check CLAUDE.md for advanced commands or ask in Slack.

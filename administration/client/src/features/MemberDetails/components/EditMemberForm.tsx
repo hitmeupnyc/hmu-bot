@@ -1,5 +1,5 @@
+import { Member, MemberFormData } from '@/types';
 import { useState } from 'react';
-import { Member, MemberFormData } from '../../../types';
 
 interface EditMemberFormProps {
   member?: Member;

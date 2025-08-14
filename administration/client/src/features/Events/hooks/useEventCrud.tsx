@@ -1,10 +1,11 @@
 import { useNavigate } from 'react-router-dom';
+
 import {
   useCreateEvent,
   useDeleteEvent,
   useUpdateEvent,
-} from '../../../hooks/useEvents';
-import { Event, EventFormData } from '../../../types';
+} from '@/hooks/useEvents';
+import { Event, EventFormData } from '@/types';
 
 export function useEventCrud() {
   const navigate = useNavigate();
@@ -37,14 +38,16 @@ export function useEventCrud() {
       start_datetime: formData.start_datetime,
       end_datetime: formData.end_datetime,
       is_public: formData.is_public,
-      max_capacity: formData.max_capacity ? parseInt(formData.max_capacity) : undefined,
+      max_capacity: formData.max_capacity
+        ? parseInt(formData.max_capacity)
+        : undefined,
     };
-    
+
     try {
       if (editingEvent) {
         await updateEvent.mutateAsync({
           id: editingEvent.id,
-          ...eventData
+          ...eventData,
         });
         onSuccess();
       } else {

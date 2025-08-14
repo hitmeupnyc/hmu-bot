@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { signIn, useSession } from '../lib/auth-client';
+
+import { signIn, useSession } from '@/lib/auth-client';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');

@@ -93,32 +93,4 @@ router.delete(
   effectToExpress(MemberController.deleteMember)
 );
 
-// ============================================================================
-// Related Resource Endpoints
-// ============================================================================
-
-/**
- * GET /api/members/:id/memberships
- * Get all memberships for a specific member
- */
-router.get(
-  '/:id/memberships',
-  readOnlyLimiter,
-  validate({ params: idParamSchema }),
-  auditMiddleware('member-memberships'),
-  effectToExpress(MemberController.getMemberMemberships)
-);
-
-/**
- * GET /api/members/:id/events
- * Get event attendance history for a specific member
- */
-router.get(
-  '/:id/events',
-  readOnlyLimiter,
-  validate({ params: idParamSchema }),
-  auditMiddleware('member-events'),
-  effectToExpress(MemberController.getMemberEvents)
-);
-
 export { router as memberRoutes };

@@ -1,18 +1,15 @@
 import crypto from 'crypto';
 import { Effect, pipe } from 'effect';
 import * as Schema from 'effect/Schema';
-import type { Member } from '../../types';
 import {
   createBaseMember,
   createSyncOperation,
   findMemberByEmail,
   updateExistingMember,
-  updateMemberFlag,
   updateSyncOperation,
   upsertExternalIntegration,
   verifyMD5Signature,
 } from './BaseSyncEffects';
-import { DatabaseService } from './context/DatabaseService';
 import {
   PatreonAPIError,
   PatreonConfigError,
@@ -20,6 +17,7 @@ import {
   PatreonSyncError,
   PatreonWebhookError,
 } from './errors/PatreonErrors';
+import { Member, MemberSchema } from './schemas/MemberSchemas';
 import {
   PatreonConfigSchema,
   PatreonPledgeSchema,
@@ -70,11 +68,18 @@ export const loadPatreonConfig = () =>
 /**
  * Verify Patreon webhook signature
  */
-export const verifyPatreonWebhookSignature = (payload: string, signature: string) =>
+export const verifyPatreonWebhookSignature = (
+  payload: string,
+  signature: string
+) =>
   Effect.gen(function* () {
     const config = yield* loadPatreonConfig();
 
-    const isValid = yield* verifyMD5Signature(payload, signature, config.webhookSecret);
+    const isValid = yield* verifyMD5Signature(
+      payload,
+      signature,
+      config.webhookSecret
+    );
 
     if (!isValid) {
       return yield* new PatreonWebhookError({
@@ -87,64 +92,13 @@ export const verifyPatreonWebhookSignature = (payload: string, signature: string
   });
 
 /**
- * Determine membership type based on pledge amount
- */
-const determineMembershipType = (pledge: PatreonPledge, reward?: PatreonReward) =>
-  Effect.gen(function* () {
-    const amount = pledge.attributes.amount_cents;
-
-    // Example tier mapping - customize for your club
-    if (amount >= 2500) return 3; // Tier 3 ($25+)
-    if (amount >= 1000) return 2; // Tier 2 ($10+)
-    if (amount >= 500) return 1; // Tier 1 ($5+)
-
-    return null; // Below minimum tier
-  });
-
-/**
- * Update member membership based on pledge
- */
-const updateMemberMembership = (
-  memberId: number,
-  membershipTypeId: number,
-  pledge: PatreonPledge
-) =>
-  Effect.gen(function* () {
-    const db = yield* DatabaseService;
-
-    // End any existing active memberships
-    yield* db.query(async (db) =>
-      db
-        .updateTable('member_memberships')
-        .set({ end_date: new Date().toISOString() })
-        .where('member_id', '=', memberId)
-        .where('end_date', 'is', null)
-        .execute()
-    );
-
-    // Create new membership if pledge is active
-    if (!pledge.attributes.declined_since) {
-      yield* db.query(async (db) =>
-        db
-          .insertInto('member_memberships')
-          .values({
-            member_id: memberId,
-            membership_type_id: membershipTypeId,
-            start_date: new Date().toISOString(),
-            external_payment_reference: `patreon_pledge_${pledge.id}`,
-          })
-          .execute()
-      );
-    }
-  });
-
-/**
  * Create member from Patreon user data
  */
 const createMemberFromPatron = (patron: PatreonUser) =>
   Effect.gen(function* () {
     const baseFlags = 1; // Active by default
-    const statusFlags = patron.attributes.patron_status === 'active_patron' ? 2 : 0;
+    const statusFlags =
+      patron.attributes.patron_status === 'active_patron' ? 2 : 0;
 
     return yield* createBaseMember({
       first_name: patron.attributes.first_name || 'Unknown',
@@ -158,7 +112,10 @@ const createMemberFromPatron = (patron: PatreonUser) =>
 /**
  * Update existing member from Patreon data
  */
-const updateExistingMemberFromPatron = (existingMember: Member, patron: PatreonUser) =>
+const updateExistingMemberFromPatron = (
+  existingMember: Member,
+  patron: PatreonUser
+) =>
   Effect.gen(function* () {
     const updates = {
       first_name: patron.attributes.first_name,
@@ -166,34 +123,6 @@ const updateExistingMemberFromPatron = (existingMember: Member, patron: PatreonU
     };
 
     return yield* updateExistingMember(existingMember, updates);
-  });
-
-/**
- * Process a pledge for a specific member
- */
-const processPledgeForMember = (
-  memberId: number,
-  pledge: PatreonPledge,
-  included: Array<PatreonUser | PatreonPledge | PatreonReward> = []
-) =>
-  Effect.gen(function* () {
-    // Find the reward tier for this pledge
-    const reward = included.find(
-      (item) => item.type === 'reward' && item.id === pledge.relationships.reward.data.id
-    ) as PatreonReward | undefined;
-
-    // Determine membership type based on pledge amount or reward tier
-    const membershipTypeId = yield* determineMembershipType(pledge, reward);
-
-    if (membershipTypeId) {
-      yield* updateMemberMembership(memberId, membershipTypeId, pledge);
-    }
-
-    // Update member status based on pledge amount
-    if (pledge.attributes.amount_cents >= 1000) {
-      // $10+ gets special status
-      yield* updateMemberFlag(memberId, 2, true); // Set special status flag
-    }
   });
 
 /**
@@ -205,40 +134,51 @@ export const syncPatron = (
   syncOperationId: number
 ) =>
   Effect.gen(function* () {
-    const validatedPatron = yield* Schema.decodeUnknown(PatreonUserSchema)(patron);
+    const validatedPatron =
+      yield* Schema.decodeUnknown(PatreonUserSchema)(patron);
 
     if (!validatedPatron.attributes.email) {
-      yield* updateSyncOperation(syncOperationId, 'failed', 'No email in patron data');
+      yield* updateSyncOperation(
+        syncOperationId,
+        'failed',
+        'No email in patron data'
+      );
       return null;
     }
 
     // Check if member exists by email
-    const existingMember = yield* findMemberByEmail(validatedPatron.attributes.email);
+    const existingMember = yield* findMemberByEmail(
+      validatedPatron.attributes.email
+    );
+    const vExistingMember =
+      yield* Schema.decodeUnknown(MemberSchema)(existingMember);
     let member: Member;
 
     if (existingMember) {
-      member = yield* updateExistingMemberFromPatron(existingMember, validatedPatron);
+      let m = yield* updateExistingMemberFromPatron(
+        vExistingMember,
+        validatedPatron
+      );
+      member = yield* Schema.decodeUnknown(MemberSchema)(m);
     } else {
-      member = yield* createMemberFromPatron(validatedPatron);
+      let m = yield* createMemberFromPatron(validatedPatron);
+      member = yield* Schema.decodeUnknown(MemberSchema)(m);
     }
 
     // Update external integration
-    yield* upsertExternalIntegration(member.id, 'patreon', validatedPatron.id, validatedPatron);
-
-    // Process any included pledges for this patron
-    const patronPledges = included.filter(
-      (item) =>
-        item.type === 'pledge' &&
-        (item as PatreonPledge).relationships?.patron?.data?.id === validatedPatron.id
-    ) as PatreonPledge[];
-
-    yield* Effect.forEach(
-      patronPledges,
-      (pledge) => processPledgeForMember(member.id, pledge, included),
-      { concurrency: 3 }
+    yield* upsertExternalIntegration(
+      member.id,
+      'patreon',
+      validatedPatron.id,
+      validatedPatron
     );
 
-    yield* updateSyncOperation(syncOperationId, 'success', 'Patron synced', member.id);
+    yield* updateSyncOperation(
+      syncOperationId,
+      'success',
+      'Patron synced',
+      member.id
+    );
     return member;
   }).pipe(
     Effect.mapError((error) =>
@@ -261,25 +201,26 @@ export const syncPledge = (
   syncOperationId: number
 ) =>
   Effect.gen(function* () {
-    const validatedPledge = yield* Schema.decodeUnknown(PatreonPledgeSchema)(pledge);
+    const validatedPledge =
+      yield* Schema.decodeUnknown(PatreonPledgeSchema)(pledge);
 
     // Find the patron for this pledge
     const patron = included.find(
-      (item) => item.type === 'user' && item.id === validatedPledge.relationships.patron.data.id
+      (item) =>
+        item.type === 'user' &&
+        item.id === validatedPledge.relationships.patron.data.id
     ) as PatreonUser | undefined;
 
     if (!patron) {
-      yield* updateSyncOperation(syncOperationId, 'failed', 'No patron data in pledge webhook');
+      yield* updateSyncOperation(
+        syncOperationId,
+        'failed',
+        'No patron data in pledge webhook'
+      );
       return;
     }
 
-    // Sync the patron first
-    const member = yield* syncPatron(patron, included, syncOperationId);
-
-    if (member) {
-      yield* processPledgeForMember(member.id, validatedPledge, included);
-      yield* updateSyncOperation(syncOperationId, 'success', 'Pledge synced', member.id);
-    }
+    // TODO: Update member flags based on pledge amount
   }).pipe(
     Effect.mapError((error) =>
       error._tag === 'ParseError'
@@ -295,9 +236,14 @@ export const syncPledge = (
 /**
  * Handle incoming Patreon webhook
  */
-export const handlePatreonWebhook = (payload: PatreonWebhookPayload, signature: string) =>
+export const handlePatreonWebhook = (
+  payload: PatreonWebhookPayload,
+  signature: string
+) =>
   Effect.gen(function* () {
-    const validatedPayload = yield* Schema.decodeUnknown(PatreonWebhookPayloadSchema)(payload);
+    const validatedPayload = yield* Schema.decodeUnknown(
+      PatreonWebhookPayloadSchema
+    )(payload);
 
     // Verify webhook signature
     yield* verifyPatreonWebhookSignature(JSON.stringify(payload), signature);
@@ -385,19 +331,22 @@ export const exchangePatreonOAuthCode = (code: string, redirectUri: string) =>
     return yield* Effect.tryPromise({
       try: async () => {
         // Mock API call - replace with actual HTTP request
-        const response = await fetch('https://www.patreon.com/api/oauth2/token', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            code,
-            grant_type: 'authorization_code',
-            client_id: config.clientId,
-            client_secret: config.clientSecret,
-            redirect_uri: redirectUri,
-          }),
-        });
+        const response = await fetch(
+          'https://www.patreon.com/api/oauth2/token',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              code,
+              grant_type: 'authorization_code',
+              client_id: config.clientId,
+              client_secret: config.clientSecret,
+              redirect_uri: redirectUri,
+            }),
+          }
+        );
 
         if (!response.ok) {
           throw new Error(`OAuth exchange failed: ${response.statusText}`);
@@ -456,7 +405,10 @@ export const bulkSyncPatreons = (campaignId: string) =>
             operation_type: 'bulk_sync',
             external_id: pledge.id,
             status: 'pending',
-            payload_json: JSON.stringify({ data: pledge, included: pledgesData.included }),
+            payload_json: JSON.stringify({
+              data: pledge,
+              included: pledgesData.included,
+            }),
           });
 
           return yield* pipe(

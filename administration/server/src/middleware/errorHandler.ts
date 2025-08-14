@@ -1,5 +1,4 @@
 import { NextFunction, Request, Response } from 'express';
-import { ApiResponse } from '../types';
 import logger from '../utils/logger';
 import { ValidationError } from './validation';
 
@@ -16,6 +15,13 @@ export class AppError extends Error {
 
     Error.captureStackTrace(this, this.constructor);
   }
+}
+
+interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
 }
 
 interface ErrorResponse extends ApiResponse {

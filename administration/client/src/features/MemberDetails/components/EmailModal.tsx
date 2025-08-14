@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Modal } from '../../../components/Modal';
-import { Member } from '../../../types';
+
+import { Modal } from '@/components/Modal';
+import { Member } from '@/types';
 
 interface EmailTemplate {
   id: string;

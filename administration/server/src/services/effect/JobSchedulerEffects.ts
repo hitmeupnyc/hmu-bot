@@ -61,6 +61,10 @@ export class UnknownPlatformError {
   readonly _tag = 'UnknownPlatformError';
   constructor(readonly platform: string) {}
 }
+export class UnknownEventTypeError {
+  readonly _tag = 'UnknownEventTypeError';
+  constructor(readonly eventType: string) {}
+}
 
 // Job state tracking
 interface JobState {
@@ -105,6 +109,13 @@ const processSyncJob = (job: SyncJobData) =>
           return Effect.succeed({
             success: false,
             error: `Unknown platform: ${error.platform}`,
+            processingTime,
+          });
+        }
+        if (error instanceof UnknownEventTypeError) {
+          return Effect.succeed({
+            success: false,
+            error: `Unknown event type: ${error.eventType}`,
             processingTime,
           });
         }
@@ -271,10 +282,8 @@ const executeSyncOperation = (
             payload.organizationId
           );
         }
-        // For individual sync, process the attendee data
-        return yield* EventbriteSyncEffects.syncAttendee(
-          payload,
-          externalId || ''
+        return yield* Effect.fail(
+          new UnknownEventTypeError(`${platform}:${operationType}`)
         );
       }
 

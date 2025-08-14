@@ -1,5 +1,5 @@
+import { CreateVolunteerRequest, Member } from '@/types';
 import React, { useState } from 'react';
-import { CreateVolunteerRequest, Member } from '../types';
 
 const VOLUNTEER_ROLES = [
   'coordinator',

@@ -10,6 +10,7 @@ import {
   upsertExternalIntegration,
 } from './BaseSyncEffects';
 import { SyncResultSchema } from './schemas/CommonSchemas';
+import { MemberSchema } from './schemas/MemberSchemas';
 
 /**
  * Klaviyo profile schema
@@ -78,17 +79,18 @@ export const syncKlaviyoProfile = (
   Effect.gen(function* () {
     const validatedProfile =
       yield* Schema.decodeUnknown(KlaviyoProfileSchema)(profile);
+    const validatedMember = yield* Schema.decodeUnknown(MemberSchema)(profile);
 
     // Look for existing member by email
     let member = yield* findMemberByEmail(validatedProfile.email);
 
-    if (member) {
+    if (member?.id) {
       // Update existing member with Klaviyo data
       const updates = {
         first_name: validatedProfile.first_name,
         last_name: validatedProfile.last_name,
       };
-      member = yield* updateExistingMember(member, updates);
+      member = yield* updateExistingMember(validatedMember, updates);
     } else {
       // Create new member
       member = yield* createMemberFromKlaviyoProfile(validatedProfile);
@@ -96,7 +98,7 @@ export const syncKlaviyoProfile = (
 
     // Update Klaviyo integration
     yield* upsertExternalIntegration(
-      member.id,
+      validatedMember.id,
       'klaviyo',
       validatedProfile.id,
       {
@@ -109,13 +111,13 @@ export const syncKlaviyoProfile = (
     );
 
     // Set email marketing flag
-    yield* updateMemberFlag(member.id, 8, true); // Email subscriber flag
+    yield* updateMemberFlag(validatedMember.id, 8, true); // Email subscriber flag
 
     yield* updateSyncOperation(
       syncOperationId,
       'success',
       'Klaviyo profile synced',
-      member.id
+      validatedMember.id
     );
     return member;
   });
@@ -152,7 +154,7 @@ export const handleKlaviyoWebhook = (payload: KlaviyoWebhookPayload) =>
           const member = yield* findMemberByEmail(
             validatedPayload.profile.email
           );
-          if (member) {
+          if (member?.id) {
             yield* updateMemberFlag(member.id, 8, false); // Remove email subscriber flag
             yield* updateSyncOperation(
               syncOperation.id,

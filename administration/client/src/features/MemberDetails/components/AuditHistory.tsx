@@ -1,4 +1,4 @@
-import { AuditLogEntry } from '../../../hooks/useAudit';
+import { AuditLogEntry } from '@/hooks/useAudit';
 
 interface AuditHistoryProps {
   auditLog: AuditLogEntry[] | undefined;

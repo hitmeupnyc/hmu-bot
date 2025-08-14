@@ -19,6 +19,7 @@ import {
   type DiscordUser,
   type DiscordWebhookPayload,
 } from './schemas/CommonSchemas';
+import { MemberSchema } from './schemas/MemberSchemas';
 
 /**
  * Discord configuration
@@ -39,10 +40,14 @@ const loadDiscordConfig = () =>
 /**
  * Create member from Discord user data
  */
-const createMemberFromDiscordUser = (discordUser: DiscordUser, guildMember?: DiscordGuildMember) =>
+const createMemberFromDiscordUser = (
+  discordUser: DiscordUser,
+  guildMember?: DiscordGuildMember
+) =>
   Effect.gen(function* () {
     // Discord users may not have email, so generate placeholder
-    const email = discordUser.email || `discord_${discordUser.id}@placeholder.local`;
+    const email =
+      discordUser.email || `discord_${discordUser.id}@placeholder.local`;
 
     // Determine display name preference
     const firstName =
@@ -50,7 +55,8 @@ const createMemberFromDiscordUser = (discordUser: DiscordUser, guildMember?: Dis
       guildMember?.nick ||
       discordUser.username ||
       'Discord';
-    const lastName = discordUser.global_name?.split(' ').slice(1).join(' ') || 'User';
+    const lastName =
+      discordUser.global_name?.split(' ').slice(1).join(' ') || 'User';
 
     return yield* createBaseMember({
       first_name: firstName,
@@ -64,16 +70,27 @@ const createMemberFromDiscordUser = (discordUser: DiscordUser, guildMember?: Dis
 /**
  * Sync Discord guild member to local member database
  */
-export const syncDiscordMember = (guildMember: DiscordGuildMember, syncOperationId: number) =>
+export const syncDiscordMember = (
+  guildMember: DiscordGuildMember,
+  syncOperationId: number
+) =>
   Effect.gen(function* () {
-    const validatedMember = yield* Schema.decodeUnknown(DiscordGuildMemberSchema)(guildMember);
+    const validatedMember = yield* Schema.decodeUnknown(
+      DiscordGuildMemberSchema
+    )(guildMember);
 
     // Look for existing member by Discord ID first
-    let member = yield* findMemberByExternalId('discord', validatedMember.user.id);
+    const unvalidatedMember = yield* findMemberByExternalId(
+      'discord',
+      validatedMember.user.id
+    );
+    let member = yield* Schema.decodeUnknown(MemberSchema)(unvalidatedMember);
 
     // If not found by Discord ID, try by email (if available)
     if (!member && validatedMember.user.email) {
-      member = yield* findMemberByEmail(validatedMember.user.email);
+      member = yield* Schema.decodeUnknown(MemberSchema)(
+        findMemberByEmail(validatedMember.user.email)
+      );
     }
 
     if (member) {
@@ -83,39 +100,60 @@ export const syncDiscordMember = (guildMember: DiscordGuildMember, syncOperation
           validatedMember.user.global_name?.split(' ')[0] ||
           validatedMember.nick ||
           validatedMember.user.username,
-        last_name: validatedMember.user.global_name?.split(' ').slice(1).join(' ') || 'User',
+        last_name:
+          validatedMember.user.global_name?.split(' ').slice(1).join(' ') ||
+          'User',
       };
-      member = yield* updateExistingMember(member, updates);
+      member = yield* Schema.decodeUnknown(MemberSchema)(
+        updateExistingMember(member, updates)
+      );
     } else {
       // Create new member
-      member = yield* createMemberFromDiscordUser(validatedMember.user, validatedMember);
+      member = yield* Schema.decodeUnknown(MemberSchema)(
+        createMemberFromDiscordUser(validatedMember.user, validatedMember)
+      );
     }
 
     // Update Discord integration
-    yield* upsertExternalIntegration(member.id, 'discord', validatedMember.user.id, {
-      username: validatedMember.user.username,
-      discriminator: validatedMember.user.discriminator,
-      nick: validatedMember.nick,
-      roles: validatedMember.roles,
-      joined_at: validatedMember.joined_at,
-      premium_since: validatedMember.premium_since,
-    });
+    yield* upsertExternalIntegration(
+      member.id,
+      'discord',
+      validatedMember.user.id,
+      {
+        username: validatedMember.user.username,
+        discriminator: validatedMember.user.discriminator,
+        nick: validatedMember.nick,
+        roles: validatedMember.roles,
+        joined_at: validatedMember.joined_at,
+        premium_since: validatedMember.premium_since,
+      }
+    );
 
     // Update member flags based on roles or premium status
     if (validatedMember.premium_since) {
       yield* updateMemberFlag(member.id, 4, true); // Premium member flag
     }
 
-    yield* updateSyncOperation(syncOperationId, 'success', 'Discord member synced', member.id);
+    yield* updateSyncOperation(
+      syncOperationId,
+      'success',
+      'Discord member synced',
+      member.id
+    );
     return member;
   });
 
 /**
  * Handle Discord webhook event
  */
-export const handleDiscordWebhook = (payload: DiscordWebhookPayload, signature?: string) =>
+export const handleDiscordWebhook = (
+  payload: DiscordWebhookPayload,
+  signature?: string
+) =>
   Effect.gen(function* () {
-    const validatedPayload = yield* Schema.decodeUnknown(DiscordWebhookPayloadSchema)(payload);
+    const validatedPayload = yield* Schema.decodeUnknown(
+      DiscordWebhookPayloadSchema
+    )(payload);
 
     // Verify webhook signature if secret is configured
     if (signature) {
@@ -143,23 +181,20 @@ export const handleDiscordWebhook = (payload: DiscordWebhookPayload, signature?:
         case 'member_join':
         case 'member_update':
           if (validatedPayload.member) {
-            return yield* syncDiscordMember(validatedPayload.member, syncOperation.id);
-          }
-          break;
-
-        case 'member_leave':
-          // Deactivate member's Discord integration
-          const member = yield* findMemberByExternalId('discord', validatedPayload.user_id);
-          if (member) {
-            yield* updateMemberFlag(member.id, 1, false); // Deactivate member
-            yield* updateSyncOperation(syncOperation.id, 'success', 'Member left Discord');
+            return yield* syncDiscordMember(
+              validatedPayload.member,
+              syncOperation.id
+            );
           }
           break;
 
         case 'role_update':
           // Handle role updates
           if (validatedPayload.member) {
-            return yield* syncDiscordMember(validatedPayload.member, syncOperation.id);
+            return yield* syncDiscordMember(
+              validatedPayload.member,
+              syncOperation.id
+            );
           }
           break;
       }
@@ -207,10 +242,13 @@ export const bulkSyncDiscordMembers = (guildId: string) =>
             payload_json: JSON.stringify(member),
           });
 
-          return yield* Effect.match(syncDiscordMember(member, syncOperation.id), {
-            onFailure: () => ({ success: false, userId: member.user.id }),
-            onSuccess: () => ({ success: true, userId: member.user.id }),
-          });
+          return yield* Effect.match(
+            syncDiscordMember(member, syncOperation.id),
+            {
+              onFailure: () => ({ success: false, userId: member.user.id }),
+              onSuccess: () => ({ success: true, userId: member.user.id }),
+            }
+          );
         }),
       { concurrency: 10 }
     );

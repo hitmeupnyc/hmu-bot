@@ -3,7 +3,7 @@ import { Effect, Layer } from 'effect';
 import fs from 'fs';
 import { Kysely, SqliteDialect } from 'kysely';
 import path from 'path';
-import type { DB as DatabaseSchema } from '../../../types/database';
+import type { DB as DatabaseSchema } from '../../../types';
 import {
   DatabaseService,
   makeDatabaseService,

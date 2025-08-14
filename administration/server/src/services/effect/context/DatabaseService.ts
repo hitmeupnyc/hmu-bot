@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import { Context, Effect } from 'effect';
 import { Kysely } from 'kysely';
-import type { DB as DatabaseSchema } from '../../../types/database';
+import type { DB as DatabaseSchema } from '../../../types';
 import { DatabaseError, TransactionError } from '../errors/DatabaseErrors';
 
 export interface IDatabaseService {

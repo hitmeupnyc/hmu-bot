@@ -1,7 +1,8 @@
 import { ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
-import { api } from '../../../lib/api';
+
+import { api } from '@/lib/api';
 
 interface ApplicationNotesProps {
   memberId: number;

@@ -101,30 +101,6 @@ export const deleteMember = (req: Request, res: Response) =>
   });
 
 /**
- * Get member's memberships
- * GET /api/members/:id/memberships
- */
-export const getMemberMemberships = (req: Request, res: Response) =>
-  Effect.gen(function* () {
-    const id = yield* extractId(req);
-    const memberships = yield* MemberEffects.getMemberMemberships(id);
-
-    return createSuccessResponse(memberships);
-  });
-
-/**
- * Get member's event attendance
- * GET /api/members/:id/events
- */
-export const getMemberEvents = (req: Request, res: Response) =>
-  Effect.gen(function* () {
-    const id = yield* extractId(req);
-    const events = yield* MemberEffects.getMemberEvents(id);
-
-    return createSuccessResponse(events);
-  });
-
-/**
  * Add a note to a member
  * POST /api/members/:id/notes
  *
@@ -151,8 +127,8 @@ export const addMemberNote = (req: Request, res: Response) =>
 
     // Log note creation as an audit event
     yield* AuditEffects.logAuditEvent({
-      entityType: 'member',
-      entityId: id,
+      entity_type: 'member',
+      entity_id: id,
       action: 'note',
       userSessionId: req.session?.id || 'anonymous',
       userId: req.session?.user.id || 'anonymous',

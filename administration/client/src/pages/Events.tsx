@@ -1,14 +1,15 @@
-import { PlusIcon } from '@heroicons/react/24/outline';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+
 import {
   EventFormModal,
   EventGrid,
   EventTableRow,
-} from '../features/Events/components';
-import { useEventCrud } from '../features/Events/hooks/useEventCrud';
-import { useEvents } from '../hooks/useEvents';
-import { Event } from '../types';
+} from '@/features/Events/components';
+import { useEventCrud } from '@/features/Events/hooks/useEventCrud';
+import { useEvents } from '@/hooks/useEvents';
+import { Event } from '@/types';
+import { PlusIcon } from '@heroicons/react/24/outline';
 
 type EventFilter = 'upcoming' | 'past' | 'all';
 

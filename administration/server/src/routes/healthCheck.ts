@@ -19,7 +19,7 @@ router.get(
 
       // Check database connectivity
       yield* dbService.query(async (db) =>
-        db.selectFrom('payment_statuses').select('id').limit(1).execute()
+        db.selectFrom('members').select('id').limit(1).execute()
       );
 
       const basicHealth = {

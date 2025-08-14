@@ -1,28 +1,5 @@
 import { Schema } from 'effect';
 
-// Common audit logging schema
-export const AuditLogEntrySchema = Schema.Struct({
-  entityType: Schema.String,
-  entityId: Schema.optional(Schema.Number),
-  action: Schema.Union(
-    Schema.Literal('create'),
-    Schema.Literal('update'),
-    Schema.Literal('delete'),
-    Schema.Literal('view'),
-    Schema.Literal('search'),
-    Schema.Literal('note')
-  ),
-  userSessionId: Schema.optional(Schema.String),
-  userId: Schema.optional(Schema.String),
-  userEmail: Schema.optional(Schema.String),
-  userIp: Schema.optional(Schema.String),
-  oldValues: Schema.optional(Schema.Object),
-  newValues: Schema.optional(Schema.Object),
-  metadata: Schema.optional(Schema.Object),
-});
-
-export type AuditLogEntry = typeof AuditLogEntrySchema.Type;
-
 // Discord schemas
 export const DiscordUserSchema = Schema.Struct({
   id: Schema.String,

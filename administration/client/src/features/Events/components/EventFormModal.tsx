@@ -1,6 +1,6 @@
-import { Modal } from '../../../components/Modal';
-import { EventForm } from '../../../components/EventForm';
-import { Event, EventFormData } from '../../../types';
+import { Modal } from '@/components/Modal';
+import { EventForm } from '@/features/EventDetails/components/EventForm';
+import { Event, EventFormData } from '@/types';
 
 interface EventFormModalProps {
   isOpen: boolean;

@@ -1,14 +1,15 @@
-import { CsvImport } from '@/components/CsvImport';
 import { DocumentArrowUpIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { useState } from 'react';
+
 import {
   MemberFormModal,
   MemberGrid,
   MemberPagination,
-} from '../features/Members/components';
-import { useMemberCrud } from '../features/Members/hooks/useMemberCrud';
-import { useMemberCsvImport } from '../features/Members/hooks/useMemberCsvImport';
-import { useMembers } from '../hooks/useMembers';
+} from '@/features/Members/components';
+import { CsvImport } from '@/features/Members/components/CsvImport';
+import { useMemberCrud } from '@/features/Members/hooks/useMemberCrud';
+import { useMemberCsvImport } from '@/features/Members/hooks/useMemberCsvImport';
+import { useMembers } from '@/hooks/useMembers';
 
 export function Members() {
   const [searchTerm, setSearchTerm] = useState('');

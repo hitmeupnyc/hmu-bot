@@ -9,7 +9,6 @@ import {
 import {
   CreateMemberSchema,
   MemberFlagsSchema,
-  MemberMembershipSchema,
   MemberQueryOptionsSchema,
   MemberSchema,
   UpdateMemberSchema,
@@ -291,68 +290,4 @@ export const deleteMember = (id: number) =>
         .where('id', '=', id)
         .execute()
     );
-  });
-
-/**
- * Get member's memberships
- */
-export const getMemberMemberships = (memberId: number) =>
-  Effect.gen(function* () {
-    const db = yield* DatabaseService;
-
-    // Ensure member exists
-    yield* getMemberByIdInternal(memberId);
-
-    const membershipRows = yield* db.query(async (db) =>
-      db
-        .selectFrom('member_memberships as mm')
-        .innerJoin('membership_types as mt', 'mm.membership_type_id', 'mt.id')
-        .leftJoin('payment_statuses as ps', 'mm.payment_status_id', 'ps.id')
-        .select([
-          'mm.id',
-          'mm.member_id',
-          'mm.membership_type_id',
-          'mm.payment_status_id',
-          'mm.start_date',
-          'mm.end_date',
-          'mt.name as membership_name',
-          'ps.name as payment_status_name',
-        ])
-        .where('mm.member_id', '=', memberId)
-        .orderBy('mm.start_date', 'desc')
-        .execute()
-    );
-
-    return yield* Effect.forEach(membershipRows, (row) =>
-      Schema.decodeUnknown(MemberMembershipSchema)(row)
-    );
-  });
-
-/**
- * Get member's events
- */
-export const getMemberEvents = (memberId: number) =>
-  Effect.gen(function* () {
-    const db = yield* DatabaseService;
-
-    // Ensure member exists
-    yield* getMemberByIdInternal(memberId);
-
-    const eventRows = yield* db.query(async (db) =>
-      db
-        .selectFrom('events as e')
-        .innerJoin('event_attendance as ea', 'e.id', 'ea.event_id')
-        .selectAll('e')
-        .select([
-          'ea.checked_in_at',
-          'ea.checked_out_at',
-          'ea.attendance_source',
-        ])
-        .where('ea.member_id', '=', memberId)
-        .orderBy('e.start_datetime', 'desc')
-        .execute()
-    );
-
-    // Return raw events for now - could add event schema later
-    return eventRows;
   });

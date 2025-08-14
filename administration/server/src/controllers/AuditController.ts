@@ -55,8 +55,8 @@ export const addAuditEvent = (req: Request, res: Response) =>
 
     // Log note creation as an audit event
     yield* AuditEffects.logAuditEvent({
-      entityType: entity_type,
-      entityId: entity_id,
+      entity_type: entity_type,
+      entity_id: entity_id,
       action: action,
       userSessionId: req.session?.id || 'anonymous',
       userId: req.session?.user.id || 'anonymous',

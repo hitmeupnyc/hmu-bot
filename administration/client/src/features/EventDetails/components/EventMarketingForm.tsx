@@ -1,5 +1,5 @@
+import { CreateEventMarketingRequest } from '@/types';
 import React, { useState } from 'react';
-import { CreateEventMarketingRequest } from '../types';
 
 interface EventMarketingFormProps {
   eventId: number;
@@ -38,7 +38,10 @@ export const EventMarketingForm: React.FC<EventMarketingFormProps> = ({
     await onSubmit(formData);
   };
 
-  const handleChange = (field: keyof CreateEventMarketingRequest, value: any) => {
+  const handleChange = (
+    field: keyof CreateEventMarketingRequest,
+    value: any
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -56,7 +59,10 @@ export const EventMarketingForm: React.FC<EventMarketingFormProps> = ({
   };
 
   const addSellingPoint = () => {
-    if (sellingPoint.trim() && !formData.key_selling_points?.includes(sellingPoint.trim())) {
+    if (
+      sellingPoint.trim() &&
+      !formData.key_selling_points?.includes(sellingPoint.trim())
+    ) {
       handleChange('key_selling_points', [
         ...(formData.key_selling_points || []),
         sellingPoint.trim(),
@@ -82,7 +88,9 @@ export const EventMarketingForm: React.FC<EventMarketingFormProps> = ({
             Primary Marketing Copy
             <textarea
               value={formData.primary_marketing_copy}
-              onChange={(e) => handleChange('primary_marketing_copy', e.target.value)}
+              onChange={(e) =>
+                handleChange('primary_marketing_copy', e.target.value)
+              }
               rows={4}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Main marketing message for the event"
@@ -96,7 +104,9 @@ export const EventMarketingForm: React.FC<EventMarketingFormProps> = ({
             Secondary Marketing Copy
             <textarea
               value={formData.secondary_marketing_copy}
-              onChange={(e) => handleChange('secondary_marketing_copy', e.target.value)}
+              onChange={(e) =>
+                handleChange('secondary_marketing_copy', e.target.value)
+              }
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Supporting marketing content"
@@ -125,7 +135,9 @@ export const EventMarketingForm: React.FC<EventMarketingFormProps> = ({
               Social Media Copy
               <textarea
                 value={formData.social_media_copy}
-                onChange={(e) => handleChange('social_media_copy', e.target.value)}
+                onChange={(e) =>
+                  handleChange('social_media_copy', e.target.value)
+                }
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Optimized for social sharing"
@@ -156,7 +168,9 @@ export const EventMarketingForm: React.FC<EventMarketingFormProps> = ({
               <input
                 type="text"
                 value={formData.email_preview_text}
-                onChange={(e) => handleChange('email_preview_text', e.target.value)}
+                onChange={(e) =>
+                  handleChange('email_preview_text', e.target.value)
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Email preview/preheader text"
               />
@@ -200,7 +214,9 @@ export const EventMarketingForm: React.FC<EventMarketingFormProps> = ({
               type="text"
               value={hashtag}
               onChange={(e) => setHashtag(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addHashtag())}
+              onKeyPress={(e) =>
+                e.key === 'Enter' && (e.preventDefault(), addHashtag())
+              }
               className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Add hashtag"
             />
@@ -242,7 +258,9 @@ export const EventMarketingForm: React.FC<EventMarketingFormProps> = ({
                 type="text"
                 value={sellingPoint}
                 onChange={(e) => setSellingPoint(e.target.value)}
-                onKeyUp={(e) => e.key === 'Enter' && (e.preventDefault(), addSellingPoint())}
+                onKeyUp={(e) =>
+                  e.key === 'Enter' && (e.preventDefault(), addSellingPoint())
+                }
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Add selling point"
               />

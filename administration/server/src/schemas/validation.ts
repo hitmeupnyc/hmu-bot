@@ -46,7 +46,6 @@ export const createEventSchema = z
     end_datetime: dateStringSchema,
     is_public: z.boolean().optional().default(true),
     max_capacity: z.number().int().min(1).optional(),
-    required_membership_types: z.array(positiveIntSchema).optional(),
   })
   .refine(
     (data) => new Date(data.start_datetime) < new Date(data.end_datetime),

@@ -1,10 +1,10 @@
-import { useState } from 'react';
 import {
   useCreateMember,
   useDeleteMember,
   useUpdateMember,
-} from '../../../hooks/useMembers';
-import { Member, MemberFormData } from '../../../types';
+} from '@/hooks/useMembers';
+import { Member, MemberFormData } from '@/types';
+import { useState } from 'react';
 
 export function useMemberCrud() {
   const [isModalOpen, setIsModalOpen] = useState(false);

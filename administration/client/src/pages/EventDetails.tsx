@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { EventMarketingForm } from '../components/EventMarketingForm';
-import { EventVolunteersManager } from '../components/EventVolunteersManager';
-import { Modal } from '../components/Modal';
+
+import { Modal } from '@/components/Modal';
 import {
   Attendance,
   Header,
@@ -10,10 +9,12 @@ import {
   Marketing,
   Overview,
   Tabs,
-} from '../features/EventDetails/components';
-import { useEventCrud } from '../features/EventDetails/hooks/useEventCrud';
-import { useEventDetails } from '../hooks/useEvents';
-import { useMembers } from '../hooks/useMembers';
+} from '@/features/EventDetails/components';
+import { EventMarketingForm } from '@/features/EventDetails/components/EventMarketingForm';
+import { EventVolunteersManager } from '@/features/EventDetails/components/EventVolunteersManager';
+import { useEventCrud } from '@/features/EventDetails/hooks/useEventCrud';
+import { useEventDetails } from '@/hooks/useEvents';
+import { useMembers } from '@/hooks/useMembers';
 
 export function EventDetails() {
   const { id } = useParams<{ id: string }>();

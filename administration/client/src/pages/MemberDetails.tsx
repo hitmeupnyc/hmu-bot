@@ -7,7 +7,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Modal } from '../components/Modal';
+
+import { Modal } from '@/components/Modal';
 import {
   ApplicationNotes,
   AuditHistory,
@@ -15,14 +16,14 @@ import {
   EmailModal,
   InfoCards,
   LoadingStates,
-} from '../features/MemberDetails/components';
-import { useAuditLog } from '../hooks/useAudit';
+} from '@/features/MemberDetails/components';
+import { useAuditLog } from '@/hooks/useAudit';
 import {
   useDeleteMember,
   useMember,
   useUpdateMember,
-} from '../hooks/useMembers';
-import { MemberFormData } from '../types';
+} from '@/hooks/useMembers';
+import { MemberFormData } from '@/types';
 
 export function MemberDetails() {
   const { id } = useParams<{ id: string }>();

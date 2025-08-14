@@ -1,5 +1,5 @@
+import { ApplicationFormData } from '@/types';
 import { useState } from 'react';
-import { ApplicationFormData } from '../../../types';
 
 export function useMemberCsvImport() {
   const [csvImportLoading, setCsvImportLoading] = useState(false);

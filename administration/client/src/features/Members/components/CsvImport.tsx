@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react';
-import { ApplicationFormData } from '../types';
-import { HeaderMapping } from './HeaderMapping';
+import { useRef, useState } from 'react';
+
+import { HeaderMapping } from '@/components/HeaderMapping';
+import { ApplicationFormData } from '@/types';
 
 interface CsvImportProps {
   onImport: (applications: ApplicationFormData[]) => void;
@@ -29,18 +30,34 @@ const EXPECTED_HEADERS = [
   { key: 'preferred_name', label: 'Preferred Name', required: false },
   { key: 'email', label: 'Email', required: true },
   { key: 'social_url_primary', label: 'Social URL Primary', required: false },
-  { key: 'social_url_secondary', label: 'Social URL Secondary', required: false },
+  {
+    key: 'social_url_secondary',
+    label: 'Social URL Secondary',
+    required: false,
+  },
   { key: 'social_url_tertiary', label: 'Social URL Tertiary', required: false },
   { key: 'birth_year', label: 'Birth Year', required: true },
   { key: 'referral_source', label: 'Referral Source', required: true },
   { key: 'sponsor_name', label: 'Sponsor Name', required: true },
-  { key: 'sponsor_email_confirmation', label: 'Sponsor Email Confirmation', required: true },
+  {
+    key: 'sponsor_email_confirmation',
+    label: 'Sponsor Email Confirmation',
+    required: true,
+  },
   { key: 'referral_details', label: 'Referral Details', required: false },
   { key: 'kinky_experience', label: 'Kinky Experience', required: true },
   { key: 'self_description', label: 'Self Description', required: true },
-  { key: 'consent_understanding', label: 'Consent Understanding', required: true },
+  {
+    key: 'consent_understanding',
+    label: 'Consent Understanding',
+    required: true,
+  },
   { key: 'additional_info', label: 'Additional Info', required: false },
-  { key: 'consent_policy_agreement', label: 'Consent Policy Agreement', required: true }
+  {
+    key: 'consent_policy_agreement',
+    label: 'Consent Policy Agreement',
+    required: true,
+  },
 ];
 
 const REFERRAL_SOURCES = [
@@ -49,10 +66,14 @@ const REFERRAL_SOURCES = [
   'HMU Instagram',
   'Friend/Word of mouth',
   'Event attendee',
-  'Other'
+  'Other',
 ];
 
-export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportProps) {
+export function CsvImport({
+  onImport,
+  onClose,
+  isLoading = false,
+}: CsvImportProps) {
   const [rawData, setRawData] = useState('');
   const [foundHeaders, setFoundHeaders] = useState<string[]>([]);
   const [hasHeaders, setHasHeaders] = useState(true);
@@ -73,9 +94,10 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
   };
 
   const parseTsvData = (data: string): string[][] => {
-    return data.trim().split('\n').map(line => 
-      line.split('\t').map(cell => cell.trim())
-    );
+    return data
+      .trim()
+      .split('\n')
+      .map((line) => line.split('\t').map((cell) => cell.trim()));
   };
 
   const detectHeaders = (data: string) => {
@@ -86,16 +108,16 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
     setFoundHeaders(firstRow);
 
     // Check if headers match exactly
-    const normalizedFound = firstRow.map(h => h.toLowerCase().trim());
+    const normalizedFound = firstRow.map((h) => h.toLowerCase().trim());
 
-    const exactMatch = EXPECTED_HEADERS.every(expected => 
+    const exactMatch = EXPECTED_HEADERS.every((expected) =>
       normalizedFound.includes(expected.key.toLowerCase())
     );
 
     if (exactMatch) {
       // Create automatic mapping
       const autoMapping: HeaderMappingState = {};
-      EXPECTED_HEADERS.forEach(expected => {
+      EXPECTED_HEADERS.forEach((expected) => {
         const foundIndex = normalizedFound.indexOf(expected.key.toLowerCase());
         if (foundIndex !== -1) {
           autoMapping[expected.key] = firstRow[foundIndex];
@@ -107,7 +129,7 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
     } else {
       // Show mapping interface
       const initialMapping: HeaderMappingState = {};
-      EXPECTED_HEADERS.forEach(expected => {
+      EXPECTED_HEADERS.forEach((expected) => {
         initialMapping[expected.key] = null;
       });
       setHeaderMapping(initialMapping);
@@ -121,7 +143,7 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
 
     const dataRows = hasHeaders ? rows.slice(1) : rows;
     const headerRow = hasHeaders ? rows[0] : [];
-    
+
     const valid: ApplicationFormData[] = [];
     const errors: ImportError[] = [];
 
@@ -133,14 +155,16 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
       const extractValue = (expectedHeader: string): string => {
         const mappedHeader = mapping[expectedHeader];
         if (!mappedHeader) return '';
-        
+
         if (hasHeaders) {
           const columnIndex = headerRow.indexOf(mappedHeader);
-          return columnIndex !== -1 ? (row[columnIndex] || '') : '';
+          return columnIndex !== -1 ? row[columnIndex] || '' : '';
         } else {
           // For no headers, the mapping value should be the column index
           const columnIndex = parseInt(mappedHeader) - 1; // 1-based to 0-based
-          return columnIndex >= 0 && columnIndex < row.length ? row[columnIndex] : '';
+          return columnIndex >= 0 && columnIndex < row.length
+            ? row[columnIndex]
+            : '';
         }
       };
 
@@ -149,59 +173,118 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
       const birthYearStr = extractValue('birth_year').trim();
       const referralSource = extractValue('referral_source').trim();
       const sponsorName = extractValue('sponsor_name').trim();
-      const sponsorEmailConfirmation = extractValue('sponsor_email_confirmation').trim();
+      const sponsorEmailConfirmation = extractValue(
+        'sponsor_email_confirmation'
+      ).trim();
       const kinkyExperience = extractValue('kinky_experience').trim();
       const selfDescription = extractValue('self_description').trim();
       const consentUnderstanding = extractValue('consent_understanding').trim();
-      const consentPolicyAgreement = extractValue('consent_policy_agreement').trim();
+      const consentPolicyAgreement = extractValue(
+        'consent_policy_agreement'
+      ).trim();
 
       // Validate required fields
       if (!name) {
-        rowErrors.push({ row: rowNumber, field: 'name', message: 'Name is required' });
+        rowErrors.push({
+          row: rowNumber,
+          field: 'name',
+          message: 'Name is required',
+        });
       }
 
       if (!email) {
-        rowErrors.push({ row: rowNumber, field: 'email', message: 'Email is required' });
+        rowErrors.push({
+          row: rowNumber,
+          field: 'email',
+          message: 'Email is required',
+        });
       } else if (!validateEmail(email)) {
-        rowErrors.push({ row: rowNumber, field: 'email', message: 'Invalid email format' });
+        rowErrors.push({
+          row: rowNumber,
+          field: 'email',
+          message: 'Invalid email format',
+        });
       }
 
       if (!birthYearStr || !validateBirthYear(birthYearStr)) {
-        rowErrors.push({ row: rowNumber, field: 'birth_year', message: 'Birth year must indicate age 21 or older' });
+        rowErrors.push({
+          row: rowNumber,
+          field: 'birth_year',
+          message: 'Birth year must indicate age 21 or older',
+        });
       }
 
       if (!referralSource || !REFERRAL_SOURCES.includes(referralSource)) {
-        rowErrors.push({ row: rowNumber, field: 'referral_source', message: `Referral source must be one of: ${REFERRAL_SOURCES.join(', ')}` });
+        rowErrors.push({
+          row: rowNumber,
+          field: 'referral_source',
+          message: `Referral source must be one of: ${REFERRAL_SOURCES.join(', ')}`,
+        });
       }
 
       if (!sponsorName) {
-        rowErrors.push({ row: rowNumber, field: 'sponsor_name', message: 'Sponsor name is required' });
+        rowErrors.push({
+          row: rowNumber,
+          field: 'sponsor_name',
+          message: 'Sponsor name is required',
+        });
       }
 
       if (sponsorEmailConfirmation !== 'true') {
-        rowErrors.push({ row: rowNumber, field: 'sponsor_email_confirmation', message: 'Sponsor email confirmation must be "true"' });
+        rowErrors.push({
+          row: rowNumber,
+          field: 'sponsor_email_confirmation',
+          message: 'Sponsor email confirmation must be "true"',
+        });
       }
 
       if (!kinkyExperience) {
-        rowErrors.push({ row: rowNumber, field: 'kinky_experience', message: 'Kinky experience description is required' });
+        rowErrors.push({
+          row: rowNumber,
+          field: 'kinky_experience',
+          message: 'Kinky experience description is required',
+        });
       }
 
       if (!selfDescription) {
-        rowErrors.push({ row: rowNumber, field: 'self_description', message: 'Self description is required' });
+        rowErrors.push({
+          row: rowNumber,
+          field: 'self_description',
+          message: 'Self description is required',
+        });
       }
 
       if (!consentUnderstanding) {
-        rowErrors.push({ row: rowNumber, field: 'consent_understanding', message: 'Consent understanding is required' });
+        rowErrors.push({
+          row: rowNumber,
+          field: 'consent_understanding',
+          message: 'Consent understanding is required',
+        });
       }
 
-      if (consentPolicyAgreement !== 'yes' && consentPolicyAgreement !== 'questions') {
-        rowErrors.push({ row: rowNumber, field: 'consent_policy_agreement', message: 'Consent policy agreement must be "yes" or "questions"' });
+      if (
+        consentPolicyAgreement !== 'yes' &&
+        consentPolicyAgreement !== 'questions'
+      ) {
+        rowErrors.push({
+          row: rowNumber,
+          field: 'consent_policy_agreement',
+          message: 'Consent policy agreement must be "yes" or "questions"',
+        });
       }
 
       // Validate conditional fields
       const referralDetails = extractValue('referral_details').trim();
-      if ((referralSource === 'Other' || referralSource === 'Event attendee') && !referralDetails) {
-        rowErrors.push({ row: rowNumber, field: 'referral_details', message: 'Referral details required for "Other" or "Event attendee" referral sources' });
+      if (
+        (referralSource === 'Other' || referralSource === 'Event attendee') &&
+        !referralDetails
+      ) {
+        rowErrors.push({
+          row: rowNumber,
+          field: 'referral_details',
+          message:
+            'Referral details required for "Other" or "Event attendee" referral sources',
+        });
       }
 
       if (rowErrors.length > 0) {
@@ -216,7 +299,7 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
           social_urls: {
             primary: extractValue('social_url_primary'),
             secondary: extractValue('social_url_secondary'),
-            tertiary: extractValue('social_url_tertiary')
+            tertiary: extractValue('social_url_tertiary'),
           },
           birth_year: parseInt(birthYearStr),
           referral_source: referralSource,
@@ -227,7 +310,9 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
           self_description: selfDescription,
           consent_understanding: consentUnderstanding,
           additional_info: extractValue('additional_info'),
-          consent_policy_agreement: consentPolicyAgreement as 'yes' | 'questions'
+          consent_policy_agreement: consentPolicyAgreement as
+            | 'yes'
+            | 'questions',
         };
         valid.push(applicationData);
       }
@@ -297,7 +382,9 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold text-gray-900">Import Applications</h2>
+            <h2 className="text-2xl font-semibold text-gray-900">
+              Import Applications
+            </h2>
             <button
               type="button"
               onClick={handleCancel}
@@ -311,9 +398,12 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
           {!showMapping && !showPreview && (
             <div className="space-y-6">
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <h3 className="text-sm font-medium text-blue-800 mb-2">Instructions</h3>
+                <h3 className="text-sm font-medium text-blue-800 mb-2">
+                  Instructions
+                </h3>
                 <p className="text-sm text-blue-700">
-                  Upload a file or paste tab-separated data (TSV format). We'll help you map your columns to our expected fields.
+                  Upload a file or paste tab-separated data (TSV format). We'll
+                  help you map your columns to our expected fields.
                 </p>
               </div>
 
@@ -332,9 +422,7 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
                   />
                 </div>
 
-                <div className="text-center text-gray-500 text-sm">
-                  — or —
-                </div>
+                <div className="text-center text-gray-500 text-sm">— or —</div>
 
                 {/* TSV Paste Area */}
                 <div>
@@ -350,7 +438,8 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Tip: Copy cells directly from Google Sheets or Excel and paste here
+                    Tip: Copy cells directly from Google Sheets or Excel and
+                    paste here
                   </p>
                 </div>
               </div>
@@ -360,7 +449,9 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
           {showMapping && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-medium text-gray-900">Map Your Columns</h3>
+                <h3 className="text-xl font-medium text-gray-900">
+                  Map Your Columns
+                </h3>
                 <button
                   type="button"
                   onClick={handleReset}
@@ -379,7 +470,10 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
                     onChange={(e) => setHasHeaders(e.target.checked)}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <label htmlFor="hasHeaders" className="ml-2 text-sm font-medium text-yellow-800">
+                  <label
+                    htmlFor="hasHeaders"
+                    className="ml-2 text-sm font-medium text-yellow-800"
+                  >
                     My data has column headers in the first row
                   </label>
                 </div>
@@ -418,7 +512,9 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
           {showPreview && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-medium text-gray-900">Import Preview</h3>
+                <h3 className="text-xl font-medium text-gray-900">
+                  Import Preview
+                </h3>
                 <button
                   type="button"
                   onClick={handleReset}
@@ -430,22 +526,34 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                  <p className="text-sm font-medium text-green-800">Valid Applications</p>
-                  <p className="text-3xl font-bold text-green-900">{preview?.valid.length || 0}</p>
+                  <p className="text-sm font-medium text-green-800">
+                    Valid Applications
+                  </p>
+                  <p className="text-3xl font-bold text-green-900">
+                    {preview?.valid.length || 0}
+                  </p>
                 </div>
                 <div className="bg-red-50 p-4 rounded-lg border border-red-200">
                   <p className="text-sm font-medium text-red-800">Errors</p>
-                  <p className="text-3xl font-bold text-red-900">{preview?.errors.length || 0}</p>
+                  <p className="text-3xl font-bold text-red-900">
+                    {preview?.errors.length || 0}
+                  </p>
                 </div>
               </div>
 
               {preview && preview.errors.length > 0 && (
                 <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-                  <h4 className="text-sm font-medium text-red-800 mb-3">Validation Errors:</h4>
+                  <h4 className="text-sm font-medium text-red-800 mb-3">
+                    Validation Errors:
+                  </h4>
                   <div className="max-h-48 overflow-y-auto space-y-1">
                     {preview.errors.map((error, index) => (
-                      <div key={index} className="text-sm text-red-700 bg-red-100 p-2 rounded">
-                        <span className="font-medium">Row {error.row}:</span> {error.field} - {error.message}
+                      <div
+                        key={index}
+                        className="text-sm text-red-700 bg-red-100 p-2 rounded"
+                      >
+                        <span className="font-medium">Row {error.row}:</span>{' '}
+                        {error.field} - {error.message}
                       </div>
                     ))}
                   </div>
@@ -454,11 +562,17 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
 
               {preview && preview.valid.length > 0 && (
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <h4 className="text-sm font-medium text-blue-800 mb-3">Preview of Valid Applications:</h4>
+                  <h4 className="text-sm font-medium text-blue-800 mb-3">
+                    Preview of Valid Applications:
+                  </h4>
                   <div className="max-h-48 overflow-y-auto space-y-2">
                     {preview.valid.slice(0, 5).map((application, index) => (
-                      <div key={index} className="text-sm bg-blue-100 p-2 rounded">
-                        <span className="font-medium">{application.name}</span> ({application.email}) - {application.referral_source}
+                      <div
+                        key={index}
+                        className="text-sm bg-blue-100 p-2 rounded"
+                      >
+                        <span className="font-medium">{application.name}</span>{' '}
+                        ({application.email}) - {application.referral_source}
                       </div>
                     ))}
                     {preview.valid.length > 5 && (
@@ -485,7 +599,9 @@ export function CsvImport({ onImport, onClose, isLoading = false }: CsvImportPro
                   disabled={isLoading || !preview || preview.valid.length === 0}
                   className="px-6 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                 >
-                  {isLoading ? 'Importing...' : `Import ${preview?.valid.length || 0} Applications`}
+                  {isLoading
+                    ? 'Importing...'
+                    : `Import ${preview?.valid.length || 0} Applications`}
                 </button>
               </div>
             </div>

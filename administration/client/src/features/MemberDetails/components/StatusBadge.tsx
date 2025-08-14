@@ -1,8 +1,4 @@
-import { Member } from '../../../types';
-import {
-  getAccessLevelColor,
-  getAccessLevelName,
-} from '../../../utils/authorization';
+import { Member } from '@/types';
 
 interface StatusBadgeProps {
   member: Member;
@@ -26,13 +22,6 @@ export function StatusBadge({ member }: StatusBadgeProps) {
           Professional
         </span>
       )}
-      <span
-        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getAccessLevelColor(
-          member.access_level || 1
-        )}`}
-      >
-        {getAccessLevelName(member.access_level || 1)}
-      </span>
     </div>
   );
 }

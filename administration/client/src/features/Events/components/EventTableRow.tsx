@@ -1,6 +1,6 @@
+import { Event } from '@/types';
 import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
-import { Event } from '../../../types';
 import { EventStatusBadge } from './EventStatusBadge';
 
 interface EventTableRowProps {

@@ -1,5 +1,5 @@
+import { CreateVolunteerRequest, EventVolunteer, Member } from '@/types';
 import React, { useState } from 'react';
-import { CreateVolunteerRequest, EventVolunteer, Member } from '../types';
 import { AddVolunteerForm } from './AddVolunteerForm';
 
 interface EventVolunteersManagerProps {

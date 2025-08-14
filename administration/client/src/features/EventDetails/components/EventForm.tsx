@@ -1,5 +1,5 @@
+import { Event, EventFormData } from '@/types';
 import { useState } from 'react';
-import { Event, EventFormData } from '../types';
 
 interface EventFormProps {
   event?: Event;
@@ -8,12 +8,21 @@ interface EventFormProps {
   isLoading?: boolean;
 }
 
-export function EventForm({ event, onSubmit, onCancel, isLoading = false }: EventFormProps) {
+export function EventForm({
+  event,
+  onSubmit,
+  onCancel,
+  isLoading = false,
+}: EventFormProps) {
   const [formData, setFormData] = useState<EventFormData>({
     name: event?.name || '',
     description: event?.description || '',
-    start_datetime: event?.start_datetime ? formatDateTimeLocal(event.start_datetime) : '',
-    end_datetime: event?.end_datetime ? formatDateTimeLocal(event.end_datetime) : '',
+    start_datetime: event?.start_datetime
+      ? formatDateTimeLocal(event.start_datetime)
+      : '',
+    end_datetime: event?.end_datetime
+      ? formatDateTimeLocal(event.end_datetime)
+      : '',
     is_public: event ? !!(event.flags & 2) : true,
     max_capacity: event?.max_capacity?.toString() || '',
   });
@@ -38,7 +47,7 @@ export function EventForm({ event, onSubmit, onCancel, isLoading = false }: Even
     if (formData.start_datetime && formData.end_datetime) {
       const start = new Date(formData.start_datetime);
       const end = new Date(formData.end_datetime);
-      
+
       if (end <= start) {
         newErrors.end_datetime = 'End time must be after start time';
       }
@@ -59,18 +68,24 @@ export function EventForm({ event, onSubmit, onCancel, isLoading = false }: Even
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value, type } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      [name]:
+        type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
     }));
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+        <label
+          htmlFor="name"
+          className="block text-sm font-medium text-gray-700 mb-2"
+        >
           Event Name *
         </label>
         <input
@@ -81,8 +96,8 @@ export function EventForm({ event, onSubmit, onCancel, isLoading = false }: Even
           value={formData.name}
           onChange={handleChange}
           className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-            errors.name 
-              ? 'border-red-300 focus:ring-red-500' 
+            errors.name
+              ? 'border-red-300 focus:ring-red-500'
               : 'border-gray-300 focus:ring-blue-500'
           }`}
         />
@@ -92,7 +107,10 @@ export function EventForm({ event, onSubmit, onCancel, isLoading = false }: Even
       </div>
 
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+        <label
+          htmlFor="description"
+          className="block text-sm font-medium text-gray-700 mb-2"
+        >
           Description
         </label>
         <textarea
@@ -107,7 +125,10 @@ export function EventForm({ event, onSubmit, onCancel, isLoading = false }: Even
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label htmlFor="start_datetime" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="start_datetime"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Start Date & Time *
           </label>
           <input
@@ -118,8 +139,8 @@ export function EventForm({ event, onSubmit, onCancel, isLoading = false }: Even
             value={formData.start_datetime}
             onChange={handleChange}
             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-              errors.start_datetime 
-                ? 'border-red-300 focus:ring-red-500' 
+              errors.start_datetime
+                ? 'border-red-300 focus:ring-red-500'
                 : 'border-gray-300 focus:ring-blue-500'
             }`}
           />
@@ -129,7 +150,10 @@ export function EventForm({ event, onSubmit, onCancel, isLoading = false }: Even
         </div>
 
         <div>
-          <label htmlFor="end_datetime" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="end_datetime"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             End Date & Time *
           </label>
           <input
@@ -140,8 +164,8 @@ export function EventForm({ event, onSubmit, onCancel, isLoading = false }: Even
             value={formData.end_datetime}
             onChange={handleChange}
             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-              errors.end_datetime 
-                ? 'border-red-300 focus:ring-red-500' 
+              errors.end_datetime
+                ? 'border-red-300 focus:ring-red-500'
                 : 'border-gray-300 focus:ring-blue-500'
             }`}
           />
@@ -153,7 +177,10 @@ export function EventForm({ event, onSubmit, onCancel, isLoading = false }: Even
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label htmlFor="max_capacity" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="max_capacity"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Max Capacity
           </label>
           <input
@@ -165,8 +192,8 @@ export function EventForm({ event, onSubmit, onCancel, isLoading = false }: Even
             onChange={handleChange}
             placeholder="Leave empty for unlimited"
             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-              errors.max_capacity 
-                ? 'border-red-300 focus:ring-red-500' 
+              errors.max_capacity
+                ? 'border-red-300 focus:ring-red-500'
                 : 'border-gray-300 focus:ring-blue-500'
             }`}
           />
@@ -213,6 +240,6 @@ export function EventForm({ event, onSubmit, onCancel, isLoading = false }: Even
 function formatDateTimeLocal(dateString: string): string {
   const date = new Date(dateString);
   const offset = date.getTimezoneOffset();
-  const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+  const localDate = new Date(date.getTime() - offset * 60 * 1000);
   return localDate.toISOString().slice(0, 16);
 }

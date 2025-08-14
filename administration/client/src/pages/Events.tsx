@@ -55,10 +55,6 @@ export function Events() {
     }
   }, [events, location.state, navigate, location.pathname]);
 
-  const handleViewEvent = (event: Event) => {
-    navigate(`/events/${event.id}`);
-  };
-
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -90,7 +86,6 @@ export function Events() {
               setIsModalOpen(true);
             }}
             onDelete={handleDeleteEvent}
-            onView={handleViewEvent}
             isEditPending={false}
             isDeletePending={false}
           />

@@ -9,22 +9,6 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
 
-export interface Account {
-  accessToken: string | null;
-  accessTokenExpiresAt: string | null;
-  accountId: string;
-  createdAt: string;
-  id: string;
-  idToken: string | null;
-  password: string | null;
-  providerId: string;
-  refreshToken: string | null;
-  refreshTokenExpiresAt: string | null;
-  scope: string | null;
-  updatedAt: string;
-  userId: string;
-}
-
 export interface AuditLog {
   action: string;
   created_at: Generated<string | null>;
@@ -40,47 +24,6 @@ export interface AuditLog {
   user_session_id: string | null;
 }
 
-export interface EventAttendance {
-  attendance_source: Generated<string | null>;
-  checked_in_at: string | null;
-  checked_out_at: string | null;
-  event_id: number;
-  id: Generated<number | null>;
-  member_id: number;
-  notes: string | null;
-}
-
-export interface EventbriteEvents {
-  capacity: number | null;
-  category_id: string | null;
-  created_at: Generated<string | null>;
-  description_html: string | null;
-  description_text: string | null;
-  end_local: string | null;
-  end_timezone: string | null;
-  end_utc: string | null;
-  eventbrite_id: string;
-  flags: Generated<number | null>;
-  format_id: string | null;
-  id: Generated<number | null>;
-  last_synced_at: Generated<string | null>;
-  name_html: string | null;
-  name_text: string | null;
-  organizer_json: string | null;
-  raw_eventbrite_data: string | null;
-  show_remaining: Generated<number | null>;
-  start_local: string | null;
-  start_timezone: string | null;
-  start_utc: string | null;
-  status: Generated<number | null>;
-  subcategory_id: string | null;
-  sync_hash: string | null;
-  ticket_classes_json: string | null;
-  updated_at: Generated<string | null>;
-  url: string | null;
-  venue_json: string | null;
-}
-
 export interface Events {
   created_at: Generated<string | null>;
   created_by_member_id: number | null;
@@ -92,38 +35,8 @@ export interface Events {
   id: Generated<number | null>;
   max_capacity: number | null;
   name: string;
-  required_membership_types: string | null;
   start_datetime: string;
   updated_at: Generated<string | null>;
-}
-
-export interface EventsAttendance {
-  attendance_source: Generated<number | null>;
-  check_in_method: string | null;
-  created_at: Generated<string | null>;
-  event_id: number;
-  eventbrite_attendee_id: string | null;
-  eventbrite_order_id: string | null;
-  flags: Generated<number | null>;
-  id: Generated<number | null>;
-  marketing_source: string | null;
-  member_id: number | null;
-  notes: string | null;
-  registration_date: string | null;
-  ticket_type: string | null;
-  updated_at: Generated<string | null>;
-}
-
-export interface EventsEventbriteLink {
-  created_at: Generated<string | null>;
-  event_id: number;
-  eventbrite_event_id: number;
-  flags: Generated<number | null>;
-  id: Generated<number | null>;
-  last_synced_at: string | null;
-  sync_direction: Generated<string | null>;
-  sync_errors: string | null;
-  sync_status: Generated<string | null>;
 }
 
 export interface EventsMarketing {
@@ -179,18 +92,6 @@ export interface ExternalIntegrations {
   system_name: string;
 }
 
-export interface MemberMemberships {
-  created_at: Generated<string | null>;
-  end_date: string | null;
-  external_payment_reference: string | null;
-  id: Generated<number | null>;
-  member_id: number;
-  membership_type_id: number;
-  notes: string | null;
-  payment_status_id: number | null;
-  start_date: string;
-}
-
 export interface Members {
   access_level: Generated<number | null>;
   created_at: Generated<string | null>;
@@ -204,26 +105,6 @@ export interface Members {
   pronouns: string | null;
   sponsor_notes: string | null;
   updated_at: Generated<string | null>;
-}
-
-export interface MembershipTypes {
-  benefits_json: string | null;
-  created_at: Generated<string | null>;
-  description: string | null;
-  exclusive_group_id: string | null;
-  flags: Generated<number | null>;
-  id: Generated<number | null>;
-  name: string;
-  price_cents: number | null;
-}
-
-export interface PaymentStatuses {
-  created_at: Generated<string | null>;
-  description: string | null;
-  flags: Generated<number | null>;
-  id: Generated<number | null>;
-  name: string;
-  sort_order: Generated<number | null>;
 }
 
 export interface Session {
@@ -260,32 +141,14 @@ export interface User {
   updatedAt: string;
 }
 
-export interface Verification {
-  createdAt: string | null;
-  expiresAt: string;
-  id: string;
-  identifier: string;
-  updatedAt: string | null;
-  value: string;
-}
-
 export interface DB {
-  account: Account;
   audit_log: AuditLog;
-  event_attendance: EventAttendance;
-  eventbrite_events: EventbriteEvents;
   events: Events;
-  events_attendance: EventsAttendance;
-  events_eventbrite_link: EventsEventbriteLink;
   events_marketing: EventsMarketing;
   events_volunteers: EventsVolunteers;
   external_integrations: ExternalIntegrations;
-  member_memberships: MemberMemberships;
   members: Members;
-  membership_types: MembershipTypes;
-  payment_statuses: PaymentStatuses;
   session: Session;
   sync_operations: SyncOperations;
   user: User;
-  verification: Verification;
 }

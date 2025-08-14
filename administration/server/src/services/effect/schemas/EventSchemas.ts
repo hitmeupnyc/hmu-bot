@@ -8,11 +8,6 @@ export const EventSchema = Schema.Struct({
   end_datetime: Schema.String,
   flags: Schema.Number,
   max_capacity: Schema.Union(Schema.Number, Schema.Null, Schema.Undefined),
-  required_membership_types: Schema.Union(
-    Schema.String,
-    Schema.Null,
-    Schema.Undefined
-  ),
   eventbrite_id: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
   eventbrite_url: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
   created_at: Schema.String,
@@ -28,7 +23,6 @@ export const CreateEventSchema = Schema.Struct({
   end_datetime: Schema.String,
   flags: Schema.optionalWith(Schema.Number, { default: () => 3 }), // Default: active + public
   max_capacity: Schema.optional(Schema.Number),
-  required_membership_types: Schema.optional(Schema.Array(Schema.Number)),
   eventbrite_id: Schema.optional(Schema.String),
   eventbrite_url: Schema.optional(Schema.String),
 });
@@ -43,7 +37,6 @@ export const UpdateEventSchema = Schema.Struct({
   end_datetime: Schema.optional(Schema.String),
   flags: Schema.optional(Schema.Number),
   max_capacity: Schema.optional(Schema.Number),
-  required_membership_types: Schema.optional(Schema.Array(Schema.Number)),
   eventbrite_id: Schema.optional(Schema.String),
   eventbrite_url: Schema.optional(Schema.String),
 });
@@ -155,48 +148,6 @@ export const CreateVolunteerSchema = Schema.Struct({
 });
 
 export type CreateVolunteer = typeof CreateVolunteerSchema.Type;
-
-export const EventAttendanceSchema = Schema.Struct({
-  id: Schema.Number,
-  event_id: Schema.Number,
-  member_id: Schema.Union(Schema.Number, Schema.Null, Schema.Undefined),
-  eventbrite_attendee_id: Schema.Union(
-    Schema.String,
-    Schema.Null,
-    Schema.Undefined
-  ),
-  eventbrite_order_id: Schema.Union(
-    Schema.String,
-    Schema.Null,
-    Schema.Undefined
-  ),
-  ticket_type: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
-  registration_date: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
-  attendance_source: Schema.Number,
-  check_in_method: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
-  marketing_source: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
-  notes: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
-  flags: Schema.Number,
-  created_at: Schema.String,
-  updated_at: Schema.String,
-});
-
-export type EventAttendance = typeof EventAttendanceSchema.Type;
-
-export const CreateAttendanceSchema = Schema.Struct({
-  event_id: Schema.Number,
-  member_id: Schema.optional(Schema.Number),
-  eventbrite_attendee_id: Schema.optional(Schema.String),
-  eventbrite_order_id: Schema.optional(Schema.String),
-  ticket_type: Schema.optional(Schema.String),
-  registration_date: Schema.optional(Schema.String),
-  attendance_source: Schema.optionalWith(Schema.Number, { default: () => 1 }), // Default to manual
-  check_in_method: Schema.optional(Schema.String),
-  marketing_source: Schema.optional(Schema.String),
-  notes: Schema.optional(Schema.String),
-});
-
-export type CreateAttendance = typeof CreateAttendanceSchema.Type;
 
 export const EventWithDetailsSchema = Schema.Struct({
   event: EventSchema,

@@ -210,37 +210,6 @@ const updateExistingEvent = (
     return updatedEvent;
   });
 
-// Record event attendance
-const recordEventAttendance = (
-  memberId: number,
-  eventId: number,
-  attendee: EventbriteAttendee
-) =>
-  Effect.gen(function* () {
-    const db = yield* DatabaseService;
-
-    yield* db.query(async (db) =>
-      db
-        .insertInto('event_attendance')
-        .values({
-          event_id: eventId,
-          member_id: memberId,
-          checked_in_at: attendee.checked_in ? new Date().toISOString() : null,
-          attendance_source: '2', // Eventbrite source
-          notes: `Eventbrite attendee ID: ${attendee.id}, Status: ${attendee.status}`,
-        })
-        .onConflict((oc) =>
-          oc.columns(['event_id', 'member_id']).doUpdateSet({
-            checked_in_at: attendee.checked_in
-              ? new Date().toISOString()
-              : null,
-            notes: `Eventbrite attendee ID: ${attendee.id}, Status: ${attendee.status}`,
-          })
-        )
-        .execute()
-    );
-  });
-
 // Sync Eventbrite event
 export const syncEvent = (eventData: EventbriteEvent) =>
   Effect.gen(function* () {

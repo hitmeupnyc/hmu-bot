@@ -23,7 +23,9 @@ export const CreateMemberSchema = Schema.Struct({
   email: Schema.String.pipe(Schema.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)),
   pronouns: Schema.optional(Schema.String),
   sponsor_notes: Schema.optional(Schema.String),
-  is_professional_affiliate: Schema.optionalWith(Schema.Boolean, { default: () => false }),
+  is_professional_affiliate: Schema.optionalWith(Schema.Boolean, {
+    default: () => false,
+  }),
 });
 
 export type CreateMember = typeof CreateMemberSchema.Type;
@@ -33,7 +35,9 @@ export const UpdateMemberSchema = Schema.Struct({
   first_name: Schema.optional(Schema.String),
   last_name: Schema.optional(Schema.String),
   preferred_name: Schema.optional(Schema.String),
-  email: Schema.optional(Schema.String.pipe(Schema.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/))),
+  email: Schema.optional(
+    Schema.String.pipe(Schema.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/))
+  ),
   pronouns: Schema.optional(Schema.String),
   sponsor_notes: Schema.optional(Schema.String),
 });
@@ -42,7 +46,9 @@ export type UpdateMember = typeof UpdateMemberSchema.Type;
 
 export const MemberFlagsSchema = Schema.Struct({
   active: Schema.Boolean,
-  professional_affiliate: Schema.optionalWith(Schema.Boolean, { default: () => false }),
+  professional_affiliate: Schema.optionalWith(Schema.Boolean, {
+    default: () => false,
+  }),
 });
 
 export type MemberFlags = typeof MemberFlagsSchema.Type;
@@ -54,16 +60,3 @@ export const MemberQueryOptionsSchema = Schema.Struct({
 });
 
 export type MemberQueryOptions = typeof MemberQueryOptionsSchema.Type;
-
-export const MemberMembershipSchema = Schema.Struct({
-  id: Schema.Number,
-  member_id: Schema.Number,
-  membership_type_id: Schema.Number,
-  payment_status_id: Schema.optional(Schema.Number),
-  start_date: Schema.String,
-  end_date: Schema.optional(Schema.String),
-  membership_name: Schema.String,
-  payment_status_name: Schema.optional(Schema.String),
-});
-
-export type MemberMembership = typeof MemberMembershipSchema.Type;

@@ -139,9 +139,6 @@ export const createEvent = (data: CreateEvent) =>
           end_datetime: validatedData.end_datetime,
           flags: validatedData.flags,
           max_capacity: validatedData.max_capacity || null,
-          required_membership_types: validatedData.required_membership_types
-            ? JSON.stringify(validatedData.required_membership_types)
-            : null,
           eventbrite_id: validatedData.eventbrite_id || null,
           eventbrite_url: validatedData.eventbrite_url || null,
         })
@@ -180,7 +177,6 @@ export const updateEvent = (data: UpdateEvent) =>
       end_datetime: string;
       flags: number;
       max_capacity: number | null;
-      required_membership_types: string | null;
       eventbrite_id: string | null;
       eventbrite_url: string | null;
     }> = {};
@@ -196,12 +192,6 @@ export const updateEvent = (data: UpdateEvent) =>
       updateData.flags = validatedData.flags;
     if (validatedData.max_capacity !== undefined)
       updateData.max_capacity = validatedData.max_capacity || null;
-    if (validatedData.required_membership_types !== undefined) {
-      updateData.required_membership_types =
-        validatedData.required_membership_types
-          ? JSON.stringify(validatedData.required_membership_types)
-          : null;
-    }
     if (validatedData.eventbrite_id !== undefined)
       updateData.eventbrite_id = validatedData.eventbrite_id || null;
     if (validatedData.eventbrite_url !== undefined)
@@ -393,7 +383,7 @@ export const createVolunteer = (data: CreateVolunteer) =>
   );
 
 /**
- * Get event with all details (marketing, volunteers, attendance, etc.)
+ * Get event with all details (marketing, volunteers, etc.)
  */
 export const getEventWithDetails = (id: number) =>
   Effect.gen(function* () {

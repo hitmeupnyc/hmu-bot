@@ -101,18 +101,6 @@ export const deleteMember = (req: Request, res: Response) =>
   });
 
 /**
- * Get member's memberships
- * GET /api/members/:id/memberships
- */
-export const getMemberMemberships = (req: Request, res: Response) =>
-  Effect.gen(function* () {
-    const id = yield* extractId(req);
-    const memberships = yield* MemberEffects.getMemberMemberships(id);
-
-    return createSuccessResponse(memberships);
-  });
-
-/**
  * Add a note to a member
  * POST /api/members/:id/notes
  *

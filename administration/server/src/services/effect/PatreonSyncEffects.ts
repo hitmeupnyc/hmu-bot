@@ -6,12 +6,10 @@ import {
   createSyncOperation,
   findMemberByEmail,
   updateExistingMember,
-  updateMemberFlag,
   updateSyncOperation,
   upsertExternalIntegration,
   verifyMD5Signature,
 } from './BaseSyncEffects';
-import { DatabaseService } from './context/DatabaseService';
 import {
   PatreonAPIError,
   PatreonConfigError,
@@ -94,61 +92,6 @@ export const verifyPatreonWebhookSignature = (
   });
 
 /**
- * Determine membership type based on pledge amount
- */
-const determineMembershipType = (
-  pledge: PatreonPledge,
-  reward?: PatreonReward
-) =>
-  Effect.sync(() => {
-    const amount = pledge.attributes.amount_cents;
-
-    // Example tier mapping - customize for your club
-    if (amount >= 2500) return 3; // Tier 3 ($25+)
-    if (amount >= 1000) return 2; // Tier 2 ($10+)
-    if (amount >= 500) return 1; // Tier 1 ($5+)
-
-    return null; // Below minimum tier
-  });
-
-/**
- * Update member membership based on pledge
- */
-const updateMemberMembership = (
-  memberId: number,
-  membershipTypeId: number,
-  pledge: PatreonPledge
-) =>
-  Effect.gen(function* () {
-    const db = yield* DatabaseService;
-
-    // End any existing active memberships
-    yield* db.query(async (db) =>
-      db
-        .updateTable('member_memberships')
-        .set({ end_date: new Date().toISOString() })
-        .where('member_id', '=', memberId)
-        .where('end_date', 'is', null)
-        .execute()
-    );
-
-    // Create new membership if pledge is active
-    if (!pledge.attributes.declined_since) {
-      yield* db.query(async (db) =>
-        db
-          .insertInto('member_memberships')
-          .values({
-            member_id: memberId,
-            membership_type_id: membershipTypeId,
-            start_date: new Date().toISOString(),
-            external_payment_reference: `patreon_pledge_${pledge.id}`,
-          })
-          .execute()
-      );
-    }
-  });
-
-/**
  * Create member from Patreon user data
  */
 const createMemberFromPatron = (patron: PatreonUser) =>
@@ -180,36 +123,6 @@ const updateExistingMemberFromPatron = (
     };
 
     return yield* updateExistingMember(existingMember, updates);
-  });
-
-/**
- * Process a pledge for a specific member
- */
-const processPledgeForMember = (
-  memberId: number,
-  pledge: PatreonPledge,
-  included: Array<PatreonUser | PatreonPledge | PatreonReward> = []
-) =>
-  Effect.gen(function* () {
-    // Find the reward tier for this pledge
-    const reward = included.find(
-      (item) =>
-        item.type === 'reward' &&
-        item.id === pledge.relationships.reward.data.id
-    ) as PatreonReward | undefined;
-
-    // Determine membership type based on pledge amount or reward tier
-    const membershipTypeId = yield* determineMembershipType(pledge, reward);
-
-    if (membershipTypeId) {
-      yield* updateMemberMembership(memberId, membershipTypeId, pledge);
-    }
-
-    // Update member status based on pledge amount
-    if (pledge.attributes.amount_cents >= 1000) {
-      // $10+ gets special status
-      yield* updateMemberFlag(memberId, 2, true); // Set special status flag
-    }
   });
 
 /**
@@ -260,20 +173,6 @@ export const syncPatron = (
       validatedPatron
     );
 
-    // Process any included pledges for this patron
-    const patronPledges = included.filter(
-      (item) =>
-        item.type === 'pledge' &&
-        (item as PatreonPledge).relationships?.patron?.data?.id ===
-          validatedPatron.id
-    ) as PatreonPledge[];
-
-    yield* Effect.forEach(
-      patronPledges,
-      (pledge) => processPledgeForMember(member.id, pledge, included),
-      { concurrency: 3 }
-    );
-
     yield* updateSyncOperation(
       syncOperationId,
       'success',
@@ -321,18 +220,7 @@ export const syncPledge = (
       return;
     }
 
-    // Sync the patron first
-    const member = yield* syncPatron(patron, included, syncOperationId);
-
-    if (member) {
-      yield* processPledgeForMember(member.id, validatedPledge, included);
-      yield* updateSyncOperation(
-        syncOperationId,
-        'success',
-        'Pledge synced',
-        member.id
-      );
-    }
+    // TODO: Update member flags based on pledge amount
   }).pipe(
     Effect.mapError((error) =>
       error._tag === 'ParseError'

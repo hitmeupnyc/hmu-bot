@@ -10,7 +10,6 @@ import { effectToExpress } from '../services/effect/adapters/expressAdapter';
  * - Basic CRUD operations for events
  * - Event marketing management
  * - Volunteer coordination
- * - Attendance tracking
  *
  * All business logic is delegated to EventController.
  */

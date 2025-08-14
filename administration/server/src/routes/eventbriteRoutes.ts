@@ -13,9 +13,11 @@ const router = Router();
 const verifyEventbriteWebhook = (req: any, res: any, next: any) => {
   // Eventbrite sends a verification token in the payload for security
   const expectedToken = process.env.EVENTBRITE_WEBHOOK_TOKEN;
-  
+
   if (!expectedToken) {
-    return res.status(401).json({ error: 'Webhook verification not configured' });
+    return res
+      .status(401)
+      .json({ error: 'Webhook verification not configured' });
   }
 
   // For webhook verification requests, Eventbrite sends a challenge
@@ -34,7 +36,8 @@ router.post(
   verifyEventbriteWebhook,
   effectToExpress((req, res) =>
     Effect.gen(function* () {
-      const payload = yield* extractBody<EventbriteSyncEffects.EventbriteWebhookPayload>(req);
+      const payload =
+        yield* extractBody<EventbriteSyncEffects.EventbriteWebhookPayload>(req);
       yield* EventbriteSyncEffects.handleWebhook(payload);
       return { message: 'Webhook processed successfully' };
     })
@@ -47,26 +50,12 @@ router.post(
   effectToExpress((req, res) =>
     Effect.gen(function* () {
       const body = yield* extractBody<{ organizer_id?: string }>(req);
-      const result = yield* EventbriteSyncEffects.bulkSyncEvents(body.organizer_id);
+      const result = yield* EventbriteSyncEffects.bulkSyncEvents(
+        body.organizer_id
+      );
       return {
         success: true,
         message: `Events sync completed: ${result.synced} synced, ${result.errors} errors`,
-        data: result,
-      };
-    })
-  )
-);
-
-// POST /api/eventbrite/sync/attendees/:eventId - Bulk sync attendees for specific event
-router.post(
-  '/sync/attendees/:eventId',
-  effectToExpress((req, res) =>
-    Effect.gen(function* () {
-      const { eventId } = req.params;
-      const result = yield* EventbriteSyncEffects.bulkSyncAttendees(eventId);
-      return {
-        success: true,
-        message: `Attendees sync completed: ${result.synced} synced, ${result.errors} errors`,
         data: result,
       };
     })
@@ -79,7 +68,7 @@ router.get(
   effectToExpress((req, res) =>
     Effect.sync(() => {
       const { eventId } = req.params;
-      // This would make a direct API call to Eventbrite
+      // TODO: This would make a direct API call to Eventbrite
       // For now, returning a placeholder response
       return {
         success: true,
@@ -98,7 +87,7 @@ router.get(
       const { eventId } = req.params;
       const query = yield* extractQuery<{ page?: number }>(req);
       const { page = 1 } = query;
-      // This would make a direct API call to Eventbrite
+      // TODO: This would make a direct API call to Eventbrite
       // For now, returning a placeholder response
       return {
         success: true,
@@ -116,7 +105,7 @@ router.post(
   effectToExpress((req, res) =>
     Effect.sync(() => {
       const { attendeeId } = req.params;
-      // This would make an API call to Eventbrite to check in the attendee
+      // TODO: This would make an API call to Eventbrite to check in the attendee
       // For now, returning a placeholder response
       return {
         success: true,

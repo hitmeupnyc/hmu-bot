@@ -113,18 +113,6 @@ export const getMemberMemberships = (req: Request, res: Response) =>
   });
 
 /**
- * Get member's event attendance
- * GET /api/members/:id/events
- */
-export const getMemberEvents = (req: Request, res: Response) =>
-  Effect.gen(function* () {
-    const id = yield* extractId(req);
-    const events = yield* MemberEffects.getMemberEvents(id);
-
-    return createSuccessResponse(events);
-  });
-
-/**
  * Add a note to a member
  * POST /api/members/:id/notes
  *

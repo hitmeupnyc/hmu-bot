@@ -7,7 +7,6 @@ import {
   extractQuery,
 } from '../services/effect/adapters/expressAdapter';
 import {
-  CreateAttendance,
   CreateEvent,
   CreateEventMarketing,
   CreateVolunteer,
@@ -171,104 +170,5 @@ export const createVolunteer = (req: Request, res: Response) =>
     return createSuccessResponseWithMessage(
       volunteer,
       'Volunteer added successfully'
-    );
-  });
-
-// =====================================
-// Event Attendance Operations
-// =====================================
-
-/**
- * Get attendance records for an event
- * GET /api/events/:id/attendance
- */
-export const getEventAttendance = (req: Request, res: Response) =>
-  Effect.gen(function* () {
-    const id = yield* extractId(req);
-    const attendance = yield* EventEffects.getEventAttendance(id);
-
-    return createSuccessResponse(attendance);
-  });
-
-/**
- * Create an attendance record for an event
- * POST /api/events/:id/attendance
- */
-export const createAttendance = (req: Request, res: Response) =>
-  Effect.gen(function* () {
-    const eventId = yield* extractId(req);
-    const bodyData = yield* extractBody<CreateAttendance>(req);
-    const attendanceData = {
-      ...bodyData,
-      event_id: eventId,
-      attendance_source: bodyData.attendance_source ?? 1, // Default to manual
-    };
-    const attendance = yield* EventEffects.createAttendance(attendanceData);
-
-    res.status(201);
-    return createSuccessResponseWithMessage(
-      attendance,
-      'Attendance record created successfully'
-    );
-  });
-
-/**
- * Check in an attendee
- * PUT /api/events/attendance/:id/checkin
- */
-export const checkInAttendee = (req: Request, res: Response) =>
-  Effect.gen(function* () {
-    const attendanceId = yield* extractId(req);
-    const bodyData = yield* extractBody<{ check_in_method: string }>(req);
-
-    const attendance = yield* EventEffects.checkInAttendee(
-      attendanceId,
-      bodyData.check_in_method
-    );
-
-    return createSuccessResponseWithMessage(
-      attendance,
-      'Attendee checked in successfully'
-    );
-  });
-
-// =====================================
-// Legacy Compatibility Operations
-// =====================================
-
-/**
- * Check in member to event (legacy endpoint)
- * POST /api/events/:id/checkin
- *
- * @deprecated This endpoint combines attendance creation and check-in.
- * New implementations should use separate attendance creation and check-in endpoints.
- */
-export const legacyCheckInMember = (req: Request, res: Response) =>
-  Effect.gen(function* () {
-    const eventId = yield* extractId(req);
-    const bodyData = yield* extractBody<{ member_id: number }>(req);
-
-    // Create attendance record and check in
-    const attendanceData = {
-      event_id: eventId,
-      member_id: bodyData.member_id,
-      attendance_source: 1, // Manual
-      check_in_method: 'manual',
-    };
-
-    const attendance = yield* EventEffects.createAttendance(attendanceData);
-    if (!attendance.id) {
-      return yield* Effect.fail(
-        new Error('Failed to create attendance record')
-      );
-    }
-    const checkedIn = yield* EventEffects.checkInAttendee(
-      attendance.id!,
-      'manual'
-    );
-
-    return createSuccessResponseWithMessage(
-      checkedIn,
-      'Member checked in successfully'
     );
   });

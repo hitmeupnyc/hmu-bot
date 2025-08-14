@@ -74,39 +74,4 @@ router.post(
   effectToExpress(EventController.createVolunteer)
 );
 
-// =====================================
-// Event Attendance Operations
-// =====================================
-
-// GET /api/events/:id/attendance - Get event attendance
-router.get(
-  '/:id/attendance',
-  effectToExpress(EventController.getEventAttendance)
-);
-
-// POST /api/events/:id/attendance - Create attendance record
-router.post(
-  '/:id/attendance',
-  auditMiddleware('event-attendance'),
-  effectToExpress(EventController.createAttendance)
-);
-
-// PUT /api/events/attendance/:id/checkin - Check in attendee
-router.put(
-  '/attendance/:id/checkin',
-  auditMiddleware('event-attendance'),
-  effectToExpress(EventController.checkInAttendee)
-);
-
-// =====================================
-// Legacy Compatibility Routes
-// =====================================
-
-// POST /api/events/:id/checkin - Check in member to event (legacy)
-router.post(
-  '/:id/checkin',
-  auditMiddleware('event-attendance'),
-  effectToExpress(EventController.legacyCheckInMember)
-);
-
 export { router as eventRoutes };

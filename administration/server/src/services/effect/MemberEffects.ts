@@ -327,32 +327,3 @@ export const getMemberMemberships = (memberId: number) =>
       Schema.decodeUnknown(MemberMembershipSchema)(row)
     );
   });
-
-/**
- * Get member's events
- */
-export const getMemberEvents = (memberId: number) =>
-  Effect.gen(function* () {
-    const db = yield* DatabaseService;
-
-    // Ensure member exists
-    yield* getMemberByIdInternal(memberId);
-
-    const eventRows = yield* db.query(async (db) =>
-      db
-        .selectFrom('events as e')
-        .innerJoin('event_attendance as ea', 'e.id', 'ea.event_id')
-        .selectAll('e')
-        .select([
-          'ea.checked_in_at',
-          'ea.checked_out_at',
-          'ea.attendance_source',
-        ])
-        .where('ea.member_id', '=', memberId)
-        .orderBy('e.start_datetime', 'desc')
-        .execute()
-    );
-
-    // Return raw events for now - could add event schema later
-    return eventRows;
-  });

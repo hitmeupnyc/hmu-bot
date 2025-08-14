@@ -8,7 +8,11 @@ export const EventSchema = Schema.Struct({
   end_datetime: Schema.String,
   flags: Schema.Number,
   max_capacity: Schema.Union(Schema.Number, Schema.Null, Schema.Undefined),
-  required_membership_types: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
+  required_membership_types: Schema.Union(
+    Schema.String,
+    Schema.Null,
+    Schema.Undefined
+  ),
   eventbrite_id: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
   eventbrite_url: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
   created_at: Schema.String,
@@ -57,17 +61,37 @@ export type EventQueryOptions = typeof EventQueryOptionsSchema.Type;
 export const EventMarketingSchema = Schema.Struct({
   id: Schema.Number,
   event_id: Schema.Number,
-  primary_marketing_copy: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
-  secondary_marketing_copy: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
+  primary_marketing_copy: Schema.Union(
+    Schema.String,
+    Schema.Null,
+    Schema.Undefined
+  ),
+  secondary_marketing_copy: Schema.Union(
+    Schema.String,
+    Schema.Null,
+    Schema.Undefined
+  ),
   blurb: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
   social_media_copy: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
   email_subject: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
-  email_preview_text: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
+  email_preview_text: Schema.Union(
+    Schema.String,
+    Schema.Null,
+    Schema.Undefined
+  ),
   seo_title: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
   seo_description: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
   hashtags: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
-  marketing_images_json: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
-  key_selling_points: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
+  marketing_images_json: Schema.Union(
+    Schema.String,
+    Schema.Null,
+    Schema.Undefined
+  ),
+  key_selling_points: Schema.Union(
+    Schema.String,
+    Schema.Null,
+    Schema.Undefined
+  ),
   flags: Schema.Number,
   created_at: Schema.String,
   updated_at: Schema.String,
@@ -101,7 +125,11 @@ export const EventVolunteerSchema = Schema.Struct({
   contact_email: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
   arrival_time: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
   departure_time: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
-  special_instructions: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
+  special_instructions: Schema.Union(
+    Schema.String,
+    Schema.Null,
+    Schema.Undefined
+  ),
   equipment_needed: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
   skills_required: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
   volunteer_notes: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
@@ -132,8 +160,16 @@ export const EventAttendanceSchema = Schema.Struct({
   id: Schema.Number,
   event_id: Schema.Number,
   member_id: Schema.Union(Schema.Number, Schema.Null, Schema.Undefined),
-  eventbrite_attendee_id: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
-  eventbrite_order_id: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
+  eventbrite_attendee_id: Schema.Union(
+    Schema.String,
+    Schema.Null,
+    Schema.Undefined
+  ),
+  eventbrite_order_id: Schema.Union(
+    Schema.String,
+    Schema.Null,
+    Schema.Undefined
+  ),
   ticket_type: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
   registration_date: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
   attendance_source: Schema.Number,
@@ -167,7 +203,6 @@ export const EventWithDetailsSchema = Schema.Struct({
   eventbrite_event: Schema.optional(Schema.String),
   marketing: Schema.optional(EventMarketingSchema),
   volunteers: Schema.Array(EventVolunteerSchema),
-  attendance: Schema.Array(EventAttendanceSchema),
   eventbrite_link: Schema.optional(Schema.String),
 });
 

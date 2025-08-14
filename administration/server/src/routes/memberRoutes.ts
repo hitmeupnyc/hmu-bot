@@ -109,16 +109,4 @@ router.get(
   effectToExpress(MemberController.getMemberMemberships)
 );
 
-/**
- * GET /api/members/:id/events
- * Get event attendance history for a specific member
- */
-router.get(
-  '/:id/events',
-  readOnlyLimiter,
-  validate({ params: idParamSchema }),
-  auditMiddleware('member-events'),
-  effectToExpress(MemberController.getMemberEvents)
-);
-
 export { router as memberRoutes };

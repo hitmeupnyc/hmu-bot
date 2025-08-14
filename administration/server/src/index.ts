@@ -6,23 +6,26 @@ import { Effect } from 'effect';
 import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import logger from './utils/logger';
+
 import { auth } from './auth';
 import { requireAuth } from './middleware/auth';
 import { errorHandler } from './middleware/errorHandler';
 import { apiLimiter } from './middleware/rateLimiting';
-import { applicationRoutes } from './routes/applicationRoutes';
-import { auditRoutes } from './routes/auditRoutes';
-import { discordRoutes } from './routes/discordRoutes';
-import { eventbriteRoutes } from './routes/eventbriteRoutes';
-import { eventRoutes } from './routes/eventRoutes';
-import { healthCheckRouter } from './routes/healthCheck';
-import { klaviyoRoutes } from './routes/klaviyoRoutes';
-import { memberRoutes } from './routes/memberRoutes';
-import { patreonRoutes } from './routes/patreonRoutes';
-import { webhookRoutes } from './routes/webhookRoutes';
 import * as JobSchedulerEffects from './services/effect/JobSchedulerEffects';
 import { DatabaseLive } from './services/effect/layers/DatabaseLayer';
-import logger from './utils/logger';
+
+import { applicationRoutes } from './routes/applicationRoutes';
+import { auditRoutes } from './routes/auditRoutes';
+import { eventRoutes } from './routes/eventRoutes';
+import { healthCheckRouter } from './routes/healthCheck';
+import { memberRoutes } from './routes/memberRoutes';
+
+import { discordRoutes } from './routes/discordRoutes';
+import { eventbriteRoutes } from './routes/eventbriteRoutes';
+import { klaviyoRoutes } from './routes/klaviyoRoutes';
+import { patreonRoutes } from './routes/patreonRoutes';
+import { webhookRoutes } from './routes/webhookRoutes';
 
 // Load environment variables
 dotenv.config();

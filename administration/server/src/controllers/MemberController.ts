@@ -1,12 +1,8 @@
 import { Effect } from 'effect';
 import type { Request, Response } from 'express';
-import * as AuditEffects from '../services/effect/AuditEffects';
-import * as MemberEffects from '../services/effect/MemberEffects';
-import {
-  extractBody,
-  extractId,
-  extractQuery,
-} from '../services/effect/adapters/expressAdapter';
+import { AuditService } from '../services/effect/AuditEffects';
+import { MemberService } from '../services/effect/MemberEffects';
+import { extractId } from '../services/effect/adapters/expressAdapter';
 import {
   createPaginatedResponse,
   createSuccessResponse,
@@ -27,10 +23,11 @@ import {
  */
 export const listMembers = (req: Request, res: Response) =>
   Effect.gen(function* () {
-    const query = yield* extractQuery(req);
+    const query = req.query;
     const { page = 1, limit = 10, search } = query as any;
 
-    const result = yield* MemberEffects.getMembers({
+    const memberService = yield* MemberService;
+    const result = yield* memberService.getMembers({
       page: Number(page),
       limit: Number(limit),
       search,
@@ -46,7 +43,8 @@ export const listMembers = (req: Request, res: Response) =>
 export const getMember = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const id = yield* extractId(req);
-    const member = yield* MemberEffects.getMemberById(id);
+    const memberService = yield* MemberService;
+    const member = yield* memberService.getMemberById(id);
 
     return createSuccessResponse(member);
   });
@@ -58,8 +56,9 @@ export const getMember = (req: Request, res: Response) =>
 export const createMember = (req: Request, res: Response) => {
   res.status(201);
   return Effect.gen(function* () {
-    const memberData = yield* extractBody<any>(req);
-    const member = yield* MemberEffects.createMember(memberData);
+    const memberData = req.body;
+    const memberService = yield* MemberService;
+    const member = yield* memberService.createMember(memberData);
 
     return createSuccessResponseWithMessage(
       member,
@@ -75,9 +74,10 @@ export const createMember = (req: Request, res: Response) => {
 export const updateMember = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const id = yield* extractId(req);
-    const updateData = yield* extractBody<any>(req);
+    const updateData = req.body;
 
-    const member = yield* MemberEffects.updateMember({ ...updateData, id });
+    const memberService = yield* MemberService;
+    const member = yield* memberService.updateMember({ ...updateData, id });
 
     return createSuccessResponseWithMessage(
       member,
@@ -92,7 +92,8 @@ export const updateMember = (req: Request, res: Response) =>
 export const deleteMember = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const id = yield* extractId(req);
-    yield* MemberEffects.deleteMember(id);
+    const memberService = yield* MemberService;
+    yield* memberService.deleteMember(id);
 
     return {
       success: true,
@@ -110,7 +111,7 @@ export const deleteMember = (req: Request, res: Response) =>
 export const addMemberNote = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const id = yield* extractId(req);
-    const body = yield* extractBody<{ content: string; tags?: string[] }>(req);
+    const body = req.body as { content: string; tags?: string[] };
     const { content, tags = [] } = body;
 
     // Validate note content
@@ -123,10 +124,12 @@ export const addMemberNote = (req: Request, res: Response) =>
     }
 
     // Verify member exists
-    yield* MemberEffects.getMemberById(id);
+    const memberService = yield* MemberService;
+    yield* memberService.getMemberById(id);
 
     // Log note creation as an audit event
-    yield* AuditEffects.logAuditEvent({
+    const auditService = yield* AuditService;
+    yield* auditService.logAuditEvent({
       entity_type: 'member',
       entity_id: id,
       action: 'note',

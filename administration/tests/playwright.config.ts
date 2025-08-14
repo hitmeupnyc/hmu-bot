@@ -22,11 +22,11 @@ export default defineConfig({
 
   webServer: [
     {
-      command: 'cd ../server && DATABASE_PATH=../server/data/test.db npm run dev',
+      command: 'cd ../server && DATABASE_PATH=../data/test.db npm run dev',
       port: 3000,
       reuseExistingServer: !process.env.CI,
       env: {
-        DATABASE_PATH: '../server/data/test.db',
+        DATABASE_PATH: '../data/test.db',
         NODE_ENV: 'test',
       },
     },

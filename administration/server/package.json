@@ -16,9 +16,13 @@
     "db:migrate:latest": "mkdir -p ./data && kysely migrate latest",
     "db:seed": "kysely seed run",
     "db:setup-test": "rm -f ./data/test.db && mkdir -p ./data && DATABASE_PATH=./data/test.db npm run db:migrate:latest && DATABASE_PATH=./data/test.db npm run db:seed",
-    "db:codegen": "kysely-codegen --dialect sqlite --url ./data/club.db --out-file ./src/types/index.ts"
+    "db:codegen": "kysely-codegen --dialect sqlite --url ./data/club.db --out-file ./src/types/index.ts",
+    "auth:init": "tsx src/scripts/init-spicedb.ts",
+    "auth:init:prod": "tsx src/scripts/init-spicedb-production.ts",
+    "auth:test": "vitest --run src/__tests__/Authorization.test.ts"
   },
   "dependencies": {
+    "@casl/ability": "^6.7.3",
     "@types/uuid": "^10.0.0",
     "axios": "^1.11.0",
     "better-auth": "^1.3.5",

@@ -1,5 +1,17 @@
-import { NextFunction, Request, Response } from 'express';
-import { auth } from '../auth';
+import { Effect } from 'effect';
+import { Request } from 'express';
+import {
+  authMiddleware,
+  extractHeaders,
+  permissionMiddleware,
+} from '../services/effect/adapters/middlewareAdapter';
+import { Action, Subject } from '../services/effect/AuthorizationEffects';
+import {
+  AuthService,
+  AuthorizationError,
+  MiddlewareContext,
+} from '../services/effect/AuthService';
+import { AuthLayer } from '../services/effect/layers/AuthLayer';
 
 // Extend Express Request type to include session
 declare global {
@@ -15,6 +27,11 @@ declare global {
         userId: string;
         expiresAt: Date;
       };
+      user?: {
+        id: string;
+        email: string;
+        flags?: string[];
+      };
     }
   }
 }
@@ -23,81 +40,155 @@ declare global {
  * Middleware to require authentication for routes
  * Checks for a valid session and attaches it to the request
  */
-export const requireAuth = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    // Get session from Better Auth
-    const session = await auth.api.getSession({
-      headers: req.headers as any, // Better Auth expects a Headers object
-    });
+export const requireAuth = authMiddleware(
+  (req: Request) =>
+    Effect.gen(function* () {
+      const authService = yield* AuthService;
+      const headers = extractHeaders(req);
 
-    if (!session) {
-      res.status(401).json({
-        error: 'Authentication required',
-        code: 'UNAUTHENTICATED',
-      });
-      return;
-    }
+      const session = yield* authService.validateSession(headers);
 
-    // Attach session to request for use in route handlers
-    req.session = { ...session.session, user: session.user };
-    next();
-  } catch (error) {
-    console.error('Auth middleware error:', error);
-    res.status(401).json({
-      error: 'Authentication failed',
-      code: 'AUTH_ERROR',
-    });
-  }
-};
+      return {
+        session,
+        user: {
+          id: session.user.id,
+          email: session.user.email,
+        },
+      } satisfies MiddlewareContext;
+    }),
+  AuthLayer
+);
 
 /**
- * Middleware to optionally attach session if available
- * Does not require authentication but makes session available if present
- */
-export const optionalAuth = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    const session = await auth.api.getSession({
-      headers: req.headers as any, // Better Auth expects a Headers object
-    });
-
-    if (session) {
-      req.session = { ...session.session, user: session.user };
-    }
-    next();
-  } catch (error) {
-    // Silently continue without session
-    next();
-  }
-};
-
-/**
- * Middleware to check if user has specific access level
+ * Middleware factory to check if user has specific CASL permission
  * Must be used after requireAuth
  */
-export const requireAccessLevel = (minLevel: number) => {
-  return async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> => {
-    if (!req.session) {
-      res.status(401).json({
-        error: 'Authentication required',
-        code: 'UNAUTHENTICATED',
-      });
-      return;
-    }
+export const requirePermission = (
+  action: Action,
+  subject: Subject | ((req: Request) => Subject | object),
+  field?: string
+) => {
+  return permissionMiddleware((req: Request) =>
+    Effect.gen(function* () {
+      if (!req.session) {
+        return yield* Effect.fail(
+          new AuthorizationError({
+            reason: 'permission_denied',
+            message: 'Authentication required - no session found',
+          })
+        );
+      }
 
-    // TODO: Check user's access level from members table
-    // For now, all authenticated users are allowed
-    next();
-  };
+      const authService = yield* AuthService;
+      const subjectObj = typeof subject === 'function' ? subject(req) : subject;
+
+      const hasPermission = yield* authService.checkPermission(
+        req.session,
+        action,
+        subjectObj,
+        field
+      );
+
+      if (!hasPermission) {
+        return yield* Effect.fail(
+          new AuthorizationError({
+            reason: 'permission_denied',
+            message: `Permission denied: ${action} on ${JSON.stringify(subjectObj)}`,
+            requiredPermission: `${action} on ${JSON.stringify(subjectObj)}`,
+          })
+        );
+      }
+
+      return {
+        session: req.session,
+        user: req.user,
+      } satisfies MiddlewareContext;
+    }).pipe(Effect.provide(AuthLayer))
+  );
 };
+
+/**
+ * Resource-based permission middleware with flag support
+ */
+interface ResourcePermissionOptions {
+  resourceType: string;
+  resourceIdParam?: string;
+  permission: string;
+  requiredFlags?: string[];
+}
+
+export const requireResourcePermission = (
+  options: ResourcePermissionOptions
+) => {
+  return permissionMiddleware((req: Request) =>
+    Effect.gen(function* () {
+      if (!req.session) {
+        return yield* Effect.fail(
+          new AuthorizationError({
+            reason: 'permission_denied',
+            message: 'Authentication required - no session found',
+          })
+        );
+      }
+
+      const resourceId = options.resourceIdParam
+        ? req.params[options.resourceIdParam]
+        : req.params.id;
+
+      if (!resourceId) {
+        return yield* Effect.fail(
+          new AuthorizationError({
+            reason: 'resource_not_found',
+            message: 'Resource ID required',
+            resource: { type: options.resourceType, id: 'missing' },
+          })
+        );
+      }
+
+      const authService = yield* AuthService;
+
+      const hasPermission = yield* authService.checkResourcePermission(
+        req.session,
+        options.resourceType,
+        resourceId,
+        options.permission,
+        options.requiredFlags
+      );
+
+      if (!hasPermission) {
+        return yield* Effect.fail(
+          new AuthorizationError({
+            reason: 'permission_denied',
+            message: 'Resource permission denied',
+            requiredPermission: options.permission,
+            resource: { type: options.resourceType, id: resourceId },
+          })
+        );
+      }
+
+      return {
+        session: req.session,
+        user: req.user,
+      } as MiddlewareContext;
+    }).pipe(Effect.provide(AuthLayer))
+  );
+};
+
+// Convenience middleware combinations
+export const requireVerified = requireResourcePermission({
+  resourceType: 'members',
+  permission: 'read',
+  requiredFlags: ['socials_approved', 'video_verified'],
+});
+
+export const requireVolunteer = requireResourcePermission({
+  resourceType: 'events',
+  permission: 'read',
+  requiredFlags: ['guardian_certified'],
+});
+
+export const requireAdminAccess = requirePermission('read', 'all');
+
+export const requireEventManagerAccess = requirePermission('read', 'events');
+
+export const requireMemberManagerAccess = requirePermission('read', 'members');

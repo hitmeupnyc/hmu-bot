@@ -8,7 +8,7 @@
 import { Effect } from 'effect';
 import { decodeUnknown } from 'effect/Schema';
 import { Request, Response } from 'express';
-import * as AuditEffects from '../services/effect/AuditEffects';
+import { AuditService } from '../services/effect/AuditEffects';
 import { extractQuery } from '../services/effect/adapters/expressAdapter';
 import { AuditSchema } from '../services/effect/schemas/AuditSchema';
 import { createSuccessResponse } from './helpers/responseFormatters';
@@ -32,7 +32,8 @@ export const listAuditLogs = (req: Request, res: Response) =>
     };
 
     // Fetch audit logs from service
-    const auditLogs = yield* AuditEffects.getAuditLogs(
+    const auditService = yield* AuditService;
+    const auditLogs = yield* auditService.getAuditLogs(
       entity_type,
       entity_id,
       limit
@@ -54,7 +55,8 @@ export const addAuditEvent = (req: Request, res: Response) =>
       yield* decodeUnknown(AuditSchema)(req.body);
 
     // Log note creation as an audit event
-    yield* AuditEffects.logAuditEvent({
+    const auditService = yield* AuditService;
+    yield* auditService.logAuditEvent({
       entity_type: entity_type,
       entity_id: entity_id,
       action: action,

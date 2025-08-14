@@ -21,10 +21,14 @@ services:
       - NODE_ENV=production
       - DATABASE_PATH=/app/data/club.db
       - REDIS_URL=redis://redis:6379
+      - SPICEDB_ENDPOINT=spicedb:50051
+      - SPICEDB_TOKEN=${SPICEDB_TOKEN:-hmu_production_secret_key_change_me}
     volumes:
       - server_data:/app/data
     depends_on:
       redis:
+        condition: service_healthy
+      spicedb:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
@@ -90,6 +94,63 @@ services:
           cpus: "0.1"
     command: redis-server --appendonly yes --maxmemory 100mb --maxmemory-policy allkeys-lru
 
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: spicedb
+      POSTGRES_USER: spicedb
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-spicedb_secure_password_change_me}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spicedb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+
+  spicedb:
+    image: authzed/spicedb:latest
+    command: serve --grpc-preshared-key "${SPICEDB_TOKEN:-hmu_production_secret_key_change_me}" --http-enabled
+    expose:
+      - "8080"  # HTTP API
+      - "50051" # gRPC API
+    environment:
+      - SPICEDB_DATASTORE_ENGINE=postgres
+      - SPICEDB_DATASTORE_CONN_URI=postgresql://spicedb:${POSTGRES_PASSWORD:-spicedb_secure_password_change_me}@postgres:5432/spicedb?sslmode=disable
+      - SPICEDB_DATASTORE_CONN_POOL_READ_MAX_OPEN=20
+      - SPICEDB_DATASTORE_CONN_POOL_WRITE_MAX_OPEN=10
+      - SPICEDB_DATASTORE_CONN_POOL_READ_MIN_OPEN=5
+      - SPICEDB_DATASTORE_CONN_POOL_WRITE_MIN_OPEN=2
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "grpc_health_probe", "-addr=:50051"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+
 volumes:
   redis_data:
   server_data:
+  postgres_data:

@@ -1,79 +1,108 @@
-import { Effect, pipe, Schema } from 'effect';
-import { DatabaseService } from './context/DatabaseService';
+import { Context, Effect, Layer, pipe, Schema } from 'effect';
+import { DatabaseError, ParseError } from './errors/CommonErrors';
+import { DatabaseLive, DatabaseService } from './layers/DatabaseLayer';
 import { Audit, AuditSchema } from './schemas/AuditSchema';
 
-/**
- * Log an audit event
- */
-export const logAuditEvent = (entry: Audit) =>
+// Service interface
+export interface IAuditService {
+  readonly logAuditEvent: (
+    entry: Audit
+  ) => Effect.Effect<Audit, DatabaseError | ParseError, never>;
+
+  readonly getAuditLogs: (
+    entityType: string,
+    entityId?: number,
+    limit?: number
+  ) => Effect.Effect<Array<Audit>, DatabaseError | ParseError, never>;
+}
+
+export const AuditService = Context.GenericTag<IAuditService>('AuditService');
+
+// Service implementation layer
+export const AuditServiceLive = Layer.effect(
+  AuditService,
   Effect.gen(function* () {
-    const db = yield* DatabaseService;
-    const validatedEntry = yield* Schema.decodeUnknown(AuditSchema)(entry);
+    const dbService = yield* DatabaseService;
 
-    // Non-failing audit logging - errors are logged but don't throw
-    return yield* pipe(
-      db.query(async (db) =>
-        db
-          .insertInto('audit_log')
-          .values({
-            entity_type: validatedEntry.entity_type,
-            entity_id: validatedEntry.entity_id || null,
-            action: validatedEntry.action,
-            user_session_id: validatedEntry.userSessionId || null,
-            user_ip: validatedEntry.userIp || null,
-            user_email: validatedEntry.userEmail || null,
-            user_id: validatedEntry.userId || null,
-            old_values_json: validatedEntry.oldValues
-              ? JSON.stringify(validatedEntry.oldValues)
-              : null,
-            new_values_json: validatedEntry.newValues
-              ? JSON.stringify(validatedEntry.newValues)
-              : null,
-            metadata_json: validatedEntry.metadata
-              ? JSON.stringify(validatedEntry.metadata)
-              : null,
-          })
-          .execute()
-      ),
-      Effect.catchAll((error) =>
-        Effect.sync(() => {
-          console.error('Failed to log audit event:', error);
-          return null; // Return null instead of failing
-        })
-      )
-    );
-  });
+    const logAuditEvent = (
+      entry: Audit
+    ): Effect.Effect<Audit, DatabaseError | ParseError, never> =>
+      Effect.gen(function* () {
+        const validatedEntry = yield* pipe(
+          Schema.decodeUnknown(AuditSchema)(entry),
+          Effect.catchTag('ParseError', (error) => Effect.fail(error))
+        );
 
-/**
- * Get audit logs for an entity
- */
-export const getAuditLogs = (
-  entityType: string,
-  entityId?: number,
-  limit: number = 50
-) =>
-  Effect.gen(function* () {
-    const db = yield* DatabaseService;
+        const auditLog = {
+          ...validatedEntry,
+          old_values_json: validatedEntry.oldValues
+            ? JSON.stringify(validatedEntry.oldValues)
+            : null,
+          new_values_json: validatedEntry.newValues
+            ? JSON.stringify(validatedEntry.newValues)
+            : null,
+          metadata_json: validatedEntry.metadata
+            ? JSON.stringify(validatedEntry.metadata)
+            : null,
+        };
 
-    const logs = yield* db.query(async (db) => {
-      let query = db
-        .selectFrom('audit_log')
-        .selectAll()
-        .where('entity_type', '=', entityType)
-        .orderBy('created_at', 'desc')
-        .limit(limit);
+        yield* dbService.query(async (db) =>
+          db.insertInto('audit_log').values(auditLog).execute()
+        );
+        return auditLog;
+      });
 
-      if (entityId) {
-        query = query.where('entity_id', '=', entityId);
-      }
+    const getAuditLogs = (
+      entityType: string,
+      entityId?: number,
+      limit: number = 50
+    ): Effect.Effect<Array<Audit>, DatabaseError | ParseError, never> =>
+      Effect.gen(function* () {
+        const logs = yield* dbService.query(async (db) => {
+          let query = db
+            .selectFrom('audit_log')
+            .selectAll()
+            .where('entity_type', '=', entityType)
+            .orderBy('created_at', 'desc')
+            .limit(limit);
 
-      return query.execute();
-    });
+          if (entityId) {
+            query = query.where('entity_id', '=', entityId);
+          }
 
-    return logs.map((log) => ({
-      ...log,
-      metadata: log.metadata_json ? JSON.parse(log.metadata_json) : null,
-      oldValues: log.old_values_json ? JSON.parse(log.old_values_json) : null,
-      newValues: log.new_values_json ? JSON.parse(log.new_values_json) : null,
-    }));
-  });
+          return query.execute();
+        });
+
+        return logs.map((log) => ({
+          entity_type: log.entity_type,
+          entity_id: log.entity_id || undefined,
+          action: log.action as
+            | 'create'
+            | 'update'
+            | 'delete'
+            | 'view'
+            | 'search'
+            | 'note',
+          userSessionId: log.user_session_id || undefined,
+          userIp: log.user_ip || undefined,
+          userEmail: log.user_email || undefined,
+          userId: log.user_id || undefined,
+          metadata: log.metadata_json ? JSON.parse(log.metadata_json) : null,
+          oldValues: log.old_values_json
+            ? JSON.parse(log.old_values_json)
+            : null,
+          newValues: log.new_values_json
+            ? JSON.parse(log.new_values_json)
+            : null,
+        }));
+      });
+
+    return {
+      logAuditEvent,
+      getAuditLogs,
+    };
+  })
+).pipe(Layer.provide(DatabaseLive));
+
+// Factory function for layer
+export const getAuditServiceLayer = () => AuditServiceLive;

@@ -40,7 +40,7 @@ administration/
 │   │   ├── # business logic used in routes
 │   │   └── helpers/ # Shared utilities
 │   └── services/
-│       └── effect/
+│       └── effect/ # See also notes/EFFECT.md
 │           ├── layers/ # Database layer with resource management
 │           ├── context/ # Database service interface & factory
 │           ├── schemas/ # Shared schemas (audit, Discord, etc.)
@@ -70,3 +70,6 @@ administration/
 ```bash
 npm run lint && npm run typecheck && npm test
 ```
+
+- notes/EFFECT.md
+

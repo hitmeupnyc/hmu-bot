@@ -4,6 +4,9 @@ import {
   EnvelopeIcon,
   PencilIcon,
   TrashIcon,
+  InformationCircleIcon,
+  ChatBubbleLeftIcon,
+  ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -16,7 +19,10 @@ import {
   EmailModal,
   InfoCards,
   LoadingStates,
+  MemberFlags,
 } from '@/features/MemberDetails/components';
+import { FlagGrantModal } from '@/features/Permissions/components';
+import { useFlags } from '@/hooks/useFlags';
 import { useAuditLog } from '@/hooks/useAudit';
 import {
   useDeleteMember,
@@ -25,11 +31,15 @@ import {
 } from '@/hooks/useMembers';
 import { MemberFormData } from '@/types';
 
+type TabType = 'info' | 'notes' | 'flags' | 'audit';
+
 export function MemberDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [showGrantModal, setShowGrantModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('info');
 
   const memberId = parseInt(id || '0', 10);
   const { data: member, isLoading, error } = useMember(memberId, !!id);
@@ -38,6 +48,7 @@ export function MemberDetails() {
     isLoading: auditLoading,
     refetch: refetchAuditLog,
   } = useAuditLog('member', memberId, !!id);
+  const { data: flags = [] } = useFlags();
   const updateMember = useUpdateMember();
   const deleteMember = useDeleteMember();
 
@@ -91,6 +102,41 @@ export function MemberDetails() {
   const handleNoteAdded = () => {
     refetchAuditLog();
   };
+
+  const handleGrantFlag = () => {
+    setShowGrantModal(true);
+  };
+
+  const handleCloseGrantModal = () => {
+    setShowGrantModal(false);
+  };
+
+  const tabs = [
+    {
+      id: 'info' as TabType,
+      label: 'Member Info',
+      icon: InformationCircleIcon,
+      count: null
+    },
+    {
+      id: 'notes' as TabType,
+      label: 'Notes',
+      icon: ChatBubbleLeftIcon,
+      count: null
+    },
+    {
+      id: 'flags' as TabType,
+      label: 'Flags & Permissions',
+      icon: ShieldCheckIcon,
+      count: null
+    },
+    {
+      id: 'audit' as TabType,
+      label: 'Audit History',
+      icon: ClockIcon,
+      count: null
+    }
+  ];
 
   // Handle loading and error states
   if (isLoading || error || !member) {
@@ -148,19 +194,66 @@ export function MemberDetails() {
         </div>
       </div>
 
-      <InfoCards member={member} />
+      {/* Tab Navigation */}
+      <div className="mb-6">
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            {tabs.map(tab => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors ${
+                    activeTab === tab.id
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{tab.label}</span>
+                  {tab.count !== null && (
+                    <span className={`ml-2 py-1 px-2 text-xs rounded-full ${
+                      activeTab === tab.id ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+      </div>
 
-      <ApplicationNotes memberId={memberId} onNoteAdded={handleNoteAdded} />
+      {/* Tab Content */}
+      <div className="min-h-96">
+        {activeTab === 'info' && (
+          <InfoCards member={member} />
+        )}
 
-      <div className="mt-6 bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-          <ClockIcon className="h-5 w-5 mr-2" />
-          Audit History
-        </h2>
-        {auditLoading ? (
-          <div className="text-gray-500 text-sm">Loading audit history...</div>
-        ) : (
-          <AuditHistory auditLog={auditLog} />
+        {activeTab === 'notes' && (
+          <ApplicationNotes memberId={memberId} onNoteAdded={handleNoteAdded} />
+        )}
+
+        {activeTab === 'flags' && (
+          <div className="bg-white shadow rounded-lg p-6">
+            <MemberFlags memberEmail={member.email} onGrantFlag={handleGrantFlag} />
+          </div>
+        )}
+
+        {activeTab === 'audit' && (
+          <div className="bg-white shadow rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <ClockIcon className="h-5 w-5 mr-2" />
+              Audit History
+            </h2>
+            {auditLoading ? (
+              <div className="text-gray-500 text-sm">Loading audit history...</div>
+            ) : (
+              <AuditHistory auditLog={auditLog} />
+            )}
+          </div>
         )}
       </div>
 
@@ -183,6 +276,14 @@ export function MemberDetails() {
         onClose={() => setIsEmailModalOpen(false)}
         member={member}
         onSendEmail={handleSendEmail}
+      />
+
+      {/* Grant Flag Modal */}
+      <FlagGrantModal
+        isOpen={showGrantModal}
+        onClose={handleCloseGrantModal}
+        flags={flags}
+        preselectedEmail={member.email}
       />
     </div>
   );

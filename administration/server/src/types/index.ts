@@ -9,6 +9,22 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
 
+export interface Account {
+  accessToken: string | null;
+  accessTokenExpiresAt: string | null;
+  accountId: string;
+  createdAt: string;
+  id: string;
+  idToken: string | null;
+  password: string | null;
+  providerId: string;
+  refreshToken: string | null;
+  refreshTokenExpiresAt: string | null;
+  scope: string | null;
+  updatedAt: string;
+  userId: string;
+}
+
 export interface AuditLog {
   action: string;
   created_at: Generated<string | null>;
@@ -92,19 +108,33 @@ export interface ExternalIntegrations {
   system_name: string;
 }
 
+export interface Flags {
+  created_at: Generated<string | null>;
+  id: string | null;
+  name: string;
+  updated_at: Generated<string | null>;
+}
+
 export interface Members {
-  access_level: Generated<number | null>;
   created_at: Generated<string | null>;
   date_added: Generated<string | null>;
   email: string;
   first_name: string;
-  flags: Generated<number | null>;
   id: Generated<number | null>;
   last_name: string;
   preferred_name: string | null;
   pronouns: string | null;
   sponsor_notes: string | null;
   updated_at: Generated<string | null>;
+}
+
+export interface MembersFlags {
+  expires_at: string | null;
+  flag_id: string;
+  granted_at: Generated<string | null>;
+  granted_by: string | null;
+  member_id: string;
+  metadata: string | null;
 }
 
 export interface Session {
@@ -141,14 +171,27 @@ export interface User {
   updatedAt: string;
 }
 
+export interface Verification {
+  createdAt: string | null;
+  expiresAt: string;
+  id: string;
+  identifier: string;
+  updatedAt: string | null;
+  value: string;
+}
+
 export interface DB {
+  account: Account;
   audit_log: AuditLog;
   events: Events;
   events_marketing: EventsMarketing;
   events_volunteers: EventsVolunteers;
   external_integrations: ExternalIntegrations;
+  flags: Flags;
   members: Members;
+  members_flags: MembersFlags;
   session: Session;
   sync_operations: SyncOperations;
   user: User;
+  verification: Verification;
 }

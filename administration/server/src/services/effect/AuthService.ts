@@ -1,17 +1,15 @@
 import { betterAuth } from 'better-auth';
+import { toNodeHandler } from 'better-auth/node';
 import { magicLink } from 'better-auth/plugins';
 import { Config, Context, Data, Effect, Layer, Schedule } from 'effect';
 import * as Schema from 'effect/Schema';
 
 import { TimeoutException } from 'effect/Cause';
 import {
-  DatabaseLive,
-  DatabaseService,
-} from './layers/DatabaseLayer';
-import {
   AuthorizationError,
   AuthorizationService,
 } from './AuthorizationEffects';
+import { DatabaseLive, DatabaseService } from './layers/DatabaseLayer';
 
 // =============================================================================
 // DOMAIN TYPES
@@ -83,7 +81,7 @@ export class SessionValidationError extends Data.TaggedError(
 // =============================================================================
 
 // BetterAuth configuration schema
-export const AuthConfigSchema = Config.all({
+const betterAuthConfigSchema = Config.all({
   baseURL: Config.string('BETTER_AUTH_URL').pipe(
     Config.withDefault('http://localhost:3000')
   ),
@@ -120,10 +118,21 @@ const authServiceConfigSchema = Config.all({
   ),
 });
 
-export type AuthConfig = Config.Config.Success<typeof AuthConfigSchema>;
-export type AuthServiceConfig = Config.Config.Success<typeof authServiceConfigSchema>;
+export type BetterAuthConfig = Config.Config.Success<typeof betterAuthConfigSchema>;
+export type AuthServiceConfig = Config.Config.Success<
+  typeof authServiceConfigSchema
+>;
 
-const AuthServiceConfigTag = Context.GenericTag<AuthServiceConfig>('AuthServiceConfig');
+export const BetterAuthConfigTag =
+  Context.GenericTag<BetterAuthConfig>('BetterAuthConfig');
+
+const AuthServiceConfigTag =
+  Context.GenericTag<AuthServiceConfig>('AuthServiceConfig');
+
+export const BetterAuthConfigLayer = Layer.effect(
+  BetterAuthConfigTag,
+  betterAuthConfigSchema
+);
 
 export const AuthServiceConfigLayer = Layer.effect(
   AuthServiceConfigTag,
@@ -136,14 +145,16 @@ export const AuthServiceConfigLayer = Layer.effect(
 
 export interface IBetterAuthService {
   readonly auth: ReturnType<typeof betterAuth>;
+  readonly toNodeHandler: () => ReturnType<typeof toNodeHandler>;
 }
 
-export const BetterAuthService = Context.GenericTag<IBetterAuthService>('BetterAuthService');
+export const BetterAuthService =
+  Context.GenericTag<IBetterAuthService>('BetterAuthService');
 
 export const BetterAuthLive = Layer.effect(
   BetterAuthService,
   Effect.gen(function* () {
-    const config = yield* AuthConfigSchema;
+    const config = yield* BetterAuthConfigTag;
     const dbService = yield* DatabaseService;
 
     // Get the raw sqlite database for better-auth
@@ -151,13 +162,13 @@ export const BetterAuthLive = Layer.effect(
 
     const auth = betterAuth({
       database: sqliteDb,
-      
+
       baseURL: config.baseURL,
-      
+
       emailAndPassword: {
         enabled: false, // We only use magic links
       },
-      
+
       plugins: [
         magicLink({
           sendMagicLink: async ({ email, url }) => {
@@ -168,18 +179,28 @@ export const BetterAuthLive = Layer.effect(
           expiresIn: config.magicLinkExpiresIn,
         }),
       ],
-      
+
       session: {
         expiresIn: config.sessionExpiresIn,
         updateAge: config.sessionUpdateAge,
       },
-      
+
       trustedOrigins: [config.clientURL],
     });
 
-    return { auth };
+    return {
+      auth,
+      toNodeHandler: () => toNodeHandler(auth),
+    };
   })
-).pipe(Layer.provide(DatabaseLive));
+).pipe(
+  Layer.provide(
+    Layer.mergeAll(
+      BetterAuthConfigLayer,
+      DatabaseLive
+    )
+  )
+);
 
 // =============================================================================
 // AUTH SERVICE INTERFACE
@@ -230,7 +251,11 @@ export type ExpressHeaders = typeof ExpressHeadersSchema.Type;
 
 const validateSession = (
   headers: Record<string, string | string[] | undefined>
-): Effect.Effect<Session, AuthenticationError | TimeoutException, IBetterAuthService | AuthServiceConfig> =>
+): Effect.Effect<
+  Session,
+  AuthenticationError | TimeoutException,
+  IBetterAuthService | AuthServiceConfig
+> =>
   Effect.gen(function* () {
     const config = yield* AuthServiceConfigTag;
     const betterAuthService = yield* BetterAuthService;
@@ -309,7 +334,11 @@ const checkPermission = (
   action: string,
   subject: string | object,
   field?: string
-): Effect.Effect<boolean, AuthorizationError | TimeoutException, AuthorizationService | AuthServiceConfig> =>
+): Effect.Effect<
+  boolean,
+  AuthorizationError | TimeoutException,
+  AuthorizationService | AuthServiceConfig
+> =>
   Effect.gen(function* () {
     const config = yield* AuthServiceConfigTag;
     const authorizationService = yield* AuthorizationService;
@@ -353,7 +382,11 @@ const checkResourcePermission = (
   resourceId: string,
   permission: string,
   requiredFlags?: string[]
-): Effect.Effect<boolean, AuthorizationError | TimeoutException, AuthorizationService> =>
+): Effect.Effect<
+  boolean,
+  AuthorizationError | TimeoutException,
+  AuthorizationService
+> =>
   Effect.gen(function* () {
     const authorizationService = yield* AuthorizationService;
 
@@ -408,7 +441,11 @@ const checkResourcePermission = (
 const hasFlags = (
   email: string,
   flags: string[]
-): Effect.Effect<boolean, AuthorizationError | TimeoutException, AuthorizationService> =>
+): Effect.Effect<
+  boolean,
+  AuthorizationError | TimeoutException,
+  AuthorizationService
+> =>
   Effect.gen(function* () {
     const authorizationService = yield* AuthorizationService;
 
@@ -444,22 +481,20 @@ const isHmuDomainUser = (email: string): Effect.Effect<boolean, never, never> =>
 export const AuthServiceLive = Layer.effect(
   AuthService,
   Effect.gen(function* () {
-    // Get all dependencies upfront
-    const betterAuthService = yield* BetterAuthService;
-    const authorizationService = yield* AuthorizationService;
-    const config = yield* AuthServiceConfigTag;
-
+    // Create a service layer to provide dependencies to helper functions
     const serviceLayer = Layer.mergeAll(
-      Layer.succeed(BetterAuthService, betterAuthService),
-      Layer.succeed(AuthorizationService, authorizationService),
-      Layer.succeed(AuthServiceConfigTag, config)
+      Layer.succeed(BetterAuthService, yield* BetterAuthService),
+      Layer.succeed(AuthorizationService, yield* AuthorizationService),
+      Layer.succeed(AuthServiceConfigTag, yield* AuthServiceConfigTag)
     );
 
     return {
       validateSession: (headers) =>
         validateSession(headers).pipe(Effect.provide(serviceLayer)),
       checkPermission: (session, action, subject, field) =>
-        checkPermission(session, action, subject, field).pipe(Effect.provide(serviceLayer)),
+        checkPermission(session, action, subject, field).pipe(
+          Effect.provide(serviceLayer)
+        ),
       checkResourcePermission: (
         session,
         resourceType,
@@ -480,7 +515,11 @@ export const AuthServiceLive = Layer.effect(
     } satisfies IAuthService;
   })
 ).pipe(
-  Layer.provide(BetterAuthLive),
-  Layer.provide(AuthorizationService.Live),
-  Layer.provide(AuthServiceConfigLayer)
+  Layer.provide(
+    Layer.mergeAll(
+      BetterAuthLive,
+      AuthorizationService.Live,
+      AuthServiceConfigLayer
+    )
+  )
 );

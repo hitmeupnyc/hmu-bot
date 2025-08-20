@@ -26,6 +26,7 @@ const ApplicationLive = Layer.mergeAll(
  * Convert Effect errors to Express-compatible errors
  */
 const toExpressError = (error: unknown): Error => {
+  console.error(error);
   if (error instanceof NotFoundError) {
     const err = new Error(`Not found: ${error.id}#${error.resource}`);
     (err as any).status = 404;

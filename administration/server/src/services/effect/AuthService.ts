@@ -159,7 +159,6 @@ export const BetterAuthLive = Layer.effect(
 
     // Get the raw sqlite database for better-auth
     const sqliteDb = yield* dbService.querySync((db) => db);
-
     const auth = betterAuth({
       database: sqliteDb,
 
@@ -317,7 +316,7 @@ const validateSession = (
       );
     }
 
-    return {
+    const session = {
       id: sessionResult.session.id,
       userId: sessionResult.session.userId,
       user: {
@@ -327,6 +326,8 @@ const validateSession = (
       },
       expiresAt: new Date(sessionResult.session.expiresAt),
     };
+
+    return session;
   });
 
 const checkPermission = (

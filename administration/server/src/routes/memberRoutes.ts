@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import * as MemberController from '../controllers/MemberController';
 import { auditMiddleware } from '../middleware/auditLogging';
-import { requireAuth, requirePermission, requireMemberManager } from '../middleware/auth';
+import { requireAuth, requirePermission } from '../middleware/auth';
 import { apiLimiter, readOnlyLimiter } from '../middleware/rateLimiting';
 import { validate } from '../middleware/validation';
 import {
@@ -28,9 +28,7 @@ import { effectToExpress } from '../services/effect/adapters/expressAdapter';
 
 const router = Router();
 
-// ============================================================================
 // Core CRUD Operations
-// ============================================================================
 
 /**
  * GET /api/members
@@ -69,7 +67,7 @@ router.get(
 router.post(
   '/',
   requireAuth,
-  requireMemberManager,
+  requirePermission('create', 'Member'),
   apiLimiter,
   validate({ body: createMemberSchema }),
   auditMiddleware('member'),
@@ -102,7 +100,7 @@ router.put(
 router.delete(
   '/:id',
   requireAuth,
-  requireMemberManager,
+  requirePermission('delete', 'Member'),
   apiLimiter,
   validate({ params: idParamSchema }),
   auditMiddleware('member'),

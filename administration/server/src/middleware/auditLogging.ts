@@ -3,7 +3,6 @@ import { Request } from 'express';
 import { Audit } from '~/services/effect/schemas/AuditSchema';
 import { effectToExpress } from '../services/effect/adapters/expressAdapter';
 import { AuditService } from '../services/effect/AuditEffects';
-import { DatabaseLive } from '../services/effect/layers/DatabaseLayer';
 
 // Extend Express Request/Response types
 declare global {
@@ -86,12 +85,9 @@ export const auditMiddleware = (entityType: string) =>
           );
         });
       });
-      // Log audit entry asynchronously (don't block response)
       if (auditLog) {
         const auditService = yield* AuditService;
-        yield* auditService
-          .logAuditEvent(auditLog)
-          .pipe(Effect.provide(DatabaseLive));
+        yield* auditService.logAuditEvent(auditLog);
       }
     })
   );

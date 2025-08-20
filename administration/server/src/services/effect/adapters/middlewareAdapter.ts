@@ -1,129 +1,101 @@
-import { Cause, Duration, Effect, Schedule, identity } from 'effect';
+import { Duration, Effect, Schedule, identity } from 'effect';
+import { TimeoutException } from 'effect/Cause';
 import { NextFunction, Request, Response } from 'express';
 import {
   AuthenticationError,
-  AuthorizationError,
   MiddlewareContext,
   SessionValidationError,
 } from '../AuthService';
+import { AuthorizationError } from '../AuthorizationEffects';
 
 // HTTP Response helpers with structured error mapping
-const createErrorResponse = (
-  error:
-    | AuthenticationError
-    | AuthorizationError
-    | SessionValidationError
-    | Cause.TimeoutException
-) => {
-  switch (error._tag) {
-    case 'AuthenticationError':
-      switch (error.reason) {
-        case 'missing_session':
-        case 'invalid_session':
-        case 'expired_session':
-          return {
-            status: 401,
-            body: {
-              error: error.message,
-              code: 'UNAUTHENTICATED',
-              reason: error.reason,
-            },
-          };
-        case 'auth_service_error':
-          return {
-            status: 500,
-            body: {
-              error: 'Authentication service error',
-              code: 'AUTH_SERVICE_ERROR',
-            },
-          };
-        default:
-          return {
-            status: 401,
-            body: {
-              error: 'Authentication required',
-              code: 'UNAUTHENTICATED',
-            },
-          };
-      }
-
-    case 'AuthorizationError':
-      switch (error.reason) {
-        case 'permission_denied':
-          return {
-            status: 403,
-            body: {
-              error: error.message,
-              code: 'PERMISSION_DENIED',
-              requiredPermission: error.requiredPermission,
-              resource: error.resource,
-            },
-          };
-        case 'missing_flag':
-          return {
-            status: 403,
-            body: {
-              error: error.message,
-              code: 'MISSING_FLAG',
-              missingFlag: error.missingFlag,
-            },
-          };
-        case 'resource_not_found':
-          return {
-            status: 404,
-            body: {
-              error: error.message,
-              code: 'RESOURCE_NOT_FOUND',
-              resource: error.resource,
-            },
-          };
-        default:
-          return {
-            status: 403,
-            body: {
-              error: 'Access denied',
-              code: 'AUTHORIZATION_ERROR',
-            },
-          };
-      }
-
-    case 'SessionValidationError':
-      return {
-        status: 401,
-        body: {
-          error: 'Session validation failed',
-          code: 'SESSION_VALIDATION_ERROR',
-        },
-      };
-
-    case 'TimeoutException':
-      return {
-        status: 504,
-        body: {
-          error: 'Request timed out',
-          code: 'REQUEST_TIMEOUT',
-        },
-      };
-
-    default:
-      return {
-        status: 500,
-        body: {
-          error: 'Internal server error',
-          code: 'INTERNAL_ERROR',
-        },
-      };
+const createErrorResponse = <T extends any>(error: T) => {
+  if (error instanceof AuthenticationError) {
+    switch (error.reason) {
+      case 'missing_session':
+      case 'invalid_session':
+      case 'expired_session':
+        return {
+          status: 401,
+          body: {
+            error: error.message,
+            code: 'UNAUTHENTICATED',
+            reason: error.reason,
+          },
+        };
+      case 'auth_service_error':
+        return {
+          status: 500,
+          body: {
+            error: 'Authentication service error',
+            code: 'AUTH_SERVICE_ERROR',
+          },
+        };
+      default:
+        return {
+          status: 401,
+          body: {
+            error: 'Authentication required',
+            code: 'UNAUTHENTICATED',
+          },
+        };
+    }
   }
+
+  if (error instanceof AuthorizationError) {
+    switch (error.reason) {
+      case 'permission_denied':
+        return {
+          status: 403,
+          body: {
+            error: error.message,
+            code: 'PERMISSION_DENIED',
+            requiredPermission: error.requiredPermission,
+            resource: error.resource,
+          },
+        };
+      default:
+        return {
+          status: 403,
+          body: {
+            error: 'Access denied',
+            code: 'AUTHORIZATION_ERROR',
+          },
+        };
+    }
+  }
+
+  if (error instanceof SessionValidationError) {
+    return {
+      status: 401,
+      body: {
+        error: 'Session validation failed',
+        code: 'SESSION_VALIDATION_ERROR',
+      },
+    };
+  }
+
+  if (error instanceof TimeoutException) {
+    return {
+      status: 504,
+      body: {
+        error: 'Request timed out',
+        code: 'REQUEST_TIMEOUT',
+      },
+    };
+  }
+
+  return {
+    status: 500,
+    body: {
+      error: 'Internal server error',
+      code: 'INTERNAL_ERROR',
+    },
+  };
 };
 
 // Effect middleware adapter with observability and resilience
-export const effectMiddleware = <
-  E extends
-    | AuthenticationError
-    | AuthorizationError
-    | SessionValidationError
-    | Cause.TimeoutException,
->(
+export const effectMiddleware = <E>(
   effectOperation: (req: Request) => Effect.Effect<MiddlewareContext, E, never>,
   options: {
     spanName: string;
@@ -162,8 +134,7 @@ export const effectMiddleware = <
           // Log structured error
           console.error('Middleware operation failed', {
             operation: options.spanName,
-            error: error._tag,
-            reason: 'reason' in error ? error.reason : undefined,
+            error: error,
             duration,
             path: req.path,
             method: req.method,
@@ -200,30 +171,6 @@ export const effectMiddleware = <
     Effect.runSync(pipeline);
   };
 };
-
-// Specialized middleware adapters for common patterns
-export const authMiddleware = (
-  authOperation: (
-    req: Request
-  ) => Effect.Effect<MiddlewareContext, AuthenticationError, never>
-) =>
-  effectMiddleware(authOperation, {
-    spanName: 'auth-middleware',
-    timeout: '5 seconds',
-    retryPolicy: Schedule.exponential('100 millis').pipe(
-      Schedule.intersect(Schedule.recurs(2))
-    ),
-  });
-
-export const permissionMiddleware = (
-  permissionOperation: (
-    req: Request
-  ) => Effect.Effect<MiddlewareContext, AuthorizationError, never>
-) =>
-  effectMiddleware(permissionOperation, {
-    spanName: 'permission-middleware',
-    timeout: '3 seconds',
-  });
 
 // Utility for extracting headers safely
 export const extractHeaders = (

@@ -19,82 +19,73 @@ export type Subject = Omit<keyof DB, 'EventAttendance'>;
 type AnyAbility = any; // TODO: implement authz logic
 
 interface IAuthorizationService {
-  readonly buildAbilityForUser: (
-    userId: number
-  ) => Effect.Effect<AnyAbility, AuthorizationError>;
   readonly checkPermission: (
-    userId: number,
+    userId: string,
     action: string,
     subject: string | object,
     field?: string
-  ) => Effect.Effect<boolean, AuthorizationError>;
+  ) => Effect.Effect<boolean, AuthorizationError | NotFoundError>;
   readonly getUserFlags: (
-    userId: number
-  ) => Effect.Effect<string[], AuthorizationError>;
+    userId: string
+  ) => Effect.Effect<string[], AuthorizationError | NotFoundError>;
   readonly grantFlag: (
-    memberEmail: string,
+    userId: string,
     flagId: string,
     grantedBy?: string,
     expiresAt?: Date
-  ) => Effect.Effect<void, AuthorizationError>;
+  ) => Effect.Effect<void, AuthorizationError | NotFoundError>;
   readonly revokeFlag: (
-    memberEmail: string,
+    userId: string,
     flagId: string
-  ) => Effect.Effect<void, AuthorizationError>;
+  ) => Effect.Effect<void, AuthorizationError | NotFoundError>;
   readonly memberHasFlag: (
-    memberEmail: string,
+    userId: string,
     flagId: string
-  ) => Effect.Effect<boolean, AuthorizationError>;
+  ) => Effect.Effect<boolean, AuthorizationError | NotFoundError>;
 }
 
-const buildAbilityForUser: IAuthorizationService['buildAbilityForUser'] = (
-  userId: number
-) =>
-  Effect.gen(function* () {
-    const flags = yield* getUserFlags(userId);
-
-    // TODO: implement authz logic
-    // const { can, build } = new AbilityBuilder(createMongoAbility);
-
-    // Admin can do everything
-
-    // TODO: fetch flag permissions.
-
-    // Users can always view their own member record
-  });
-
 const checkPermission: IAuthorizationService['checkPermission'] = (
-  userId: number,
-  action: string,
-  subjectType: string | object,
-  field?: string
+  userId,
+  action,
+  subjectType,
+  field
 ) =>
   Effect.gen(function* () {
-    const ability = yield* buildAbilityForUser(userId);
+    if (Math.random() > 100) {
+      yield* Effect.fail(
+        new AuthorizationError({
+          cause: 'checkPermission',
+          message: 'permission denied',
+          reason: 'permission_denied',
+          resource: 'user',
+          requiredPermission: `members#${userId}|flags#${subjectType.toString()}#${action}`,
+        })
+      );
+      return false;
+    }
 
     // TODO: implement authz logic
     return true;
   });
 
-const getUserFlags: IAuthorizationService['getUserFlags'] = (userId: number) =>
+const getUserFlags: IAuthorizationService['getUserFlags'] = (userId) =>
   Effect.gen(function* () {
     const db = yield* DatabaseService;
     const flags = yield* db
       .query((database) =>
         database
-          .selectFrom('members')
-          .innerJoin('members_flags', 'members.id', 'members_flags.member_id')
+          .selectFrom('members_flags')
           .innerJoin('flags', 'members_flags.flag_id', 'flags.id')
           .select('flags.id')
-          .where('members.id', '=', userId)
+          .where('members_flags.member_id', '=', userId)
           .execute()
       )
       .pipe(
-        Effect.orElseFail<AuthorizationError>(
+        Effect.orElseFail(
           () =>
-            new AuthorizationError({
-              cause: 'getUserFlags',
-              message: 'Failed to get user flags',
+            new NotFoundError({
+              id: userId.toString(),
+              resource: 'user',
             })
         )
       );
@@ -102,43 +93,13 @@ const getUserFlags: IAuthorizationService['getUserFlags'] = (userId: number) =>
   }).pipe(Effect.provide(DatabaseLive));
 
 const grantFlag: IAuthorizationService['grantFlag'] = (
-  memberEmail: string,
-  flagId: string,
-  grantedBy?: string,
-  expiresAt?: Date
+  memberId,
+  flagId,
+  grantedBy,
+  expiresAt
 ) =>
   Effect.gen(function* () {
     const db = yield* DatabaseService;
-    // Find member by email
-    const member = yield* db
-      .query((database) =>
-        database
-          .selectFrom('members')
-          .select(['id', 'email'])
-          .where('email', '=', memberEmail)
-          .executeTakeFirst()
-      )
-      .pipe(
-        Effect.orElseFail<AuthorizationError>(
-          () =>
-            new AuthorizationError({
-              cause: 'grantFlag',
-              message: 'user not found',
-            })
-        )
-      );
-
-    if (!member) {
-      yield* Effect.fail(
-        new AuthorizationError({
-          cause: 'grantFlag',
-          message: 'user not found',
-        })
-      );
-      return;
-    }
-
-    const memberId = (member as any).id;
 
     // Validate flag exists
     const flag = yield* db
@@ -150,20 +111,20 @@ const grantFlag: IAuthorizationService['grantFlag'] = (
           .executeTakeFirst()
       )
       .pipe(
-        Effect.orElseFail<AuthorizationError>(
+        Effect.orElseFail(
           () =>
-            new AuthorizationError({
-              cause: 'grantFlag',
-              message: 'Failed to grant flag',
+            new NotFoundError({
+              id: flagId,
+              resource: 'flag',
             })
         )
       );
 
     if (!flag) {
       yield* Effect.fail(
-        new AuthorizationError({
-          cause: 'grantFlag',
-          message: 'flag not found',
+        new NotFoundError({
+          id: flagId,
+          resource: 'flag',
         })
       );
       return;
@@ -175,7 +136,7 @@ const grantFlag: IAuthorizationService['grantFlag'] = (
         database
           .insertInto('members_flags')
           .values({
-            member_id: memberId,
+            member_id: memberId.toString(),
             flag_id: flagId,
             granted_by: grantedBy,
             expires_at: expiresAt?.toISOString(),
@@ -190,11 +151,11 @@ const grantFlag: IAuthorizationService['grantFlag'] = (
           .execute()
       )
       .pipe(
-        Effect.orElseFail<AuthorizationError>(
+        Effect.orElseFail(
           () =>
-            new AuthorizationError({
-              cause: 'grantFlag',
-              message: 'Failed to grant flag',
+            new NotFoundError({
+              id: memberId.toString(),
+              resource: 'member',
             })
         )
       );
@@ -216,11 +177,11 @@ const revokeFlag: IAuthorizationService['revokeFlag'] = (
           .executeTakeFirst()
       )
       .pipe(
-        Effect.orElseFail<AuthorizationError>(
+        Effect.orElseFail(
           () =>
-            new AuthorizationError({
-              cause: 'revokeFlag',
-              message: 'user not found',
+            new NotFoundError({
+              id: memberEmail,
+              resource: 'user',
             })
         )
       );
@@ -231,6 +192,10 @@ const revokeFlag: IAuthorizationService['revokeFlag'] = (
         new AuthorizationError({
           cause: 'revokeFlag',
           message: 'user not found',
+
+          reason: 'permission_denied',
+          resource: 'user',
+          requiredPermission: `members#${id}|flags#${flagId}#delete`,
         })
       );
       return;
@@ -246,11 +211,11 @@ const revokeFlag: IAuthorizationService['revokeFlag'] = (
           .execute()
       )
       .pipe(
-        Effect.orElseFail<AuthorizationError>(
+        Effect.orElseFail(
           () =>
-            new AuthorizationError({
-              cause: 'revokeFlag',
-              message: 'members_flag not found',
+            new NotFoundError({
+              id: flagId,
+              resource: 'flag',
             })
         )
       );
@@ -283,9 +248,9 @@ const memberHasFlag: IAuthorizationService['memberHasFlag'] = (
         Effect.map((row: any) => Boolean(row)),
         Effect.mapError(
           (error) =>
-            new AuthorizationError({
-              cause: error,
-              message: 'Failed to check member flag',
+            new NotFoundError({
+              id: flagId,
+              resource: 'flag',
             })
         )
       );
@@ -301,7 +266,6 @@ export class AuthorizationService extends Effect.Tag('AuthorizationService')<
     AuthorizationService,
     {
       checkPermission,
-      buildAbilityForUser,
       getUserFlags,
       grantFlag,
       revokeFlag,

@@ -99,7 +99,7 @@ export const MemberServiceLive = Layer.effect(
         const [countResult, memberRows] = yield* dbService.query(async (db) => {
           let query = db
             .selectFrom('members')
-            .where((eb) => eb('flags', '&', 1), '=', 1); // Only active members
+            .where((eb) => eb('flags', '&', '1'), '=', '1'); // Only active members
 
           if (search) {
             const searchTerm = `%${search}%`;
@@ -159,7 +159,7 @@ export const MemberServiceLive = Layer.effect(
             .selectFrom('members')
             .selectAll()
             .where('id', '=', id)
-            .where((eb) => eb('flags', '&', 1), '=', 1)
+            .where((eb) => eb('flags', '&', '1'), '=', '1')
             .executeTakeFirst()
         );
 
@@ -224,7 +224,7 @@ export const MemberServiceLive = Layer.effect(
               email: validatedData.email,
               pronouns: validatedData.pronouns || null,
               sponsor_notes: validatedData.sponsor_notes || null,
-              flags,
+              flags: flags.toString(),
             })
             .returning('id')
             .executeTakeFirstOrThrow()
@@ -315,7 +315,7 @@ export const MemberServiceLive = Layer.effect(
           db
             .updateTable('members')
             .set({
-              flags,
+              flags: flags.toString(),
               updated_at: new Date().toISOString(),
             })
             .where('id', '=', id)

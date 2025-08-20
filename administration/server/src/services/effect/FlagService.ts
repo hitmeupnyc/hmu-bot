@@ -1,4 +1,5 @@
 import { Context, Effect } from 'effect';
+import { NotFoundError } from './errors/CommonErrors';
 
 // Core Flag types
 export interface Flag {
@@ -65,29 +66,29 @@ export class FlagError {
 // Core service interface - all methods return Effects with no dependencies
 export interface IFlagService {
   readonly grantFlag: (
-    memberEmail: string,
+    userId: string,
     flagId: string,
     options: FlagGrantOptions
-  ) => Effect.Effect<void, FlagError, never>;
+  ) => Effect.Effect<void, FlagError | NotFoundError, never>;
 
   readonly revokeFlag: (
-    memberEmail: string,
+    userId: string,
     flagId: string,
     revokedBy: string,
     reason?: string
-  ) => Effect.Effect<void, FlagError, never>;
+  ) => Effect.Effect<void, FlagError | NotFoundError, never>;
 
   readonly getMemberFlags: (
-    memberEmail: string
-  ) => Effect.Effect<MemberFlagDetails[], FlagError, never>;
+    userId: string
+  ) => Effect.Effect<MemberFlagDetails[], FlagError | NotFoundError, never>;
 
   readonly bulkGrantFlags: (
     assignments: Array<{
-      email: string;
+      userId: string;
       flagId: string;
       options: FlagGrantOptions;
     }>
-  ) => Effect.Effect<void, FlagError, never>;
+  ) => Effect.Effect<void, FlagError | NotFoundError, never>;
 
   readonly processExpiredFlags: () => Effect.Effect<
     ProcessingResult,

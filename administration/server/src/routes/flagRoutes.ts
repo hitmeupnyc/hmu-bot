@@ -166,7 +166,7 @@ router.post(
           const flagService = yield* FlagService;
 
           const assignments = operations.map((op) => ({
-            email: op.email,
+            userId: op.userId,
             flagId: op.flag_id,
             options: {
               grantedBy: req.user!.email,

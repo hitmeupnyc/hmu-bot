@@ -1,4 +1,5 @@
 import { Effect, Layer } from 'effect';
+import { NotFoundError } from './errors/CommonErrors';
 import {
   FlagError,
   FlagGrantOptions,
@@ -16,77 +17,40 @@ export const FlagServiceLive = Layer.effect(
     const dbService = yield* DatabaseService;
 
     const grantFlag = (
-      memberEmail: string,
+      userId: string,
       flagId: string,
       options: FlagGrantOptions
-    ): Effect.Effect<void, FlagError, never> =>
+    ): Effect.Effect<void, NotFoundError | FlagError, never> =>
       Effect.gen(function* () {
         // Find or create member
-        let member = yield* dbService
-          .query((db) =>
-            db
-              .selectFrom('members')
-              .select(['id', 'email'])
-              .where('email', '=', memberEmail)
-              .executeTakeFirst()
-          )
-          .pipe(
-            Effect.mapError(
-              (error) => new FlagError('Failed to find member', error)
-            )
-          );
+        let member = yield* dbService.query((db) =>
+          db
+            .selectFrom('members')
+            .select(['id', 'email'])
+            .where('id', '=', parseInt(userId))
+            .executeTakeFirst()
+        );
 
         // If member doesn't exist, create them
         if (!member) {
-          const emailPrefix = memberEmail.split('@')[0];
-          const firstName = emailPrefix.split('.')[0] || emailPrefix;
-          const lastName = emailPrefix.split('.')[1] || '';
-
-          const newMemberId = yield* dbService
-            .query((db) =>
-              db
-                .insertInto('members')
-                .values({
-                  email: memberEmail,
-                  first_name: firstName,
-                  last_name: lastName,
-                })
-                .returningAll()
-                .executeTakeFirst()
-            )
-            .pipe(
-              Effect.mapError(
-                (error) => new FlagError('Failed to create member', error)
-              )
-            );
-
-          if (!newMemberId) {
-            return yield* Effect.fail(
-              new FlagError(`Failed to create member ${memberEmail}`)
-            );
-          }
-
-          member = { id: newMemberId.id, email: memberEmail };
-          console.log(`✅ Created new member: ${memberEmail}`);
+          return yield* Effect.fail(
+            new NotFoundError({ id: userId, resource: 'member' })
+          );
         }
 
         // Validate flag exists
-        const flag = yield* dbService
-          .query((db) =>
-            db
-              .selectFrom('flags')
-              .select(['id', 'name'])
-              .where('id', '=', flagId)
-              .executeTakeFirst()
-          )
-          .pipe(
-            Effect.mapError(
-              (error) => new FlagError('Failed to find flag', error)
-            )
-          );
+        const flag = yield* dbService.query((db) =>
+          db
+            .selectFrom('flags')
+            .select(['id', 'name'])
+            .where('id', '=', flagId)
+            .executeTakeFirst()
+        );
 
         if (!flag) {
-          return yield* Effect.fail(new FlagError(`Flag ${flagId} not found`));
+          return yield* Effect.fail(
+            new NotFoundError({ id: flagId, resource: 'flag' })
+          );
         }
 
         // Record in database
@@ -142,7 +106,7 @@ export const FlagServiceLive = Layer.effect(
                   entity_type: 'member_flag',
                   entity_id: parseInt(member.id!.toString()),
                   metadata_json: JSON.stringify({
-                    member_email: memberEmail,
+                    member_email: member.email,
                     flag_id: flagId,
                     expires_at: options.expiresAt,
                     reason: options.reason,
@@ -160,12 +124,12 @@ export const FlagServiceLive = Layer.effect(
           );
 
         console.log(
-          `✅ Granted flag '${flagId}' to ${memberEmail} by ${options.grantedBy}`
+          `✅ Granted flag '${flagId}' to ${member.email} by ${options.grantedBy}`
         );
       });
 
     const revokeFlag = (
-      memberEmail: string,
+      userId: string,
       flagId: string,
       revokedBy: string,
       reason?: string
@@ -177,7 +141,7 @@ export const FlagServiceLive = Layer.effect(
             db
               .selectFrom('members')
               .select(['id', 'email'])
-              .where('email', '=', memberEmail)
+              .where('id', '=', parseInt(userId, 10))
               .executeTakeFirst()
           )
           .pipe(
@@ -188,7 +152,7 @@ export const FlagServiceLive = Layer.effect(
 
         if (!member) {
           return yield* Effect.fail(
-            new FlagError(`Member ${memberEmail} not found`)
+            new FlagError(`Member ${userId} not found`)
           );
         }
 
@@ -212,7 +176,7 @@ export const FlagServiceLive = Layer.effect(
                   entity_type: 'member_flag',
                   entity_id: parseInt(member.id!.toString()),
                   metadata_json: JSON.stringify({
-                    member_email: memberEmail,
+                    member_email: member.email,
                     flag_id: flagId,
                     reason: reason,
                   }),
@@ -229,12 +193,12 @@ export const FlagServiceLive = Layer.effect(
           );
 
         console.log(
-          `✅ Revoked flag '${flagId}' from ${memberEmail} by ${revokedBy}`
+          `✅ Revoked flag '${flagId}' from ${member.email} by ${revokedBy}`
         );
       });
 
     const getMemberFlags = (
-      memberEmail: string
+      userId: string
     ): Effect.Effect<MemberFlagDetails[], FlagError, never> =>
       Effect.gen(function* () {
         const member = yield* dbService
@@ -242,7 +206,7 @@ export const FlagServiceLive = Layer.effect(
             db
               .selectFrom('members')
               .select(['id'])
-              .where('email', '=', memberEmail)
+              .where('id', '=', parseInt(userId, 10))
               .executeTakeFirst()
           )
           .pipe(
@@ -298,7 +262,7 @@ export const FlagServiceLive = Layer.effect(
 
     const bulkGrantFlags = (
       assignments: Array<{
-        email: string;
+        userId: string;
         flagId: string;
         options: FlagGrantOptions;
       }>
@@ -308,62 +272,41 @@ export const FlagServiceLive = Layer.effect(
         yield* dbService
           .query((db) =>
             db.transaction().execute(async (trx) => {
-              for (const { email, flagId, options } of assignments) {
+              for (const { userId, flagId, options } of assignments) {
                 let member = await trx
                   .selectFrom('members')
                   .select(['id'])
-                  .where('email', '=', email)
+                  .where('id', '=', parseInt(userId, 10))
                   .executeTakeFirst();
 
                 // Create member if they don't exist
                 if (!member) {
-                  const emailPrefix = email.split('@')[0];
-                  const firstName = emailPrefix.split('.')[0] || emailPrefix;
-                  const lastName = emailPrefix.split('.')[1] || '';
-
-                  const newMember = await trx
-                    .insertInto('members')
-                    .values({
-                      email: email,
-                      first_name: firstName,
-                      last_name: lastName,
-                    })
-                    .returningAll()
-                    .executeTakeFirst();
-
-                  if (newMember) {
-                    member = { id: newMember.id };
-                    console.log(
-                      `✅ Created new member during bulk grant: ${email}`
-                    );
-                  }
+                  throw new NotFoundError({ id: userId, resource: 'member' });
                 }
 
-                if (member) {
-                  await trx
-                    .insertInto('members_flags')
-                    .values({
-                      member_id: member.id!.toString(),
-                      flag_id: flagId,
-                      granted_by: options.grantedBy,
+                await trx
+                  .insertInto('members_flags')
+                  .values({
+                    member_id: member.id!.toString(),
+                    flag_id: flagId,
+                    granted_by: options.grantedBy,
+                    granted_at: new Date().toISOString(),
+                    expires_at: options.expiresAt?.toISOString(),
+                    metadata: options.metadata
+                      ? JSON.stringify(options.metadata)
+                      : null,
+                  })
+                  .onConflict((oc) =>
+                    oc.columns(['member_id', 'flag_id']).doUpdateSet({
                       granted_at: new Date().toISOString(),
+                      granted_by: options.grantedBy,
                       expires_at: options.expiresAt?.toISOString(),
                       metadata: options.metadata
                         ? JSON.stringify(options.metadata)
                         : null,
                     })
-                    .onConflict((oc) =>
-                      oc.columns(['member_id', 'flag_id']).doUpdateSet({
-                        granted_at: new Date().toISOString(),
-                        granted_by: options.grantedBy,
-                        expires_at: options.expiresAt?.toISOString(),
-                        metadata: options.metadata
-                          ? JSON.stringify(options.metadata)
-                          : null,
-                      })
-                    )
-                    .execute();
-                }
+                  )
+                  .execute();
               }
             })
           )

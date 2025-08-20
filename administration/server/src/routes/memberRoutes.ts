@@ -38,7 +38,7 @@ const router = Router();
 router.get(
   '/',
   requireAuth,
-  requirePermission('read', 'Member'),
+  requirePermission('read', 'members'),
   readOnlyLimiter,
   validate({ query: memberQuerySchema }),
   effectToExpress(MemberController.listMembers)
@@ -52,7 +52,7 @@ router.get(
 router.get(
   '/:id',
   requireAuth,
-  requirePermission('read', 'Member'),
+  requirePermission('read', 'members'),
   readOnlyLimiter,
   validate({ params: idParamSchema }),
   auditMiddleware('member'),
@@ -67,7 +67,7 @@ router.get(
 router.post(
   '/',
   requireAuth,
-  requirePermission('create', 'Member'),
+  requirePermission('create', 'members'),
   apiLimiter,
   validate({ body: createMemberSchema }),
   auditMiddleware('member'),
@@ -82,7 +82,7 @@ router.post(
 router.put(
   '/:id',
   requireAuth,
-  requirePermission('update', 'Member'),
+  requirePermission('update', 'members'),
   apiLimiter,
   validate({
     params: idParamSchema,
@@ -100,7 +100,7 @@ router.put(
 router.delete(
   '/:id',
   requireAuth,
-  requirePermission('delete', 'Member'),
+  requirePermission('delete', 'members'),
   apiLimiter,
   validate({ params: idParamSchema }),
   auditMiddleware('member'),

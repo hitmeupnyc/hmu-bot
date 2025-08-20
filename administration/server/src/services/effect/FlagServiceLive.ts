@@ -126,7 +126,7 @@ export const FlagServiceLive = Layer.effect(
         console.log(
           `✅ Granted flag '${flagId}' to ${member.email} by ${options.grantedBy}`
         );
-      });
+      }).pipe(Effect.withSpan('grant-flag'));
 
     const revokeFlag = (
       userId: string,
@@ -195,7 +195,7 @@ export const FlagServiceLive = Layer.effect(
         console.log(
           `✅ Revoked flag '${flagId}' from ${member.email} by ${revokedBy}`
         );
-      });
+      }).pipe(Effect.withSpan('revoke-flag'));
 
     const getMemberFlags = (
       userId: string
@@ -258,7 +258,7 @@ export const FlagServiceLive = Layer.effect(
               : undefined,
           })
         );
-      });
+      }).pipe(Effect.withSpan('get-member-flags'));
 
     const bulkGrantFlags = (
       assignments: Array<{
@@ -317,7 +317,7 @@ export const FlagServiceLive = Layer.effect(
           );
 
         console.log(`✅ Bulk granted ${assignments.length} flags`);
-      });
+      }).pipe(Effect.withSpan('bulk-grant-flags'));
 
     const processExpiredFlags = (): Effect.Effect<
       ProcessingResult,
@@ -374,7 +374,7 @@ export const FlagServiceLive = Layer.effect(
         );
 
         return { processed, errors, duration };
-      });
+      }).pipe(Effect.withSpan('process-expired-flags'));
 
     return {
       grantFlag,

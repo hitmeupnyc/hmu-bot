@@ -5,10 +5,7 @@ import { Config, Context, Data, Effect, Layer, Schedule } from 'effect';
 import * as Schema from 'effect/Schema';
 
 import { TimeoutException } from 'effect/Cause';
-import {
-  AuthorizationError,
-  AuthorizationService,
-} from './AuthorizationEffects';
+import { AuthorizationService } from './AuthorizationEffects';
 import { DatabaseLive, DatabaseService } from './layers/DatabaseLayer';
 
 // =============================================================================
@@ -25,31 +22,13 @@ export interface Session {
   };
   readonly expiresAt: Date;
 }
-
-export interface AuthContext {
-  readonly session: Session;
-  readonly user: {
-    readonly id: string;
-    readonly email: string;
-    readonly flags?: string[];
-  };
-}
-
-// Permission check result for detailed responses
-export interface PermissionResult {
-  readonly allowed: boolean;
-  readonly reason?: 'permission_denied' | 'missing_flag';
-  readonly missingFlag?: string;
-  readonly resource?: { type: string; id: string };
-}
-
 // Utility types for middleware integration
 export interface MiddlewareContext {
   readonly session?: Session;
-  readonly user?: {
-    readonly id: string;
-    readonly email: string;
-    readonly flags?: string[];
+  readonly permissionResult?: {
+    readonly allowed: boolean;
+    readonly reason?: string;
+    readonly resource?: { type: string; id: string };
   };
 }
 
@@ -118,7 +97,9 @@ const authServiceConfigSchema = Config.all({
   ),
 });
 
-export type BetterAuthConfig = Config.Config.Success<typeof betterAuthConfigSchema>;
+export type BetterAuthConfig = Config.Config.Success<
+  typeof betterAuthConfigSchema
+>;
 export type AuthServiceConfig = Config.Config.Success<
   typeof authServiceConfigSchema
 >;
@@ -192,14 +173,7 @@ export const BetterAuthLive = Layer.effect(
       toNodeHandler: () => toNodeHandler(auth),
     };
   })
-).pipe(
-  Layer.provide(
-    Layer.mergeAll(
-      BetterAuthConfigLayer,
-      DatabaseLive
-    )
-  )
-);
+).pipe(Layer.provide(Layer.mergeAll(BetterAuthConfigLayer, DatabaseLive)));
 
 // =============================================================================
 // AUTH SERVICE INTERFACE
@@ -209,26 +183,6 @@ export interface IAuthService {
   readonly validateSession: (
     headers: Record<string, string | string[] | undefined>
   ) => Effect.Effect<Session, AuthenticationError | TimeoutException, never>;
-
-  readonly checkPermission: (
-    session: Session,
-    action: string,
-    subject: string | object,
-    field?: string
-  ) => Effect.Effect<boolean, AuthorizationError | TimeoutException, never>;
-
-  readonly checkResourcePermission: (
-    session: Session,
-    resourceType: string,
-    resourceId: string,
-    permission: string,
-    requiredFlags?: string[]
-  ) => Effect.Effect<boolean, AuthorizationError | TimeoutException, never>;
-
-  readonly hasFlags: (
-    email: string,
-    flags: string[]
-  ) => Effect.Effect<boolean, AuthorizationError | TimeoutException, never>;
 
   readonly isHmuDomainUser: (
     email: string
@@ -328,149 +282,7 @@ const validateSession = (
     };
 
     return session;
-  });
-
-const checkPermission = (
-  session: Session,
-  action: string,
-  subject: string | object,
-  field?: string
-): Effect.Effect<
-  boolean,
-  AuthorizationError | TimeoutException,
-  AuthorizationService | AuthServiceConfig
-> =>
-  Effect.gen(function* () {
-    const config = yield* AuthServiceConfigTag;
-    const authorizationService = yield* AuthorizationService;
-
-    // HMU domain bypass if enabled
-    if (
-      config.hmuDomainBypass &&
-      session.user.email.endsWith('@hitmeupnyc.com')
-    ) {
-      yield* Effect.log(
-        `🔓 HMU domain bypass: ${session.user.email} granted ${action} on ${JSON.stringify(subject)}`
-      );
-      return true;
-    }
-
-    // Use authorization service to check permission
-    const hasPermission = yield* authorizationService
-      .checkPermission(session.userId, action, subject, field)
-      .pipe(
-        Effect.withSpan('check-permission'),
-        Effect.mapError((error) => {
-          // Map NotFoundError to AuthorizationError
-          if ('_tag' in error && error._tag === 'NotFoundError') {
-            return new AuthorizationError({
-              cause: error,
-              reason: 'permission_denied',
-              message: `Permission check failed: ${(error as any).message}`,
-              requiredPermission: `${action} on ${JSON.stringify(subject)}`,
-            });
-          }
-          return error as AuthorizationError;
-        })
-      );
-
-    return hasPermission;
-  });
-
-const checkResourcePermission = (
-  session: Session,
-  resourceType: string,
-  resourceId: string,
-  permission: string,
-  requiredFlags?: string[]
-): Effect.Effect<
-  boolean,
-  AuthorizationError | TimeoutException,
-  AuthorizationService
-> =>
-  Effect.gen(function* () {
-    const authorizationService = yield* AuthorizationService;
-
-    // Check basic resource permission first
-    const hasPermission = yield* authorizationService
-      .checkPermission(session.userId, permission, {
-        objectType: resourceType,
-        objectId: resourceId,
-      })
-      .pipe(
-        Effect.mapError(
-          (error) =>
-            new AuthorizationError({
-              cause: error,
-              reason: 'permission_denied',
-              message: 'Permission denied for resource',
-              requiredPermission: permission,
-              resource: `${resourceType}:${resourceId}`,
-            })
-        )
-      );
-
-    if (!hasPermission) {
-      return false;
-    }
-
-    // Check required flags if specified
-    if (requiredFlags && requiredFlags.length > 0) {
-      const hasAllFlags = yield* hasFlags(session.user.email, requiredFlags);
-
-      if (!hasAllFlags) {
-        // Find the specific missing flag
-        for (const flag of requiredFlags) {
-          const hasThisFlag = yield* hasFlags(session.user.email, [flag]);
-          if (!hasThisFlag) {
-            return yield* Effect.fail(
-              new AuthorizationError({
-                cause: `Missing flag: ${flag}`,
-                reason: 'permission_denied',
-                message: `Missing required flag: ${flag}`,
-                resource: `${resourceType}:${resourceId}`,
-              })
-            );
-          }
-        }
-      }
-    }
-
-    return true;
-  });
-
-const hasFlags = (
-  email: string,
-  flags: string[]
-): Effect.Effect<
-  boolean,
-  AuthorizationError | TimeoutException,
-  AuthorizationService
-> =>
-  Effect.gen(function* () {
-    const authorizationService = yield* AuthorizationService;
-
-    // TODO: this is definitely slow
-    for (const flag of flags) {
-      const hasFlag = yield* authorizationService.memberHasFlag(email, flag);
-
-      if (!hasFlag) {
-        return false;
-      }
-    }
-
-    return true;
-  }).pipe(
-    Effect.catchTag('NotFoundError', () =>
-      Effect.fail(
-        new AuthorizationError({
-          cause: 'Member not found',
-          reason: 'permission_denied',
-          message: 'Member not found',
-        })
-      )
-    )
-  );
+  }).pipe(Effect.withSpan('validate-session'));
 
 const isHmuDomainUser = (email: string): Effect.Effect<boolean, never, never> =>
   Effect.succeed(email.endsWith('@hitmeupnyc.com'));
@@ -492,26 +304,6 @@ export const AuthServiceLive = Layer.effect(
     return {
       validateSession: (headers) =>
         validateSession(headers).pipe(Effect.provide(serviceLayer)),
-      checkPermission: (session, action, subject, field) =>
-        checkPermission(session, action, subject, field).pipe(
-          Effect.provide(serviceLayer)
-        ),
-      checkResourcePermission: (
-        session,
-        resourceType,
-        resourceId,
-        permission,
-        requiredFlags
-      ) =>
-        checkResourcePermission(
-          session,
-          resourceType,
-          resourceId,
-          permission,
-          requiredFlags
-        ).pipe(Effect.provide(serviceLayer)),
-      hasFlags: (email, flags) =>
-        hasFlags(email, flags).pipe(Effect.provide(serviceLayer)),
       isHmuDomainUser,
     } satisfies IAuthService;
   })

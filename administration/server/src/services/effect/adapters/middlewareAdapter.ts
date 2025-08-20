@@ -151,9 +151,6 @@ export const effectMiddleware = <E>(
           if (context.session) {
             req.session = context.session;
           }
-          if (context.user) {
-            req.user = context.user;
-          }
 
           // Log successful operation
           console.log('Middleware operation succeeded', {

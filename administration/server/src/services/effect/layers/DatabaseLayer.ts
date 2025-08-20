@@ -26,7 +26,6 @@ const Crash = Effect.catchAll(Effect.die);
 export const DatabaseLive = Layer.effect(
   DatabaseService,
   Effect.gen(function* () {
-    console.log({ databasePath: process.env.DATABASE_PATH });
     const dbPath =
       process.env.DATABASE_PATH || path.join(process.cwd(), 'data/club.db');
 

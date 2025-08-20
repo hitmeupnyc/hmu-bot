@@ -1,13 +1,22 @@
-import { Context, Data, Effect, Layer, Schedule } from 'effect';
+import { betterAuth } from 'better-auth';
+import { magicLink } from 'better-auth/plugins';
+import { Config, Context, Data, Effect, Layer, Schedule } from 'effect';
 import * as Schema from 'effect/Schema';
 
 import { TimeoutException } from 'effect/Cause';
+import {
+  DatabaseLive,
+  DatabaseService,
+} from './layers/DatabaseLayer';
 import {
   AuthorizationError,
   AuthorizationService,
 } from './AuthorizationEffects';
 
-// Domain Types
+// =============================================================================
+// DOMAIN TYPES
+// =============================================================================
+
 export interface Session {
   readonly id: string;
   readonly userId: string;
@@ -28,7 +37,28 @@ export interface AuthContext {
   };
 }
 
-// Error Types with structured information
+// Permission check result for detailed responses
+export interface PermissionResult {
+  readonly allowed: boolean;
+  readonly reason?: 'permission_denied' | 'missing_flag';
+  readonly missingFlag?: string;
+  readonly resource?: { type: string; id: string };
+}
+
+// Utility types for middleware integration
+export interface MiddlewareContext {
+  readonly session?: Session;
+  readonly user?: {
+    readonly id: string;
+    readonly email: string;
+    readonly flags?: string[];
+  };
+}
+
+// =============================================================================
+// ERROR TYPES
+// =============================================================================
+
 export class AuthenticationError extends Data.TaggedError(
   'AuthenticationError'
 )<{
@@ -48,22 +78,113 @@ export class SessionValidationError extends Data.TaggedError(
   readonly headers?: Record<string, string>;
 }> {}
 
-// Configuration Schema
-export const AuthConfigSchema = Schema.Struct({
-  sessionTimeout: Schema.optionalWith(Schema.String, {
-    default: () => '30 minutes',
-  }),
-  retryAttempts: Schema.optionalWith(Schema.Number, { default: () => 3 }),
-  retryDelay: Schema.optionalWith(Schema.String, {
-    default: () => '100 millis',
-  }),
-  enableMetrics: Schema.optionalWith(Schema.Boolean, { default: () => true }),
-  hmuDomainBypass: Schema.optionalWith(Schema.Boolean, { default: () => true }),
+// =============================================================================
+// CONFIGURATION
+// =============================================================================
+
+// BetterAuth configuration schema
+export const AuthConfigSchema = Config.all({
+  baseURL: Config.string('BETTER_AUTH_URL').pipe(
+    Config.withDefault('http://localhost:3000')
+  ),
+  clientURL: Config.string('CLIENT_URL').pipe(
+    Config.withDefault('http://localhost:5173')
+  ),
+  magicLinkExpiresIn: Config.integer('MAGIC_LINK_EXPIRES_IN').pipe(
+    Config.withDefault(60 * 15) // 15 minutes
+  ),
+  sessionExpiresIn: Config.integer('SESSION_EXPIRES_IN').pipe(
+    Config.withDefault(60 * 60 * 24 * 7) // 7 days
+  ),
+  sessionUpdateAge: Config.integer('SESSION_UPDATE_AGE').pipe(
+    Config.withDefault(60 * 60 * 24) // 1 day
+  ),
 });
 
-export type AuthConfig = typeof AuthConfigSchema.Type;
+// Service-specific configuration
+const authServiceConfigSchema = Config.all({
+  sessionTimeout: Config.duration('AUTH_SESSION_TIMEOUT').pipe(
+    Config.withDefault('30 minutes')
+  ),
+  retryAttempts: Config.integer('AUTH_RETRY_ATTEMPTS').pipe(
+    Config.withDefault(3)
+  ),
+  retryDelay: Config.duration('AUTH_RETRY_DELAY').pipe(
+    Config.withDefault('100 millis')
+  ),
+  enableMetrics: Config.boolean('AUTH_ENABLE_METRICS').pipe(
+    Config.withDefault(true)
+  ),
+  hmuDomainBypass: Config.boolean('AUTH_HMU_DOMAIN_BYPASS').pipe(
+    Config.withDefault(true)
+  ),
+});
 
-// Core Auth Service Interface
+export type AuthConfig = Config.Config.Success<typeof AuthConfigSchema>;
+export type AuthServiceConfig = Config.Config.Success<typeof authServiceConfigSchema>;
+
+const AuthServiceConfigTag = Context.GenericTag<AuthServiceConfig>('AuthServiceConfig');
+
+export const AuthServiceConfigLayer = Layer.effect(
+  AuthServiceConfigTag,
+  authServiceConfigSchema
+);
+
+// =============================================================================
+// BETTER AUTH SERVICE
+// =============================================================================
+
+export interface IBetterAuthService {
+  readonly auth: ReturnType<typeof betterAuth>;
+}
+
+export const BetterAuthService = Context.GenericTag<IBetterAuthService>('BetterAuthService');
+
+export const BetterAuthLive = Layer.effect(
+  BetterAuthService,
+  Effect.gen(function* () {
+    const config = yield* AuthConfigSchema;
+    const dbService = yield* DatabaseService;
+
+    // Get the raw sqlite database for better-auth
+    const sqliteDb = yield* dbService.querySync((db) => db);
+
+    const auth = betterAuth({
+      database: sqliteDb,
+      
+      baseURL: config.baseURL,
+      
+      emailAndPassword: {
+        enabled: false, // We only use magic links
+      },
+      
+      plugins: [
+        magicLink({
+          sendMagicLink: async ({ email, url }) => {
+            // Stub for Phase 2 - will be replaced with actual email service
+            console.log(`[EMAIL STUB] Send magic link to ${email}: ${url}`);
+            // TODO: Integrate with email service
+          },
+          expiresIn: config.magicLinkExpiresIn,
+        }),
+      ],
+      
+      session: {
+        expiresIn: config.sessionExpiresIn,
+        updateAge: config.sessionUpdateAge,
+      },
+      
+      trustedOrigins: [config.clientURL],
+    });
+
+    return { auth };
+  })
+).pipe(Layer.provide(DatabaseLive));
+
+// =============================================================================
+// AUTH SERVICE INTERFACE
+// =============================================================================
+
 export interface IAuthService {
   readonly validateSession: (
     headers: Record<string, string | string[] | undefined>
@@ -96,31 +217,24 @@ export interface IAuthService {
 
 export const AuthService = Context.GenericTag<IAuthService>('AuthService');
 
-// Permission check result for detailed responses
-export interface PermissionResult {
-  readonly allowed: boolean;
-  readonly reason?: 'permission_denied' | 'missing_flag';
-  readonly missingFlag?: string;
-  readonly resource?: { type: string; id: string };
-}
+// =============================================================================
+// VALIDATION SCHEMAS
+// =============================================================================
 
-// Utility types for middleware integration
-export interface MiddlewareContext {
-  readonly session?: Session;
-  readonly user?: {
-    readonly id: string;
-    readonly email: string;
-    readonly flags?: string[];
-  };
-}
-
-// Express Request headers schema for validation
 export const ExpressHeadersSchema = Schema.Any;
-
 export type ExpressHeaders = typeof ExpressHeadersSchema.Type;
 
-const validateSession = (headers): IAuthService['validateSession'] =>
+// =============================================================================
+// CORE IMPLEMENTATION FUNCTIONS
+// =============================================================================
+
+const validateSession = (
+  headers: Record<string, string | string[] | undefined>
+): Effect.Effect<Session, AuthenticationError | TimeoutException, IBetterAuthService | AuthServiceConfig> =>
   Effect.gen(function* () {
+    const config = yield* AuthServiceConfigTag;
+    const betterAuthService = yield* BetterAuthService;
+
     // Validate headers schema
     const validHeaders = yield* Schema.decodeUnknown(ExpressHeadersSchema)(
       headers
@@ -135,11 +249,10 @@ const validateSession = (headers): IAuthService['validateSession'] =>
       )
     );
 
-    const auth = yield* BetterAuth;
-
     // Get session from Better Auth with retry policy
     const sessionResult = yield* Effect.tryPromise({
-      try: () => auth.api.getSession({ headers: validHeaders }),
+      try: () =>
+        betterAuthService.auth.api.getSession({ headers: validHeaders }),
       catch: (error) =>
         new AuthenticationError({
           reason: 'auth_service_error',
@@ -147,13 +260,13 @@ const validateSession = (headers): IAuthService['validateSession'] =>
           cause: error,
         }),
     }).pipe(
+      Effect.withSpan('validate-session-external'),
       Effect.retry(
-        Schedule.exponential(authConfig.retryDelay).pipe(
-          Schedule.intersect(Schedule.recurs(authConfig.retryAttempts))
+        Schedule.exponential(config.retryDelay).pipe(
+          Schedule.intersect(Schedule.recurs(config.retryAttempts))
         )
       ),
-      Effect.timeout(`${authConfig.sessionTimeout}`),
-      Effect.withSpan('validate-session-external')
+      Effect.timeout(config.sessionTimeout)
     );
 
     if (!sessionResult) {
@@ -189,18 +302,21 @@ const validateSession = (headers): IAuthService['validateSession'] =>
       },
       expiresAt: new Date(sessionResult.session.expiresAt),
     };
-  }).pipe(Effect.provide(BetterAuthLayer));
+  });
 
 const checkPermission = (
-  session,
-  action,
-  subject,
-  field
-): IAuthService['checkPermission'] =>
+  session: Session,
+  action: string,
+  subject: string | object,
+  field?: string
+): Effect.Effect<boolean, AuthorizationError | TimeoutException, AuthorizationService | AuthServiceConfig> =>
   Effect.gen(function* () {
+    const config = yield* AuthServiceConfigTag;
+    const authorizationService = yield* AuthorizationService;
+
     // HMU domain bypass if enabled
     if (
-      authConfig.hmuDomainBypass &&
+      config.hmuDomainBypass &&
       session.user.email.endsWith('@hitmeupnyc.com')
     ) {
       yield* Effect.log(
@@ -213,18 +329,18 @@ const checkPermission = (
     const hasPermission = yield* authorizationService
       .checkPermission(session.userId, action, subject, field)
       .pipe(
-        Effect.mapError(
-          (error) =>
-            new AuthorizationError({
+        Effect.withSpan('check-permission'),
+        Effect.mapError((error) => {
+          // Map NotFoundError to AuthorizationError
+          if ('_tag' in error && error._tag === 'NotFoundError') {
+            return new AuthorizationError({
+              cause: error,
               reason: 'permission_denied',
-              message: `Permission check failed: ${String(error)}`,
+              message: `Permission check failed: ${(error as any).message}`,
               requiredPermission: `${action} on ${JSON.stringify(subject)}`,
-            })
-        ),
-        Effect.withSpan('check-permission', {
-          userId: session.userId,
-          action,
-          subject: JSON.stringify(subject),
+            });
+          }
+          return error as AuthorizationError;
         })
       );
 
@@ -232,13 +348,15 @@ const checkPermission = (
   });
 
 const checkResourcePermission = (
-  session,
-  resourceType,
-  resourceId,
-  permission,
-  requiredFlags
-): IAuthService['checkResourcePermission'] =>
+  session: Session,
+  resourceType: string,
+  resourceId: string,
+  permission: string,
+  requiredFlags?: string[]
+): Effect.Effect<boolean, AuthorizationError | TimeoutException, AuthorizationService> =>
   Effect.gen(function* () {
+    const authorizationService = yield* AuthorizationService;
+
     // Check basic resource permission first
     const hasPermission = yield* authorizationService
       .checkPermission(session.userId, permission, {
@@ -247,12 +365,13 @@ const checkResourcePermission = (
       })
       .pipe(
         Effect.mapError(
-          () =>
+          (error) =>
             new AuthorizationError({
+              cause: error,
               reason: 'permission_denied',
               message: 'Permission denied for resource',
               requiredPermission: permission,
-              resource: { type: resourceType, id: resourceId },
+              resource: `${resourceType}:${resourceId}`,
             })
         )
       );
@@ -272,9 +391,10 @@ const checkResourcePermission = (
           if (!hasThisFlag) {
             return yield* Effect.fail(
               new AuthorizationError({
-                reason: 'missing_flag',
+                cause: `Missing flag: ${flag}`,
+                reason: 'permission_denied',
                 message: `Missing required flag: ${flag}`,
-                missingFlag: flag,
+                resource: `${resourceType}:${resourceId}`,
               })
             );
           }
@@ -285,9 +405,14 @@ const checkResourcePermission = (
     return true;
   });
 
-const hasFlags = (email, flags): IAuthService['hasFlags'] =>
+const hasFlags = (
+  email: string,
+  flags: string[]
+): Effect.Effect<boolean, AuthorizationError | TimeoutException, AuthorizationService> =>
   Effect.gen(function* () {
-    const authorizationService = yield* AuthorizationService.Live;
+    const authorizationService = yield* AuthorizationService;
+
+    // TODO: this is definitely slow
     for (const flag of flags) {
       const hasFlag = yield* authorizationService.memberHasFlag(email, flag);
 
@@ -297,16 +422,65 @@ const hasFlags = (email, flags): IAuthService['hasFlags'] =>
     }
 
     return true;
-  });
+  }).pipe(
+    Effect.catchTag('NotFoundError', () =>
+      Effect.fail(
+        new AuthorizationError({
+          cause: 'Member not found',
+          reason: 'permission_denied',
+          message: 'Member not found',
+        })
+      )
+    )
+  );
 
 const isHmuDomainUser = (email: string): Effect.Effect<boolean, never, never> =>
   Effect.succeed(email.endsWith('@hitmeupnyc.com'));
 
-// Live implementation of AuthService
-export const AuthServiceLive = Layer.succeed(AuthService, {
-  validateSession,
-  checkPermission,
-  checkResourcePermission,
-  hasFlags,
-  isHmuDomainUser,
-} satisfies IAuthService);
+// =============================================================================
+// SERVICE LAYER IMPLEMENTATION
+// =============================================================================
+
+export const AuthServiceLive = Layer.effect(
+  AuthService,
+  Effect.gen(function* () {
+    // Get all dependencies upfront
+    const betterAuthService = yield* BetterAuthService;
+    const authorizationService = yield* AuthorizationService;
+    const config = yield* AuthServiceConfigTag;
+
+    const serviceLayer = Layer.mergeAll(
+      Layer.succeed(BetterAuthService, betterAuthService),
+      Layer.succeed(AuthorizationService, authorizationService),
+      Layer.succeed(AuthServiceConfigTag, config)
+    );
+
+    return {
+      validateSession: (headers) =>
+        validateSession(headers).pipe(Effect.provide(serviceLayer)),
+      checkPermission: (session, action, subject, field) =>
+        checkPermission(session, action, subject, field).pipe(Effect.provide(serviceLayer)),
+      checkResourcePermission: (
+        session,
+        resourceType,
+        resourceId,
+        permission,
+        requiredFlags
+      ) =>
+        checkResourcePermission(
+          session,
+          resourceType,
+          resourceId,
+          permission,
+          requiredFlags
+        ).pipe(Effect.provide(serviceLayer)),
+      hasFlags: (email, flags) =>
+        hasFlags(email, flags).pipe(Effect.provide(serviceLayer)),
+      isHmuDomainUser,
+    } satisfies IAuthService;
+  })
+).pipe(
+  Layer.provide(BetterAuthLive),
+  Layer.provide(AuthorizationService.Live),
+  Layer.provide(AuthServiceConfigLayer)
+);

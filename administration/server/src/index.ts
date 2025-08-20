@@ -12,6 +12,7 @@ import { apiLimiter } from './middleware/rateLimiting';
 
 import { applicationRoutes } from './routes/applicationRoutes';
 import { auditRoutes } from './routes/auditRoutes';
+import { authRoutes } from './routes/authRoutes';
 import { eventRoutes } from './routes/eventRoutes';
 import { healthCheckRouter } from './routes/healthCheck';
 import { memberRoutes } from './routes/memberRoutes';
@@ -55,6 +56,7 @@ app.use('/api', apiLimiter);
 
 // Public routes (no auth required)
 app.use('/health', healthCheckRouter);
+app.use('/api/auth', authRoutes);
 
 // Protected routes (require authentication)
 app.use('/api/members', requireAuth, memberRoutes);
@@ -67,7 +69,7 @@ app.use('/api', requireAuth, flagRoutes);
 app.use(errorHandler);
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use('*', (_, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
@@ -85,9 +87,6 @@ const gracefulShutdown = async (signal: string) => {
 
   server.close(async () => {
     try {
-      logger.info('Server shutdown complete');
-      process.exit(0);
-
       logger.info('Server shutdown complete');
       process.exit(0);
     } catch (error) {

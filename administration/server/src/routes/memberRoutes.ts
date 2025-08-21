@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import * as MemberController from '../controllers/MemberController';
 import { auditMiddleware } from '../middleware/auditLogging';
-import { requireAuth, requirePermission, requireMemberManager } from '../middleware/auth';
+import { requireAuth, requirePermission } from '../middleware/auth';
 import { apiLimiter, readOnlyLimiter } from '../middleware/rateLimiting';
 import { validate } from '../middleware/validation';
 import {
@@ -28,9 +28,7 @@ import { effectToExpress } from '../services/effect/adapters/expressAdapter';
 
 const router = Router();
 
-// ============================================================================
 // Core CRUD Operations
-// ============================================================================
 
 /**
  * GET /api/members
@@ -40,7 +38,14 @@ const router = Router();
 router.get(
   '/',
   requireAuth,
-  requirePermission('read', 'Member'),
+  requirePermission('read', 'members'),
+  (req, res, next) => {
+    console.log('Members route', {
+      session: req.session,
+      permissionResult: req.permissionResult,
+    });
+    next();
+  },
   readOnlyLimiter,
   validate({ query: memberQuerySchema }),
   effectToExpress(MemberController.listMembers)
@@ -54,7 +59,7 @@ router.get(
 router.get(
   '/:id',
   requireAuth,
-  requirePermission('read', 'Member'),
+  requirePermission('read', 'members'),
   readOnlyLimiter,
   validate({ params: idParamSchema }),
   auditMiddleware('member'),
@@ -69,7 +74,7 @@ router.get(
 router.post(
   '/',
   requireAuth,
-  requireMemberManager,
+  requirePermission('create', 'members'),
   apiLimiter,
   validate({ body: createMemberSchema }),
   auditMiddleware('member'),
@@ -84,7 +89,7 @@ router.post(
 router.put(
   '/:id',
   requireAuth,
-  requirePermission('update', 'Member'),
+  requirePermission('update', 'members'),
   apiLimiter,
   validate({
     params: idParamSchema,
@@ -102,7 +107,7 @@ router.put(
 router.delete(
   '/:id',
   requireAuth,
-  requireMemberManager,
+  requirePermission('delete', 'members'),
   apiLimiter,
   validate({ params: idParamSchema }),
   auditMiddleware('member'),

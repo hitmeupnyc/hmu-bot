@@ -6,12 +6,12 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import logger from './utils/logger';
 
-import { requireAuth } from './middleware/auth';
 import { errorHandler } from './middleware/errorHandler';
 import { apiLimiter } from './middleware/rateLimiting';
 
 import { applicationRoutes } from './routes/applicationRoutes';
 import { auditRoutes } from './routes/auditRoutes';
+import { authRoutes } from './routes/authRoutes';
 import { eventRoutes } from './routes/eventRoutes';
 import { healthCheckRouter } from './routes/healthCheck';
 import { memberRoutes } from './routes/memberRoutes';
@@ -55,19 +55,20 @@ app.use('/api', apiLimiter);
 
 // Public routes (no auth required)
 app.use('/health', healthCheckRouter);
+app.use('/api/auth', authRoutes);
 
 // Protected routes (require authentication)
-app.use('/api/members', requireAuth, memberRoutes);
-app.use('/api/events', requireAuth, eventRoutes);
-app.use('/api/audit', requireAuth, auditRoutes);
-app.use('/api/applications', requireAuth, applicationRoutes);
-app.use('/api', requireAuth, flagRoutes);
+app.use('/api/members', memberRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/audit', auditRoutes);
+app.use('/api/applications', applicationRoutes);
+app.use('/api', flagRoutes);
 
 // Error handling
 app.use(errorHandler);
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use('*', (_, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
@@ -85,9 +86,6 @@ const gracefulShutdown = async (signal: string) => {
 
   server.close(async () => {
     try {
-      logger.info('Server shutdown complete');
-      process.exit(0);
-
       logger.info('Server shutdown complete');
       process.exit(0);
     } catch (error) {

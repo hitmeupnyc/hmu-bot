@@ -1,8 +1,7 @@
 ## Memory Management Guidelines
 
-- Start the app with `npm run ports:clear; npm run dev > /dev/null 2>&1 &`
+- Start the app with `npm run ports:clear; npm run dev`
   - `ports:clear` properly handles orphaned processes that turbo --parallel doesn't clean up
-  - You must always use ` > /dev/null 2>&1 &` when you run something in the background.
 - `/Users/vcarl/workspace/hmu-product/administration` is the project root. You can go in administration/client/ and administration/server/, but when starting the app, do so from administration/.
 - Write your thoughts in `/notes`, especially if it will help you remember important implementation details later.
 - Your notes must be named consistently with a date prefix in the format `YYYY-MM-DD_X_title.md` where X is a monotonically increasing integer.

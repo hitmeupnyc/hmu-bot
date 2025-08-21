@@ -13,7 +13,7 @@ export async function seed(db: Kysely<DB>): Promise<void> {
         email: 'alice.johnson@example.com',
         pronouns: 'she/they',
         sponsor_notes: 'Active community member, great at organizing events',
-        flags: 1, // active
+        flags: '1', // active
       },
       {
         first_name: 'Johnny',
@@ -22,7 +22,7 @@ export async function seed(db: Kysely<DB>): Promise<void> {
         email: 'johnny.smith@example.com',
         pronouns: 'he/him',
         sponsor_notes: 'New member, very enthusiastic',
-        flags: 1, // active
+        flags: '1', // active
       },
       {
         first_name: 'Sarah',
@@ -31,7 +31,7 @@ export async function seed(db: Kysely<DB>): Promise<void> {
         email: 'sarah.wilson@example.com',
         pronouns: 'she/her',
         sponsor_notes: 'Professional affiliate, works in healthcare',
-        flags: 3, // active + professional affiliate
+        flags: '3', // active + professional affiliate
       },
       {
         first_name: 'Michael',
@@ -40,7 +40,7 @@ export async function seed(db: Kysely<DB>): Promise<void> {
         email: 'mike.chen@example.com',
         pronouns: 'he/him',
         sponsor_notes: 'Inactive member, moved out of town',
-        flags: 0, // inactive
+        flags: '0', // inactive
       },
       {
         first_name: 'Jordan',
@@ -49,7 +49,7 @@ export async function seed(db: Kysely<DB>): Promise<void> {
         email: 'jordan.taylor@example.com',
         pronouns: 'they/them',
         sponsor_notes: 'Professional affiliate in tech industry',
-        flags: 3, // active + professional affiliate
+        flags: '3', // active + professional affiliate
       },
       {
         first_name: 'Emma',
@@ -58,7 +58,7 @@ export async function seed(db: Kysely<DB>): Promise<void> {
         email: 'emma.davis@example.com',
         pronouns: 'she/her',
         sponsor_notes: 'Regular attendee, good friend of Alice',
-        flags: 1, // active
+        flags: '1', // active
       },
       {
         first_name: 'Alex',
@@ -67,7 +67,7 @@ export async function seed(db: Kysely<DB>): Promise<void> {
         email: 'alex.martinez@example.com',
         pronouns: 'he/they',
         sponsor_notes: 'On hiatus for personal reasons',
-        flags: 0, // inactive
+        flags: '0', // inactive
       },
       {
         first_name: 'Dr. Rebecca',
@@ -77,7 +77,7 @@ export async function seed(db: Kysely<DB>): Promise<void> {
         pronouns: 'she/her',
         sponsor_notes:
           'Professional affiliate, licensed therapist specializing in sexuality',
-        flags: 3, // active + professional affiliate
+        flags: '3', // active + professional affiliate
       },
       {
         first_name: 'Sam',
@@ -86,7 +86,7 @@ export async function seed(db: Kysely<DB>): Promise<void> {
         email: 'sam.rodriguez@example.com',
         pronouns: 'they/them',
         sponsor_notes: 'Enthusiastic newcomer, great energy',
-        flags: 1, // active
+        flags: '1', // active
       },
       {
         first_name: 'Chris',
@@ -95,7 +95,7 @@ export async function seed(db: Kysely<DB>): Promise<void> {
         email: 'chris.anderson@example.com',
         pronouns: 'he/him',
         sponsor_notes: 'Long-time member, helps with venue setup',
-        flags: 1, // active
+        flags: '1', // active
       },
     ])
     .returning('id')

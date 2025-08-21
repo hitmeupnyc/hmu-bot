@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import * as EventController from '../controllers/EventController';
 import { auditMiddleware } from '../middleware/auditLogging';
-import { requireAuth, requirePermission, requireEventManager } from '../middleware/auth';
+import { requireAuth, requirePermission } from '../middleware/auth';
 import { effectToExpress } from '../services/effect/adapters/expressAdapter';
 
 /**
@@ -26,7 +26,7 @@ const router = Router();
 router.get(
   '/',
   requireAuth,
-  requirePermission('read', 'Event'),
+  requirePermission('read', 'events'),
   effectToExpress(EventController.listEvents)
 );
 
@@ -35,7 +35,7 @@ router.get(
 router.get(
   '/:id',
   requireAuth,
-  requirePermission('read', 'Event'),
+  requirePermission('read', (req) => ({ type: 'events', id: req.params.id })),
   effectToExpress(EventController.getEvent)
 );
 
@@ -44,7 +44,7 @@ router.get(
 router.get(
   '/:id/details',
   requireAuth,
-  requirePermission('read', 'Event'),
+  requirePermission('read', 'events'),
   effectToExpress(EventController.getEventDetails)
 );
 
@@ -53,7 +53,7 @@ router.get(
 router.post(
   '/',
   requireAuth,
-  requireEventManager,
+  requirePermission('create', (req) => ({ type: 'events', id: req.params.id })),
   effectToExpress(EventController.createEvent)
 );
 
@@ -62,7 +62,7 @@ router.post(
 router.put(
   '/:id',
   requireAuth,
-  requirePermission('update', 'Event'),
+  requirePermission('update', (req) => ({ type: 'events', id: req.params.id })),
   auditMiddleware('event'),
   effectToExpress(EventController.updateEvent)
 );
@@ -76,22 +76,16 @@ router.put(
 router.get(
   '/:id/marketing',
   requireAuth,
-  requirePermission(
-    (req) => ({ objectType: 'event', objectId: req.params.id }),
-    'view'
-  ),
+  requirePermission('read', (req) => ({ type: 'events', id: req.params.id })),
   effectToExpress(EventController.getEventMarketing)
 );
 
 // POST /api/events/:id/marketing - Create event marketing
-// Requires: edit permission on event
+// Requires: update permission on event
 router.post(
   '/:id/marketing',
   requireAuth,
-  requirePermission(
-    (req) => ({ objectType: 'event', objectId: req.params.id }),
-    'edit'
-  ),
+  requirePermission('update', (req) => ({ type: 'events', id: req.params.id })),
   auditMiddleware('event-marketing'),
   effectToExpress(EventController.createEventMarketing)
 );
@@ -105,10 +99,7 @@ router.post(
 router.get(
   '/:id/volunteers',
   requireAuth,
-  requirePermission(
-    (req) => ({ objectType: 'event', objectId: req.params.id }),
-    'volunteer_for'
-  ),
+  requirePermission('read', (req) => ({ type: 'events', id: req.params.id })),
   effectToExpress(EventController.getEventVolunteers)
 );
 
@@ -117,10 +108,7 @@ router.get(
 router.post(
   '/:id/volunteers',
   requireAuth,
-  requirePermission(
-    (req) => ({ objectType: 'event', objectId: req.params.id }),
-    'manage_volunteers'
-  ),
+  requirePermission('create', (req) => ({ type: 'events', id: req.params.id })),
   auditMiddleware('event-volunteers'),
   effectToExpress(EventController.createVolunteer)
 );

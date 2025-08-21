@@ -8,11 +8,7 @@
 
 import { Router } from 'express';
 import * as AuditController from '../controllers/AuditController';
-import {
-  requireAdmin,
-  requireAuth,
-  requirePermission,
-} from '../middleware/auth';
+import { requireAuth, requirePermission } from '../middleware/auth';
 import { validate } from '../middleware/validation';
 import { auditBodySchema, auditQuerySchema } from '../schemas/validation';
 import { effectToExpress } from '../services/effect/adapters/expressAdapter';
@@ -27,22 +23,18 @@ const router = Router();
  */
 
 // GET /api/audit - Get audit log entries with filtering
-// Requires: admin access only
 router.get(
   '/',
   requireAuth,
-  requireAdmin,
-  requirePermission({ objectType: 'audit_log', objectId: 'hmu' }, 'view'),
+  requirePermission('read', 'audit_log'),
   validate({ query: auditQuerySchema }),
   effectToExpress(AuditController.listAuditLogs)
 );
 
 // POST /api/audit - Add audit event (typically used by system)
-// Requires: admin permission (restrictive since this affects audit trail integrity)
 router.post(
   '/',
   requireAuth,
-  requirePermission({ objectType: 'audit_log', objectId: 'hmu' }, 'export'),
   validate({ body: auditBodySchema }),
   effectToExpress(AuditController.addAuditEvent)
 );

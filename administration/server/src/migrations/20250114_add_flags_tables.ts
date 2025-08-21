@@ -57,29 +57,104 @@ export async function up(db: Kysely<any>): Promise<void> {
   // Seed initial flags
   const flags = [
     // Core verification flags
-    { id: 'email_verified', name: 'Email Verified', description: 'Member has verified their email address', category: 'verification' },
-    { id: 'phone_verified', name: 'Phone Verified', description: 'Member has verified their phone number', category: 'verification' },
-    { id: 'identity_verified', name: 'Identity Verified', description: 'Member identity has been verified', category: 'verification' },
-    
+    {
+      id: 'email_verified',
+      name: 'Email Verified',
+      description: 'Member has verified their email address',
+      category: 'verification',
+    },
+    {
+      id: 'phone_verified',
+      name: 'Phone Verified',
+      description: 'Member has verified their phone number',
+      category: 'verification',
+    },
+    {
+      id: 'identity_verified',
+      name: 'Identity Verified',
+      description: 'Member identity has been verified',
+      category: 'verification',
+    },
+
     // Subscription/tier flags
-    { id: 'premium_member', name: 'Premium Member', description: 'Has active premium membership', category: 'subscription' },
-    { id: 'founding_member', name: 'Founding Member', description: 'Original founding member', category: 'subscription' },
-    { id: 'lifetime_member', name: 'Lifetime Member', description: 'Lifetime membership granted', category: 'subscription' },
-    
+    {
+      id: 'premium_member',
+      name: 'Premium Member',
+      description: 'Has active premium membership',
+      category: 'subscription',
+    },
+    {
+      id: 'founding_member',
+      name: 'Founding Member',
+      description: 'Original founding member',
+      category: 'subscription',
+    },
+    {
+      id: 'lifetime_member',
+      name: 'Lifetime Member',
+      description: 'Lifetime membership granted',
+      category: 'subscription',
+    },
+
     // Feature access flags
-    { id: 'beta_features', name: 'Beta Features', description: 'Access to beta features', category: 'feature' },
-    { id: 'api_access', name: 'API Access', description: 'Can access API endpoints', category: 'feature' },
-    { id: 'bulk_operations', name: 'Bulk Operations', description: 'Can perform bulk operations', category: 'feature' },
-    
+    {
+      id: 'beta_features',
+      name: 'Beta Features',
+      description: 'Access to beta features',
+      category: 'feature',
+    },
+    {
+      id: 'api_access',
+      name: 'API Access',
+      description: 'Can access API endpoints',
+      category: 'feature',
+    },
+    {
+      id: 'bulk_operations',
+      name: 'Bulk Operations',
+      description: 'Can perform bulk operations',
+      category: 'feature',
+    },
+
     // Compliance/training flags
-    { id: 'safety_trained', name: 'Safety Trained', description: 'Completed safety training', category: 'compliance' },
-    { id: 'background_checked', name: 'Background Checked', description: 'Passed background check', category: 'compliance' },
-    { id: 'volunteer_certified', name: 'Volunteer Certified', description: 'Certified to volunteer at events', category: 'compliance' },
-    
+    {
+      id: 'safety_trained',
+      name: 'Safety Trained',
+      description: 'Completed safety training',
+      category: 'compliance',
+    },
+    {
+      id: 'background_checked',
+      name: 'Background Checked',
+      description: 'Passed background check',
+      category: 'compliance',
+    },
+    {
+      id: 'volunteer_certified',
+      name: 'Volunteer Certified',
+      description: 'Certified to volunteer at events',
+      category: 'compliance',
+    },
+
     // Administrative flags
-    { id: 'can_moderate', name: 'Can Moderate', description: 'Can moderate content and members', category: 'admin' },
-    { id: 'can_manage_events', name: 'Can Manage Events', description: 'Can create and manage events', category: 'admin' },
-    { id: 'can_manage_integrations', name: 'Can Manage Integrations', description: 'Can configure integrations', category: 'admin' },
+    {
+      id: 'can_moderate',
+      name: 'Can Moderate',
+      description: 'Can moderate content and members',
+      category: 'admin',
+    },
+    {
+      id: 'can_manage_events',
+      name: 'Can Manage Events',
+      description: 'Can create and manage events',
+      category: 'admin',
+    },
+    {
+      id: 'can_manage_integrations',
+      name: 'Can Manage Integrations',
+      description: 'Can configure integrations',
+      category: 'admin',
+    },
   ];
 
   for (const flag of flags) {
@@ -104,21 +179,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     if (!member.email) continue;
 
     const flagsToGrant = [];
-
-    // All members get email_verified by default (assumption for existing members)
-    if (member.access_level >= 1) {
-      flagsToGrant.push('email_verified');
-    }
-
-    // Moderators get moderation flags
-    if (member.access_level >= 2) {
-      flagsToGrant.push('can_moderate', 'can_manage_events');
-    }
-
-    // Admins get admin flags
-    if (member.access_level >= 3) {
-      flagsToGrant.push('can_manage_integrations');
-    }
 
     // Grant the flags
     for (const flagId of flagsToGrant) {

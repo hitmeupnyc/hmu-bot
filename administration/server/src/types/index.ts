@@ -120,6 +120,7 @@ export interface Members {
   date_added: Generated<string | null>;
   email: string;
   first_name: string;
+  flags: string | null;
   id: Generated<number | null>;
   last_name: string;
   preferred_name: string | null;

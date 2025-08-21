@@ -1,8 +1,7 @@
 import { Effect } from 'effect';
 import { Request, Response, Router } from 'express';
 import { effectToExpress } from '~/services/effect/adapters/expressAdapter';
-import { FlagService } from '~/services/effect/FlagService';
-import { FlagServiceLive } from '~/services/effect/FlagServiceLive';
+import { Flag, FlagLive } from '~/services/effect/layers/FlagLayer';
 import { requireAuth } from '../middleware/auth';
 import {
   DatabaseLive,
@@ -46,11 +45,11 @@ router.get(
   effectToExpress((req: AuthRequest, res: Response) =>
     Effect.gen(function* () {
       const { id } = req.params;
-      const flagService = yield* FlagService;
+      const flagService = yield* Flag;
       const result = yield* flagService.getMemberFlags(id);
 
       return result;
-    }).pipe(Effect.provide(FlagServiceLive))
+    }).pipe(Effect.provide(FlagLive))
   )
 );
 
@@ -67,20 +66,18 @@ router.post(
         return res.status(400).json({ error: 'flag_id is required' });
       }
 
-      const flagService = yield* FlagService;
+      const flagService = yield* Flag;
       yield* flagService.grantFlag(id, flag_id, {
         grantedBy: req.user!.email,
         expiresAt: expires_at ? new Date(expires_at) : undefined,
-        reason,
         metadata,
-        ipAddress: req.ip,
       });
 
       return res.json({
         success: true,
         message: `Flag ${flag_id} granted to ${id}`,
       });
-    }).pipe(Effect.provide(FlagServiceLive))
+    }).pipe(Effect.provide(FlagLive))
   )
 );
 
@@ -95,9 +92,9 @@ router.delete(
     try {
       await Effect.runPromise(
         Effect.gen(function* () {
-          const flagService = yield* FlagService;
+          const flagService = yield* Flag;
           yield* flagService.revokeFlag(id, flagId, req.user!.email, reason);
-        }).pipe(Effect.provide(FlagServiceLive))
+        }).pipe(Effect.provide(FlagLive))
       );
 
       res.json({
@@ -163,7 +160,7 @@ router.post(
     try {
       await Effect.runPromise(
         Effect.gen(function* () {
-          const flagService = yield* FlagService;
+          const flagService = yield* Flag;
 
           const assignments = operations.map((op) => ({
             userId: op.userId,
@@ -177,7 +174,7 @@ router.post(
           }));
 
           yield* flagService.bulkGrantFlags(assignments);
-        }).pipe(Effect.provide(FlagServiceLive))
+        }).pipe(Effect.provide(FlagLive))
       );
 
       return res.json({
@@ -201,9 +198,9 @@ router.post(
     try {
       const result = await Effect.runPromise(
         Effect.gen(function* () {
-          const flagService = yield* FlagService;
+          const flagService = yield* Flag;
           return yield* flagService.processExpiredFlags();
-        }).pipe(Effect.provide(FlagServiceLive))
+        }).pipe(Effect.provide(FlagLive))
       );
 
       res.json(result);

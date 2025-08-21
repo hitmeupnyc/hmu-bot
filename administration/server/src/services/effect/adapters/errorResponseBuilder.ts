@@ -1,6 +1,5 @@
 import { TimeoutException } from 'effect/Cause';
-import { AuthorizationError } from '../AuthorizationEffects';
-import { AuthenticationError, SessionValidationError } from '../AuthService';
+import { AuthorizationError } from '~/services/effect/AuthorizationEffects';
 import {
   ConnectionError,
   DatabaseError,
@@ -8,8 +7,12 @@ import {
   ParseError,
   TransactionError,
   UniqueError,
-} from '../errors/CommonErrors';
-import { FlagError } from '../FlagService';
+} from '~/services/effect/errors/CommonErrors';
+import {
+  AuthenticationError,
+  SessionValidationError,
+} from '~/services/effect/layers/AuthLayer';
+import { FlagError } from '~/services/effect/layers/FlagLayer';
 
 export interface HTTPErrorResponse {
   status: number;

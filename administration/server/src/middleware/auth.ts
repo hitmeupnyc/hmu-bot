@@ -7,9 +7,8 @@ import {
   AuthorizationService,
   Subject,
 } from '~/services/effect/AuthorizationEffects';
-import { AuthService } from '~/services/effect/AuthService';
-import { FlagServiceLive } from '~/services/effect/FlagServiceLive';
-import { AuthLayer } from '~/services/effect/layers/AuthLayer';
+import { Auth, AuthLive } from '~/services/effect/layers/AuthLayer';
+import { FlagLive } from '~/services/effect/layers/FlagLayer';
 
 // Extend Express Request type to include session
 declare global {
@@ -49,7 +48,7 @@ export const requireAuth = async (
   next: NextFunction
 ) => {
   const effect = Effect.gen(function* () {
-    const authService = yield* AuthService;
+    const authService = yield* Auth;
     const session = yield* authService.validateSession(extractHeaders(req));
 
     // Attach context to request
@@ -58,7 +57,7 @@ export const requireAuth = async (
     }
     next();
   }).pipe(
-    Effect.provide(AuthLayer),
+    Effect.provide(AuthLive),
     withRequestObservability('require-auth', req)
   );
   try {
@@ -104,18 +103,16 @@ export const requirePermission =
           req.permissionResult = hasPermission
             ? { allowed: true }
             : { allowed: false, reason: 'permission_denied' };
-          
+
           if (!hasPermission) {
             throw new Error('Permission denied');
           }
         }).pipe(
           withRequestObservability('require-permission', req),
-          Effect.provide(
-            Layer.mergeAll(AuthorizationService.Live, FlagServiceLive)
-          )
+          Effect.provide(Layer.mergeAll(AuthorizationService.Live, FlagLive))
         )
       );
-      next();
+      return next();
     } catch (error) {
       if (!res.headersSent) {
         const errorResponse = transformError(error);

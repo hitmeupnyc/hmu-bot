@@ -1,8 +1,7 @@
 import { Data, Effect, Layer } from 'effect';
 import { NotFoundError } from './errors/CommonErrors';
 
-import { FlagService, IFlagService } from './FlagService';
-import { FlagServiceLive } from './FlagServiceLive';
+import { Flag, FlagLive, IFlag } from './layers/FlagLayer';
 
 // Error types using Effect Data.TaggedError
 export class AuthorizationError extends Data.TaggedError('AuthorizationError')<{
@@ -39,7 +38,7 @@ interface IAuthorizationService {
     action: Action,
     subject: Subject,
     field?: string
-  ) => Effect.Effect<boolean, AuthorizationError | NotFoundError, IFlagService>;
+  ) => Effect.Effect<boolean, AuthorizationError | NotFoundError, IFlag>;
 }
 
 const checkPermission: IAuthorizationService['checkPermission'] = (
@@ -49,7 +48,7 @@ const checkPermission: IAuthorizationService['checkPermission'] = (
   field
 ) =>
   Effect.gen(function* () {
-    const flagService = yield* FlagService;
+    const flagService = yield* Flag;
 
     // TODO: implement authz logic
 
@@ -81,7 +80,7 @@ export class AuthorizationService extends Effect.Tag('AuthorizationService')<
     {
       checkPermission: (userId, action, subject, field) =>
         checkPermission(userId, action, subject, field).pipe(
-          Effect.provide(FlagServiceLive)
+          Effect.provide(FlagLive)
         ),
     }
   );

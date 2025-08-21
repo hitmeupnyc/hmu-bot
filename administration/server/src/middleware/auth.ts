@@ -66,7 +66,8 @@ export const requireAuth = async (
   } catch (error) {
     // Only send response if headers haven't been sent already
     if (!res.headersSent) {
-      return Promise.resolve(res.send(transformError(error)));
+      const errorResponse = transformError(error);
+      return res.status(errorResponse.status).json(errorResponse.body);
     }
     return Promise.resolve();
   }
@@ -82,31 +83,43 @@ export const requirePermission =
     subject: Subject | ((req: Request) => Subject),
     field?: string
   ) =>
-  async (req: Request) => {
-    await Effect.runPromise(
-      Effect.gen(function* () {
-        const authorizationService = yield* AuthorizationService;
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await Effect.runPromise(
+        Effect.gen(function* () {
+          const authorizationService = yield* AuthorizationService;
 
-        // Check basic resource permission first
-        const hasPermission =
-          req.session &&
-          (yield* authorizationService
-            .checkPermission(
-              req.session.userId,
-              action,
-              typeof subject === 'function' ? subject(req) : subject,
-              field
-            )
-            .pipe(Effect.catchAll(() => Effect.succeed(false))));
+          // Check basic resource permission first
+          const hasPermission =
+            req.session &&
+            (yield* authorizationService
+              .checkPermission(
+                req.session.userId,
+                action,
+                typeof subject === 'function' ? subject(req) : subject,
+                field
+              )
+              .pipe(Effect.catchAll(() => Effect.succeed(false))));
 
-        req.permissionResult = hasPermission
-          ? { allowed: true }
-          : { allowed: false, reason: 'permission_denied' };
-      }).pipe(
-        withRequestObservability('require-permission', req),
-        Effect.provide(
-          Layer.mergeAll(AuthorizationService.Live, FlagServiceLive)
+          req.permissionResult = hasPermission
+            ? { allowed: true }
+            : { allowed: false, reason: 'permission_denied' };
+          
+          if (!hasPermission) {
+            throw new Error('Permission denied');
+          }
+        }).pipe(
+          withRequestObservability('require-permission', req),
+          Effect.provide(
+            Layer.mergeAll(AuthorizationService.Live, FlagServiceLive)
+          )
         )
-      )
-    );
+      );
+      next();
+    } catch (error) {
+      if (!res.headersSent) {
+        const errorResponse = transformError(error);
+        return res.status(errorResponse.status).json(errorResponse.body);
+      }
+    }
   };

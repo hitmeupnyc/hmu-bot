@@ -8,6 +8,8 @@ import { transformError } from './errorResponseBuilder';
 import { withRequestObservability } from './observabilityUtils';
 
 // Create a comprehensive application layer that includes all services
+// DatabaseLive provides DatabaseService directly
+// Other services are built on top of DatabaseLive
 const ApplicationLive = Layer.mergeAll(
   DatabaseLive,
   MemberServiceLive,
@@ -34,16 +36,24 @@ export const effectToExpress =
           const error = Cause.failureOption(cause);
 
           if (error._tag === 'Some') {
-            next(transformError(error.value));
+            const errorResponse = transformError(error.value);
+            res.status(errorResponse.status).json(errorResponse.body);
           } else {
             // Handle defects or interruptions
-            next(transformError(new Error('Operation failed')));
+            const errorResponse = transformError(new Error('Operation failed'));
+            res.status(errorResponse.status).json(errorResponse.body);
           }
         },
-        onSuccess: res.json,
+        onSuccess: (value) => {
+          // Only send response if it hasn't been sent already
+          if (!res.headersSent) {
+            res.json(value);
+          }
+        },
       });
     } catch (error) {
-      next(transformError(error));
+      const errorResponse = transformError(error);
+      res.status(errorResponse.status).json(errorResponse.body);
     }
   };
 

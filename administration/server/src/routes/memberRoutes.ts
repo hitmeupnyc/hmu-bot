@@ -39,6 +39,13 @@ router.get(
   '/',
   requireAuth,
   requirePermission('read', 'members'),
+  (req, res, next) => {
+    console.log('Members route', {
+      session: req.session,
+      permissionResult: req.permissionResult,
+    });
+    next();
+  },
   readOnlyLimiter,
   validate({ query: memberQuerySchema }),
   effectToExpress(MemberController.listMembers)

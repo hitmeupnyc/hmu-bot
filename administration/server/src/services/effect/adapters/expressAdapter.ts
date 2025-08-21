@@ -1,43 +1,72 @@
-import { Cause, Effect, Exit } from 'effect';
+import { Cause, Effect, Exit, Layer } from 'effect';
 import type { NextFunction, Request, Response } from 'express';
+import { AuditServiceLive } from '../AuditEffects';
 import {
   ConnectionError,
   DatabaseError,
+  NotFoundError,
+  ParseError,
   TransactionError,
-} from '../errors/DatabaseErrors';
-import { EventNotFound, EventValidationError } from '../errors/EventErrors';
-import {
-  EmailAlreadyExists,
-  MemberNotFound,
-  MemberValidationError,
-} from '../errors/MemberErrors';
+  UniqueError,
+} from '../errors/CommonErrors';
+import { EventServiceLive } from '../EventEffects';
+import { FlagError } from '../FlagService';
 import { DatabaseLive } from '../layers/DatabaseLayer';
+import { MemberServiceLive } from '../MemberEffects';
+
+// Create a comprehensive application layer that includes all services
+const ApplicationLive = Layer.mergeAll(
+  DatabaseLive,
+  MemberServiceLive,
+  EventServiceLive,
+  AuditServiceLive
+);
 
 /**
  * Convert Effect errors to Express-compatible errors
  */
 const toExpressError = (error: unknown): Error => {
-  if (error instanceof MemberNotFound) {
-    const err = new Error(`Member not found: ${error.memberId}`);
+  if (error instanceof NotFoundError) {
+    const err = new Error(`Not found: ${error.id}#${error.resource}`);
     (err as any).status = 404;
     return err;
   }
 
-  if (error instanceof EmailAlreadyExists) {
-    const err = new Error(`Email already exists: ${error.email}`);
+  if (error instanceof UniqueError) {
+    const err = new Error(
+      `Email already exists: ${error.field}=${error.value}`
+    );
     (err as any).status = 409;
     return err;
   }
 
-  if (error instanceof MemberValidationError || error instanceof EventValidationError) {
-    const err = new Error(`Validation error in ${error.field}: ${error.message}`);
+  if (error instanceof ParseError) {
+    const err = new Error(`Validation error: ${error.message}`);
     (err as any).status = 400;
     return err;
   }
 
-  if (error instanceof EventNotFound) {
-    const err = new Error(`Event not found: ${error.eventId}`);
-    (err as any).status = 404;
+  if (error instanceof FlagError) {
+    // Handle specific flag error cases
+    if (error.message.includes('not found')) {
+      const err = new Error(error.message);
+      (err as any).status = 404;
+      return err;
+    }
+
+    // Handle validation errors
+    if (
+      error.message.includes('invalid') ||
+      error.message.includes('required')
+    ) {
+      const err = new Error(error.message);
+      (err as any).status = 400;
+      return err;
+    }
+
+    // Default flag error
+    const err = new Error(error.message);
+    (err as any).status = 500;
     return err;
   }
 
@@ -65,7 +94,9 @@ export const effectToExpress =
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const result = await Effect.runPromiseExit(
-        effectFn(req, res).pipe(Effect.provide(DatabaseLive)) as Effect.Effect<A, E, never>
+        effectFn(req, res).pipe(
+          Effect.provide(ApplicationLive)
+        ) as Effect.Effect<A, E, never>
       );
 
       Exit.match(result, {
@@ -97,7 +128,7 @@ export const withRequestData =
     Effect.succeed(extractor(req));
 
 /**
- * Helper to extract common request patterns
+ * Helper to extract common request patterns. This is an antipattern! It should be refactored into a schema validator instead!
  */
 export const extractId = (req: Request): Effect.Effect<number, Error> =>
   Effect.try({

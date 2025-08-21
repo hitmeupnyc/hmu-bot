@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import { Router } from 'express';
-import * as MemberEffects from '../services/effect/MemberEffects';
+import { MemberService } from '../services/effect/MemberEffects';
 import {
   effectToExpress,
   extractBody,
@@ -50,7 +50,9 @@ router.post(
       };
 
       // Create the member record
-      const member = yield* MemberEffects.createMember(memberData);
+
+      const memberService = yield* MemberService;
+      const member = yield* memberService.createMember(memberData);
 
       // Log the full application data for review
       console.log('New membership application received:', {
@@ -109,7 +111,8 @@ router.post(
               };
 
               // Create the member record
-              yield* MemberEffects.createMember(memberData);
+              const memberService = yield* MemberService;
+              yield* memberService.createMember(memberData);
               results.imported++;
 
               // Log the application data

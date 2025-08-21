@@ -10,6 +10,7 @@ import { LoginPage } from '@/pages/LoginPage';
 import { MemberDetails } from '@/pages/MemberDetails';
 import { Members } from '@/pages/Members';
 import { NotFound } from '@/pages/NotFound';
+import Permissions from '@/pages/Permissions';
 import { Settings } from '@/pages/Settings';
 import { Route, Routes } from 'react-router-dom';
 
@@ -33,6 +34,7 @@ function App() {
                 <Route path="/events" element={<Events />} />
                 <Route path="/events/:id" element={<EventDetails />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/settings/permissions" element={<Permissions />} />
                 <Route path="/apply" element={<Apply />} />
                 <Route path="/debug" element={<Debug />} />
                 <Route path="*" element={<NotFound />} />

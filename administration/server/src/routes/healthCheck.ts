@@ -4,10 +4,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { effectToExpress } from '../services/effect/adapters/expressAdapter';
-import {
-  DatabaseService,
-  IDatabaseService,
-} from '../services/effect/context/DatabaseService';
+import { DatabaseService } from '../services/effect/layers/DatabaseLayer';
 
 const router = Router();
 
@@ -35,24 +32,14 @@ router.get(
       const expectedKey = process.env.DEBUG_KEY || 'debug-secret-key-2025';
 
       if (debugKey === expectedKey) {
-        const debugInfo = yield* buildDebugInfo(basicHealth, dbService);
+        const debugInfo = yield* buildDebugInfo(basicHealth);
         res.status(200);
         return debugInfo;
       }
 
       res.status(200);
       return basicHealth;
-    }).pipe(
-      Effect.catchTag('DatabaseError', (error) => {
-        res.status(503);
-        return Effect.succeed({
-          status: 'unhealthy',
-          timestamp: new Date().toISOString(),
-          error: 'Database connection failed',
-          database: 'disconnected',
-        });
-      })
-    )
+    })
   )
 );
 
@@ -114,8 +101,9 @@ router.get(
 export { router as healthCheckRouter };
 
 // Helper function to build debug information
-const buildDebugInfo = (basicHealth: any, dbService: IDatabaseService) =>
+const buildDebugInfo = (basicHealth: any) =>
   Effect.gen(function* () {
+    const dbService = yield* DatabaseService;
     // Get database table counts safely
     const tableCounts = yield* Effect.gen(function* () {
       const memberResult = yield* dbService.query(async (db) =>

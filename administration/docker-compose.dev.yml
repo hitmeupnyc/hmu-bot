@@ -3,9 +3,9 @@ services:
     build:
       context: .
       dockerfile: ./server/Dockerfile
-      target: builder  # Use builder stage for development
+      target: builder # Use builder stage for development
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       - NODE_ENV=development
       - DATABASE_PATH=/app/server/data/club.db
@@ -20,9 +20,9 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
-    command: ["npm", "run", "dev:server"]
+    command: ['npm', 'run', 'dev:server']
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -32,9 +32,9 @@ services:
     build:
       context: .
       dockerfile: ./client/Dockerfile
-      target: builder  # Use builder stage for development
+      target: builder # Use builder stage for development
     ports:
-      - "5173:5173"
+      - '5173:5173'
     environment:
       - NODE_ENV=development
     volumes:
@@ -46,22 +46,38 @@ services:
       server:
         condition: service_healthy
     restart: unless-stopped
-    command: ["npm", "run", "dev:client"]
+    command: ['npm', 'run', 'dev:client']
 
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis_data:/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
     command: redis-server --appendonly yes --maxmemory 100mb --maxmemory-policy allkeys-lru
+
+  spicedb:
+    image: authzed/spicedb:latest
+    command: serve --grpc-preshared-key "hmu_dev_secret_key" --http-enabled
+    ports:
+      - '8080:8443' # HTTP API
+      - '50051:50051' # gRPC API
+    environment:
+      - SPICEDB_DATASTORE_ENGINE=memory
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'grpc_health_probe', '-addr=:50051']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 volumes:
   redis_data:

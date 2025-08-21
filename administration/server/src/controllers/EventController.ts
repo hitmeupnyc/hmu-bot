@@ -1,11 +1,7 @@
 import { Effect } from 'effect';
 import type { Request, Response } from 'express';
-import * as EventEffects from '../services/effect/EventEffects';
-import {
-  extractBody,
-  extractId,
-  extractQuery,
-} from '../services/effect/adapters/expressAdapter';
+import { EventService } from '../services/effect/EventEffects';
+import { extractId } from '../services/effect/adapters/expressAdapter';
 import {
   CreateEvent,
   CreateEventMarketing,
@@ -35,12 +31,13 @@ import {
  */
 export const listEvents = (req: Request, res: Response) =>
   Effect.gen(function* () {
-    const query = yield* extractQuery(req);
-    const page = parseInt((query as any).page) || 1;
-    const limit = parseInt((query as any).limit) || 20;
-    const upcoming = (query as any).upcoming === 'true';
+    const query = req.query;
+    const page = parseInt((query.page as string) || '1');
+    const limit = parseInt((query.limit as string) || '20');
+    const upcoming = query.upcoming === 'true';
 
-    const result = yield* EventEffects.getEvents({ page, limit, upcoming });
+    const eventService = yield* EventService;
+    const result = yield* eventService.getEvents({ page, limit, upcoming });
 
     return createPaginatedResponse(result.events, result.pagination);
   });
@@ -52,7 +49,8 @@ export const listEvents = (req: Request, res: Response) =>
 export const getEvent = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const id = yield* extractId(req);
-    const event = yield* EventEffects.getEventById(id);
+    const eventService = yield* EventService;
+    const event = yield* eventService.getEventById(id);
 
     return createSuccessResponse(event);
   });
@@ -64,7 +62,8 @@ export const getEvent = (req: Request, res: Response) =>
 export const getEventDetails = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const id = yield* extractId(req);
-    const eventDetails = yield* EventEffects.getEventWithDetails(id);
+    const eventService = yield* EventService;
+    const eventDetails = yield* eventService.getEventWithDetails(id);
 
     return createSuccessResponse(eventDetails);
   });
@@ -75,10 +74,11 @@ export const getEventDetails = (req: Request, res: Response) =>
  */
 export const createEvent = (req: Request, res: Response) =>
   Effect.gen(function* () {
-    const eventData = yield* extractBody<CreateEvent>(req);
+    const eventData = req.body as CreateEvent;
     // Ensure flags has a default value (bitfield for active state)
     const eventWithFlags = { ...eventData, flags: eventData.flags ?? 1 };
-    const event = yield* EventEffects.createEvent(eventWithFlags);
+    const eventService = yield* EventService;
+    const event = yield* eventService.createEvent(eventWithFlags);
 
     res.status(201);
     return createSuccessResponseWithMessage(
@@ -94,10 +94,11 @@ export const createEvent = (req: Request, res: Response) =>
 export const updateEvent = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const id = yield* extractId(req);
-    const eventData = yield* extractBody<Partial<UpdateEvent>>(req);
+    const eventData = req.body as Partial<UpdateEvent>;
 
     const updatePayload = { ...eventData, id };
-    const event = yield* EventEffects.updateEvent(updatePayload);
+    const eventService = yield* EventService;
+    const event = yield* eventService.updateEvent(updatePayload);
 
     return createSuccessResponseWithMessage(
       event,
@@ -116,7 +117,8 @@ export const updateEvent = (req: Request, res: Response) =>
 export const getEventMarketing = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const id = yield* extractId(req);
-    const marketing = yield* EventEffects.getEventMarketing(id);
+    const eventService = yield* EventService;
+    const marketing = yield* eventService.getEventMarketing(id);
 
     return createSuccessResponse(marketing);
   });
@@ -128,9 +130,10 @@ export const getEventMarketing = (req: Request, res: Response) =>
 export const createEventMarketing = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const eventId = yield* extractId(req);
-    const bodyData = yield* extractBody<CreateEventMarketing>(req);
+    const bodyData = req.body as CreateEventMarketing;
 
-    const marketing = yield* EventEffects.createEventMarketing(bodyData);
+    const eventService = yield* EventService;
+    const marketing = yield* eventService.createEventMarketing(bodyData);
 
     res.status(201);
     return createSuccessResponseWithMessage(
@@ -150,7 +153,8 @@ export const createEventMarketing = (req: Request, res: Response) =>
 export const getEventVolunteers = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const id = yield* extractId(req);
-    const volunteers = yield* EventEffects.getEventVolunteers(id);
+    const eventService = yield* EventService;
+    const volunteers = yield* eventService.getEventVolunteers(id);
 
     return createSuccessResponse(volunteers);
   });
@@ -162,9 +166,10 @@ export const getEventVolunteers = (req: Request, res: Response) =>
 export const createVolunteer = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const eventId = yield* extractId(req);
-    const bodyData = yield* extractBody<CreateVolunteer>(req);
+    const bodyData = req.body as CreateVolunteer;
 
-    const volunteer = yield* EventEffects.createVolunteer(bodyData);
+    const eventService = yield* EventService;
+    const volunteer = yield* eventService.createVolunteer(bodyData);
 
     res.status(201);
     return createSuccessResponseWithMessage(

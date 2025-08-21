@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as MemberController from '../controllers/MemberController';
 import { auditMiddleware } from '../middleware/auditLogging';
+import { requireAuth, requirePermission, requireMemberManager } from '../middleware/auth';
 import { apiLimiter, readOnlyLimiter } from '../middleware/rateLimiting';
 import { validate } from '../middleware/validation';
 import {
@@ -34,9 +35,12 @@ const router = Router();
 /**
  * GET /api/members
  * List all members with pagination and optional search
+ * Requires: read permission on Member
  */
 router.get(
   '/',
+  requireAuth,
+  requirePermission('read', 'Member'),
   readOnlyLimiter,
   validate({ query: memberQuerySchema }),
   effectToExpress(MemberController.listMembers)
@@ -45,9 +49,12 @@ router.get(
 /**
  * GET /api/members/:id
  * Get a single member by ID
+ * Requires: read permission on Member (with ownership check in controller)
  */
 router.get(
   '/:id',
+  requireAuth,
+  requirePermission('read', 'Member'),
   readOnlyLimiter,
   validate({ params: idParamSchema }),
   auditMiddleware('member'),
@@ -57,9 +64,12 @@ router.get(
 /**
  * POST /api/members
  * Create a new member
+ * Requires: create permission on Member
  */
 router.post(
   '/',
+  requireAuth,
+  requireMemberManager,
   apiLimiter,
   validate({ body: createMemberSchema }),
   auditMiddleware('member'),
@@ -69,9 +79,12 @@ router.post(
 /**
  * PUT /api/members/:id
  * Update an existing member
+ * Requires: update permission on Member (with ownership check in controller)
  */
 router.put(
   '/:id',
+  requireAuth,
+  requirePermission('update', 'Member'),
   apiLimiter,
   validate({
     params: idParamSchema,
@@ -84,9 +97,12 @@ router.put(
 /**
  * DELETE /api/members/:id
  * Soft delete a member
+ * Requires: delete permission on Member (admin only)
  */
 router.delete(
   '/:id',
+  requireAuth,
+  requireMemberManager,
   apiLimiter,
   validate({ params: idParamSchema }),
   auditMiddleware('member'),

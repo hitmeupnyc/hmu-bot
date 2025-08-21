@@ -103,7 +103,16 @@ export const CreateEventMarketingSchema = Schema.Struct({
   seo_title: Schema.optional(Schema.String),
   seo_description: Schema.optional(Schema.String),
   hashtags: Schema.optional(Schema.Array(Schema.String)),
-  marketing_images: Schema.optional(Schema.Array(Schema.String)),
+  marketing_images: Schema.optional(
+    Schema.Array(
+      Schema.Struct({
+        url: Schema.String,
+        alt_text: Schema.optional(Schema.String),
+        caption: Schema.optional(Schema.String),
+        type: Schema.Literal('hero', 'thumbnail', 'social', 'email'),
+      })
+    )
+  ),
   key_selling_points: Schema.optional(Schema.Array(Schema.String)),
 });
 

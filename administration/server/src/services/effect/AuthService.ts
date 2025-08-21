@@ -153,7 +153,9 @@ export const BetterAuthLive = Layer.effect(
         magicLink({
           sendMagicLink: async ({ email, url }) => {
             // Stub for Phase 2 - will be replaced with actual email service
-            console.log(`[EMAIL STUB] Send magic link to ${email}: ${url}`);
+            console.log(`                     👇`);
+            console.log(`Send magic link 👉 ${url} 👈 to ${email}`);
+            console.log(`                     ☝️`);
             // TODO: Integrate with email service
           },
           expiresIn: config.magicLinkExpiresIn,

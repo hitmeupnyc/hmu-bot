@@ -6,7 +6,6 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import logger from './utils/logger';
 
-import { requireAuth } from './middleware/auth';
 import { errorHandler } from './middleware/errorHandler';
 import { apiLimiter } from './middleware/rateLimiting';
 
@@ -59,11 +58,11 @@ app.use('/health', healthCheckRouter);
 app.use('/api/auth', authRoutes);
 
 // Protected routes (require authentication)
-app.use('/api/members', requireAuth, memberRoutes);
-app.use('/api/events', requireAuth, eventRoutes);
-app.use('/api/audit', requireAuth, auditRoutes);
-app.use('/api/applications', requireAuth, applicationRoutes);
-app.use('/api', requireAuth, flagRoutes);
+app.use('/api/members', memberRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/audit', auditRoutes);
+app.use('/api/applications', applicationRoutes);
+app.use('/api', flagRoutes);
 
 // Error handling
 app.use(errorHandler);

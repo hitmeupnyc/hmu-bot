@@ -1,5 +1,5 @@
-import { Router } from 'express';
 import { Effect } from 'effect';
+import { Router } from 'express';
 
 import { BetterAuthService } from '../services/effect/AuthService';
 import { AuthLayer } from '../services/effect/layers/AuthLayer';
@@ -20,19 +20,17 @@ authRoutes.all('*', async (req, res) => {
       Effect.gen(function* () {
         const betterAuthService = yield* BetterAuthService;
         const handler = betterAuthService.toNodeHandler();
-        
+
         // Fix the request URL for BetterAuth - it expects the full path including /api/auth
         // Express strips the /api/auth prefix when mounting routes
         const originalUrl = req.url;
         req.url = `/api/auth${req.url}`;
-        
+
         handler(req, res);
-        
+
         // Restore the original URL
         req.url = originalUrl;
-      }).pipe(
-        Effect.provide(AuthLayer)
-      )
+      }).pipe(Effect.provide(AuthLayer))
     );
   } catch (error) {
     console.error(`[AUTH] Error in handler:`, error);

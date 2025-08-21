@@ -156,7 +156,7 @@ export const BetterAuthLive = Layer.effect(
             console.log(`                     👇`);
             console.log(`Send magic link 👉 ${url} 👈 to ${email}`);
             console.log(`                     ☝️`);
-            // TODO: Integrate with email service
+            // TODO: Integrate with email service, `EmailEffects.ts`
           },
           expiresIn: config.magicLinkExpiresIn,
         }),

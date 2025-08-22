@@ -1,6 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
 import logger from '../utils/logger';
-import { ValidationError } from './validation';
 
 export class AppError extends Error {
   public statusCode: number;
@@ -31,7 +30,7 @@ interface ErrorResponse extends ApiResponse {
 }
 
 export const errorHandler = (
-  error: Error | AppError | ValidationError,
+  error: Error | AppError,
   req: Request,
   res: Response<ErrorResponse>,
   next: NextFunction
@@ -50,11 +49,6 @@ export const errorHandler = (
   if ((error as any).status) {
     statusCode = (error as any).status;
     message = error.message;
-  } else if (error instanceof ValidationError) {
-    statusCode = error.statusCode;
-    message = error.message;
-    code = 'VALIDATION_ERROR';
-    errors = error.errors;
   } else if (error instanceof AppError) {
     statusCode = error.statusCode;
     message = error.message;

@@ -1,112 +1,84 @@
-import { Router } from 'express';
-import { withRequestObservability } from '~/services/effect/adapters/observabilityUtils';
-import * as MemberController from '../controllers/MemberController';
-import { auditMiddleware } from '../middleware/auditLogging';
-import { requireAuth, requirePermission } from '../middleware/auth';
-import { apiLimiter, readOnlyLimiter } from '../middleware/rateLimiting';
-import { validate } from '../middleware/validation';
-import {
-  createMemberSchema,
-  idParamSchema,
-  memberQuerySchema,
-  updateMemberSchema,
-} from '../schemas/validation';
-import { effectToExpress } from '../services/effect/adapters/expressAdapter';
-
 /**
- * Member Routes
+ * Example migration: Member routes using Effect HTTP pipeline
  *
- * This router defines all member-related API endpoints.
- * Route handlers are delegated to the MemberController for better
- * separation of concerns and improved testability.
- *
- * Middleware Stack:
- * 1. Audit middleware (applied globally)
- * 2. Rate limiting (read-only or API limits)
- * 3. Validation (request schema validation)
- * 4. Controller handler (business logic)
+ * This file demonstrates how to migrate from the traditional Express middleware
+ * approach to the new Effect-based pipeline system.
  */
+
+import { Effect } from 'effect';
+import { Router } from 'express';
+import { withExpress } from '~/services/effect/adapters/expressAdapter';
+import {
+  IdParamSchema,
+  MemberQuerySchema,
+  formatOutput,
+  paginatedOutput,
+  parseParams,
+  parseQuery,
+  requireAuth,
+  requirePermission,
+  useParsedParams,
+  useParsedQuery,
+} from '~/services/effect/http';
+import { MemberService } from '~/services/effect/MemberEffects';
+import { MemberSchema } from '~/services/effect/schemas/MemberSchemas';
 
 const router = Router();
 
-// Core CRUD Operations
-
 /**
- * GET /api/members
- * List all members with pagination and optional search
- * Requires: read permission on Member
+ * GET /api/members/:id - New Effect pipeline approach
  */
-router.get(
-  '/',
-  requireAuth,
-  requirePermission('read', 'members'),
-  readOnlyLimiter,
-  validate({ query: memberQuerySchema }),
-  (req) => withRequestObservability('list-members', req),
-  effectToExpress(MemberController.listMembers)
+router.get('/:id', (req, res, next) =>
+  Effect.void.pipe(
+    withExpress(req, res, next),
+    requireAuth(),
+    requirePermission('read', 'members'),
+    parseParams(IdParamSchema),
+    Effect.flatMap(() =>
+      Effect.gen(function* () {
+        const { id } = yield* useParsedParams<{ id: number }>();
+        const memberService = yield* MemberService;
+        const member = yield* memberService.getMemberById(id);
+        return member;
+      })
+    ),
+    formatOutput(MemberSchema)
+  )
 );
 
 /**
- * GET /api/members/:id
- * Get a single member by ID
- * Requires: read permission on Member (with ownership check in controller)
+ * GET /api/members - List members with pagination
  */
-router.get(
-  '/:id',
-  requireAuth,
-  requirePermission('read', 'members'),
-  readOnlyLimiter,
-  validate({ params: idParamSchema }),
-  auditMiddleware('member'),
-  effectToExpress(MemberController.getMember)
+router.get('/', (req, res, next) =>
+  Effect.void.pipe(
+    withExpress(req, res, next),
+    requireAuth(),
+    requirePermission('read', 'members'),
+    parseQuery(MemberQuerySchema),
+    Effect.flatMap(() =>
+      Effect.gen(function* () {
+        const query = yield* useParsedQuery<{
+          page: number;
+          limit: number;
+          search?: string;
+        }>();
+        const memberService = yield* MemberService;
+        const result = yield* memberService.getMembers({
+          page: query.page,
+          limit: query.limit,
+          search: query.search,
+        });
+
+        return {
+          data: result.members,
+          total: result.pagination.total,
+          page: query.page,
+          limit: query.limit,
+        };
+      })
+    ),
+    paginatedOutput(MemberSchema)
+  )
 );
 
-/**
- * POST /api/members
- * Create a new member
- * Requires: create permission on Member
- */
-router.post(
-  '/',
-  requireAuth,
-  requirePermission('create', 'members'),
-  apiLimiter,
-  validate({ body: createMemberSchema }),
-  auditMiddleware('member'),
-  effectToExpress(MemberController.createMember)
-);
-
-/**
- * PUT /api/members/:id
- * Update an existing member
- * Requires: update permission on Member (with ownership check in controller)
- */
-router.put(
-  '/:id',
-  requireAuth,
-  requirePermission('update', 'members'),
-  apiLimiter,
-  validate({
-    params: idParamSchema,
-    body: updateMemberSchema,
-  }),
-  auditMiddleware('member'),
-  effectToExpress(MemberController.updateMember)
-);
-
-/**
- * DELETE /api/members/:id
- * Soft delete a member
- * Requires: delete permission on Member (admin only)
- */
-router.delete(
-  '/:id',
-  requireAuth,
-  requirePermission('delete', 'members'),
-  apiLimiter,
-  validate({ params: idParamSchema }),
-  auditMiddleware('member'),
-  effectToExpress(MemberController.deleteMember)
-);
-
-export { router as memberRoutes };
+export { router as memberPipelineRoutes };

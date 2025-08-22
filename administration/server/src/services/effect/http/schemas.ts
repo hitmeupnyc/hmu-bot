@@ -15,7 +15,7 @@ export const NonEmptyStringSchema = Schema.String.pipe(Schema.minLength(1));
 export const OptionalNonEmptyStringSchema =
   Schema.optional(NonEmptyStringSchema);
 
-// Member schemas matching the existing Zod schemas
+// Member schemas matching the actual database schema
 export const CreateMemberSchema = Schema.Struct({
   first_name: NonEmptyStringSchema.pipe(Schema.maxLength(100)),
   last_name: NonEmptyStringSchema.pipe(Schema.maxLength(100)),
@@ -23,12 +23,6 @@ export const CreateMemberSchema = Schema.Struct({
   email: EmailSchema.pipe(Schema.maxLength(255)),
   pronouns: Schema.optional(Schema.String.pipe(Schema.maxLength(50))),
   sponsor_notes: Schema.optional(Schema.String.pipe(Schema.maxLength(1000))),
-  is_professional_affiliate: Schema.optional(Schema.Boolean).pipe(
-    Schema.withDefaults({
-      constructor: () => false,
-      decoding: () => false,
-    })
-  ),
 });
 
 export const UpdateMemberSchema = Schema.Struct({
@@ -39,7 +33,6 @@ export const UpdateMemberSchema = Schema.Struct({
   email: Schema.optional(EmailSchema.pipe(Schema.maxLength(255))),
   pronouns: Schema.optional(Schema.String.pipe(Schema.maxLength(50))),
   sponsor_notes: Schema.optional(Schema.String.pipe(Schema.maxLength(1000))),
-  is_professional_affiliate: Schema.optional(Schema.Boolean),
 });
 
 export const MemberQuerySchema = Schema.Struct({
@@ -79,9 +72,10 @@ export const MemberSchema = Schema.Struct({
   email: Schema.String,
   pronouns: Schema.Union(Schema.String, Schema.Null),
   sponsor_notes: Schema.Union(Schema.String, Schema.Null),
-  is_professional_affiliate: Schema.Boolean,
-  created_at: Schema.DateFromString,
-  updated_at: Schema.DateFromString,
+  flags: Schema.Union(Schema.String, Schema.Null),
+  date_added: Schema.Union(Schema.String, Schema.Null),
+  created_at: Schema.Union(Schema.String, Schema.Null),
+  updated_at: Schema.Union(Schema.String, Schema.Null),
 });
 
 export const MemberListSchema = Schema.Array(MemberSchema);

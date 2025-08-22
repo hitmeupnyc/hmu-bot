@@ -202,15 +202,11 @@ export const MemberServiceLive = Layer.effect(
 
         const flags = yield* Effect.gen(function* () {
           const validatedFlags = yield* Schema.decodeUnknown(MemberFlagsSchema)(
-            {
-              active: true,
-              professional_affiliate: validatedData.is_professional_affiliate,
-            }
+            { active: true }
           );
 
           let result = 0;
           if (validatedFlags.active) result |= 1;
-          if (validatedFlags.professional_affiliate) result |= 2;
           return result;
         });
 

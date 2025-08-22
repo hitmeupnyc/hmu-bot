@@ -23,9 +23,6 @@ export const CreateMemberSchema = Schema.Struct({
   email: Schema.String.pipe(Schema.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)),
   pronouns: Schema.optional(Schema.String),
   sponsor_notes: Schema.optional(Schema.String),
-  is_professional_affiliate: Schema.optionalWith(Schema.Boolean, {
-    default: () => false,
-  }),
 });
 
 export type CreateMember = typeof CreateMemberSchema.Type;

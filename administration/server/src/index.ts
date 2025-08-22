@@ -15,6 +15,8 @@ import { authRoutes } from './routes/authRoutes';
 import { eventRoutes } from './routes/eventRoutes';
 import { healthCheckRouter } from './routes/healthCheck';
 import { memberRoutes } from './routes/memberRoutes';
+import { memberPipelineRoutes } from './services/effect/http/examples/memberRouteExample';
+import { testRoutes } from './services/effect/http/examples/testRoutes';
 
 import { flagRoutes } from './routes/flagRoutes';
 
@@ -56,9 +58,11 @@ app.use('/api', apiLimiter);
 // Public routes (no auth required)
 app.use('/health', healthCheckRouter);
 app.use('/api/auth', authRoutes);
+app.use('/api/test', testRoutes); // Test routes for Effect pipeline
 
 // Protected routes (require authentication)
 app.use('/api/members', memberRoutes);
+app.use('/api/members-pipeline', memberPipelineRoutes); // New Effect pipeline routes for testing
 app.use('/api/events', eventRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/applications', applicationRoutes);

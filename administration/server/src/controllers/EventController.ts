@@ -11,7 +11,6 @@ import {
 import {
   createPaginatedResponse,
   createSuccessResponse,
-  createSuccessResponseWithMessage,
 } from './helpers/responseFormatters';
 
 /**
@@ -81,10 +80,7 @@ export const createEvent = (req: Request, res: Response) =>
     const event = yield* eventService.createEvent(eventWithFlags);
 
     res.status(201);
-    return createSuccessResponseWithMessage(
-      event,
-      'Event created successfully'
-    );
+    return createSuccessResponse(event, 'Event created successfully');
   });
 
 /**
@@ -100,10 +96,7 @@ export const updateEvent = (req: Request, res: Response) =>
     const eventService = yield* EventService;
     const event = yield* eventService.updateEvent(updatePayload);
 
-    return createSuccessResponseWithMessage(
-      event,
-      'Event updated successfully'
-    );
+    return createSuccessResponse(event, 'Event updated successfully');
   });
 
 // =====================================
@@ -136,7 +129,7 @@ export const createEventMarketing = (req: Request, res: Response) =>
     const marketing = yield* eventService.createEventMarketing(bodyData);
 
     res.status(201);
-    return createSuccessResponseWithMessage(
+    return createSuccessResponse(
       marketing,
       'Event marketing created successfully'
     );
@@ -172,8 +165,5 @@ export const createVolunteer = (req: Request, res: Response) =>
     const volunteer = yield* eventService.createVolunteer(bodyData);
 
     res.status(201);
-    return createSuccessResponseWithMessage(
-      volunteer,
-      'Volunteer added successfully'
-    );
+    return createSuccessResponse(volunteer, 'Volunteer added successfully');
   });

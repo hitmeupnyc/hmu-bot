@@ -1,4 +1,5 @@
 import { TimeoutException } from 'effect/Cause';
+import { ParseError as SchemaParseError } from 'effect/ParseResult';
 import { AuthorizationError } from '~/services/effect/AuthorizationEffects';
 import {
   ConnectionError,
@@ -126,6 +127,14 @@ export const transformError = (error: unknown): HTTPErrorResponse => {
       body: {
         error: `Validation error: ${error.message}`,
         code: 'VALIDATION_ERROR',
+      },
+    };
+  } else if (error instanceof SchemaParseError) {
+    response = {
+      status: 400,
+      body: {
+        error: `Schema validation error: ${error.message}`,
+        code: 'SCHEMA_VALIDATION_ERROR',
       },
     };
   } else if (error instanceof FlagError) {

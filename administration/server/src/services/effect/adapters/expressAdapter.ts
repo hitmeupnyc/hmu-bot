@@ -2,6 +2,7 @@ import { Cause, Effect, Exit, Layer } from 'effect';
 import type { NextFunction, Request, Response } from 'express';
 import { AuditServiceLive } from '../AuditEffects';
 import { EventServiceLive } from '../EventEffects';
+import { Express } from '../http/context';
 import { DatabaseLive } from '../layers/DatabaseLayer';
 import { MemberServiceLive } from '../MemberEffects';
 import { transformError } from './errorResponseBuilder';
@@ -18,9 +19,51 @@ const ApplicationLive = Layer.mergeAll(
 );
 
 /**
- * Convert an Effect to an Express middleware function
+ * Convert an Effect pipeline to an Express middleware function
+ * Injects Express Request/Response and metadata into Effect context
  */
 export const effectToExpress =
+  <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await Effect.runPromiseExit(
+        effect.pipe(
+          Effect.provideService(Express, {req, res, next}),
+          Effect.provide(ApplicationLive)
+        ) as Effect.Effect<A, E, never>
+      );
+
+      Exit.match(result, {
+        onFailure: (cause) => {
+          const error = Cause.failureOption(cause);
+
+          if (error._tag === 'Some') {
+            const errorResponse = transformError(error.value);
+            res.status(errorResponse.status).json(errorResponse.body);
+          } else {
+            // Handle defects or interruptions
+            const errorResponse = transformError(new Error('Operation failed'));
+            res.status(errorResponse.status).json(errorResponse.body);
+          }
+        },
+        onSuccess: (value) => {
+          // Only send response if it hasn't been sent already
+          if (!res.headersSent) {
+            res.json(value);
+          }
+        },
+      });
+    } catch (error) {
+      const errorResponse = transformError(error);
+      res.status(errorResponse.status).json(errorResponse.body);
+    }
+  };
+
+/**
+ * Legacy effectToExpress for backwards compatibility
+ * @deprecated Use the new pipeline-based effectToExpress instead
+ */
+export const legacyEffectToExpress =
   <A, E>(effectFn: (req: Request, res: Response) => Effect.Effect<A, E, any>) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {

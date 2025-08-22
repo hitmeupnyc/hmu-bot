@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { withRequestObservability } from '~/services/effect/adapters/observabilityUtils';
 import * as MemberController from '../controllers/MemberController';
 import { auditMiddleware } from '../middleware/auditLogging';
 import { requireAuth, requirePermission } from '../middleware/auth';
@@ -39,15 +40,9 @@ router.get(
   '/',
   requireAuth,
   requirePermission('read', 'members'),
-  (req, res, next) => {
-    console.log('Members route', {
-      session: req.session,
-      permissionResult: req.permissionResult,
-    });
-    next();
-  },
   readOnlyLimiter,
   validate({ query: memberQuerySchema }),
+  (req) => withRequestObservability('list-members', req),
   effectToExpress(MemberController.listMembers)
 );
 

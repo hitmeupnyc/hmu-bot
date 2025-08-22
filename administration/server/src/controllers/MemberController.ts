@@ -1,12 +1,13 @@
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import type { Request, Response } from 'express';
+import { ListQuerySchema } from '~/services/effect/http';
 import { AuditService } from '../services/effect/AuditEffects';
 import { MemberService } from '../services/effect/MemberEffects';
 import { extractId } from '../services/effect/adapters/expressAdapter';
+import { getParsedBody } from '../services/effect/http/parseBody';
 import {
   createPaginatedResponse,
   createSuccessResponse,
-  createSuccessResponseWithMessage,
 } from './helpers/responseFormatters';
 
 /**
@@ -24,7 +25,11 @@ import {
 export const listMembers = (req: Request, res: Response) =>
   Effect.gen(function* () {
     const query = req.query;
-    const { page = 1, limit = 10, search } = query as any;
+    const {
+      page = 1,
+      limit = 10,
+      search,
+    } = yield* Schema.decodeUnknown(ListQuerySchema)(query);
 
     const memberService = yield* MemberService;
     const result = yield* memberService.getMembers({
@@ -56,14 +61,12 @@ export const getMember = (req: Request, res: Response) =>
 export const createMember = (req: Request, res: Response) => {
   res.status(201);
   return Effect.gen(function* () {
-    const memberData = req.body;
+    // Get validated body from context instead of accessing req.body directly
+    const memberData = yield* getParsedBody();
     const memberService = yield* MemberService;
     const member = yield* memberService.createMember(memberData);
 
-    return createSuccessResponseWithMessage(
-      member,
-      'Member created successfully'
-    );
+    return createSuccessResponse(member, 'Member created successfully');
   });
 };
 
@@ -79,10 +82,7 @@ export const updateMember = (req: Request, res: Response) =>
     const memberService = yield* MemberService;
     const member = yield* memberService.updateMember({ ...updateData, id });
 
-    return createSuccessResponseWithMessage(
-      member,
-      'Member updated successfully'
-    );
+    return createSuccessResponse(member, 'Member updated successfully');
   });
 
 /**

@@ -1,8 +1,8 @@
 Current State
 
-- You have basic effectToExpress adapter that runs Effects and handles errors
-- Auth/authz middleware are separate Express functions, not integrated into Effect pipelines
-- Request extraction functions (extractId, extractBody) exist but lack schema validation
+- You have basic withExpress adapter that provides Express context to Effects
+- Auth/authz middleware are integrated into Effect pipelines as functional components
+- Request parsing functions use schema validation and inject parsed data into context
 - Services are provided via a single ApplicationLive layer
 
 Industry HTTP Pipeline Patterns
@@ -27,74 +27,71 @@ Why Context vs Layer?
 
 Detailed API Design
 
-// Example usage matching your desired style:
-router.get(
-  '/member/:id',
-  effectToExpress(
-    pipe(
-      withRequestObservability(),
-      requireAuth(),
-      requirePermission('read', 'members'),
-      parseParams(memberIdSchema),
-      parseQuery(paginationSchema),
-      MemberController.getMemberDetails,
-      formatOutput(memberDetailsOutputSchema)
-    )
+// Example usage matching current implementation:
+router.get('/member/:id', (req, res, next) =>
+  Effect.void.pipe(
+    withExpress(req, res, next),
+    requireAuth(),
+    requirePermission('read', 'members'),
+    parseParams(memberIdSchema),
+    parseQuery(paginationSchema),
+    MemberController.getMemberDetails,
+    formatOutput(memberDetailsOutputSchema)
   )
 )
 
 Implementation Components
 
-1. Request Context Tags - Type-safe request data access:
-// Tags for request-scoped data
-const ParsedBody = Context.GenericTag<'ParsedBody', unknown>()
-const ParsedQuery = Context.GenericTag<'ParsedQuery', unknown>()
-const ParsedParams = Context.GenericTag<'ParsedParams', unknown>()
-const AuthUser = Context.GenericTag<'AuthUser', SessionUser>()
-const RequestMeta = Context.GenericTag<'RequestMeta', RequestMetadata>()
+1. Express Adapter - Minimal context provider:
+```typescript
+// From expressAdapter.ts
+export function withExpress(req: Request, res: Response, next: NextFunction) {
+  return Effect.provideService(Express, { req, res, next });
+}
+```
 
-2. Parser Combinators - Schema-based validation:
-// Parse and inject into context
-const parseBody = <A>(schema: Schema.Schema<A>) =>
-  <R>(effect: Effect<any, any, R | ParsedBody<A>>) =>
+2. Request Context Tags - Type-safe request data access:
+```typescript
+// From http/context.ts
+export const Express = Context.GenericTag<IExpress>('@effect-http/Express');
+export const ParsedBody = Context.GenericTag<'ParsedBody', unknown>('@effect-http/ParsedBody');
+export const ParsedQuery = Context.GenericTag<'ParsedQuery', unknown>('@effect-http/ParsedQuery');
+export const ParsedParams = Context.GenericTag<'ParsedParams', unknown>('@effect-http/ParsedParams');
+export const ActiveUser = Context.GenericTag<'ActiveUser', Session['user']>('@effect-http/ActiveUser');
+```
+
+3. Parser Combinators - Schema-based validation:
+```typescript
+// From http/parsers.ts
+export const parseBody = <A, I = unknown, R = never>(schema: Schema.Schema<A, I, R>) =>
+  <E, R2>(effect: Effect.Effect<any, E, R2>): Effect.Effect<any, E | ParseError, R | R2 | IExpress> =>
     Effect.gen(function* () {
-      const req = yield* ExpressRequest
-      const parsed = yield* Schema.decode(schema)(req.body)
-      return yield* effect.pipe(
-        Effect.provideService(ParsedBody, parsed)
-      )
-    })
+      const { req } = yield* Express;
+      const parsed = yield* Schema.decodeUnknown(schema)(req.body);
+      return yield* effect.pipe(Effect.provideService(ParsedBody, parsed));
+    });
+```
 
-3. Auth Pipeline Functions:
-const requireAuth = () =>
-  <R>(effect: Effect<any, any, R | AuthUser>) =>
-    Effect.gen(function* () {
-      const headers = yield* RequestHeaders
-      const session = yield* Auth.validateSession(headers)
-      return yield* effect.pipe(
-        Effect.provideService(AuthUser, session.user)
-      )
-    })
+4. Auth Pipeline Functions:
+```typescript
+// From http/auth.ts
+export const requireAuth = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+  Effect.gen(function* () {
+    const session = yield* authenticationCheck();
+    return yield* effect.pipe(Effect.provideService(ActiveUser, session.user));
+  });
+```
 
-4. Output Formatters - RESTful response schemas:
-const formatOutput = <A>(schema: Schema.Schema<A>) =>
-  (effect: Effect<any, any, any>) =>
+5. Output Formatters - RESTful response schemas:
+```typescript
+// From http/formatters.ts
+export const formatOutput = <A, I = unknown>(schema: Schema.Schema<A, I, never>) =>
+  <E>(effect: Effect.Effect<any, E, never>): Effect.Effect<SuccessResponse<I>, E | ParseError, never> =>
     effect.pipe(
-      Effect.map(data => Schema.encode(schema)(data)),
-      Effect.map(createSuccessResponse)
-    )
-
-const paginatedOutput = <A>(schema: Schema.Schema<A>) =>
-  (effect: Effect<{ data: A[], total: number }, any, any>) =>
-    effect.pipe(
-      Effect.map(({ data, total }) => {
-        const query = yield* ParsedQuery
-        return createPaginatedResponse(
-          Schema.encode(schema)(data),
-          { page: query.page, limit: query.limit, total }
-        )
-      })
-    )
+      Effect.flatMap((data) => Schema.encode(schema)(data)),
+      Effect.map((data) => createSuccessResponse(data))
+    );
+```
 
 Comparison: Context vs Layer vs Other Approaches
 

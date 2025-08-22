@@ -9,8 +9,8 @@ The Effect HTTP pipeline system provides a type-safe, composable approach to han
 ### Basic Route Structure
 
 ```typescript
-import { pipe } from 'effect';
-import { effectToExpress } from '~/services/effect/adapters/expressAdapter';
+import { Effect, pipe } from 'effect';
+import { withExpress } from '~/services/effect/adapters/expressAdapter';
 import { 
   parseQuery, 
   parseParams, 
@@ -19,17 +19,18 @@ import {
   requirePermission 
 } from '~/services/effect/http';
 
-router.get(
-  '/users/:id',
-  effectToExpress(
-    pipe(
-      requireAuth(),                    // Authentication
-      requirePermission('read', 'users'), // Authorization
-      parseParams(IdParamSchema),       // Parse & validate URL params
-      fetchUserById,                    // Business logic
-      formatOutput(UserSchema)          // Format response
-    )
-  )
+router.get('/users/:id', (req, res, next) =>
+  Effect.void.pipe(
+    withExpress(req, res, next),
+    requireAuth(),
+    parseParams(IdParamSchema),
+    requirePermission('update', (req) => ({
+      type: 'events',
+      id: req.params.id,
+    })),
+    EventController.updateEvent,
+    auditMiddleware('event')
+  ) 
 );
 ```
 
@@ -325,96 +326,88 @@ import {
 
 #### Create Resource
 ```typescript
-router.post(
-  '/posts',
-  effectToExpress(
-    pipe(
-      requireAuth(),
-      requirePermission('create', 'posts'),
-      parseBody(CreatePostSchema),
-      Effect.flatMap(() =>
-        Effect.gen(function* () {
-          const postData = yield* useParsedBody<CreatePostInput>();
-          const user = yield* AuthUser;
-          
-          return yield* createPost({ ...postData, authorId: user.id });
-        })
-      ),
-      formatOutput(PostOutputSchema)
-    )
+router.post('/posts', (req, res, next) =>
+  Effect.void.pipe(
+    withExpress(req, res, next),
+    requireAuth(),
+    requirePermission('create', 'posts'),
+    parseBody(CreatePostSchema),
+    Effect.flatMap(() =>
+      Effect.gen(function* () {
+        const postData = yield* useParsedBody<CreatePostInput>();
+        const user = yield* AuthUser;
+        
+        return yield* createPost({ ...postData, authorId: user.id });
+      })
+    ),
+    formatOutput(PostOutputSchema)
   )
 );
 ```
 
 #### Read Resource
 ```typescript
-router.get(
-  '/posts/:id',
-  effectToExpress(
-    pipe(
-      requireAuth(),
-      requirePermission('read', 'posts'),
-      parseParams(IdParamSchema),
-      Effect.flatMap(() =>
-        Effect.gen(function* () {
-          const { id } = yield* useParsedParams<{ id: number }>();
-          return yield* getPostById(id);
-        })
-      ),
-      formatOutput(PostOutputSchema)
-    )
+router.get('/posts/:id', (req, res, next) =>
+  Effect.void.pipe(
+    withExpress(req, res, next),
+    requireAuth(),
+    requirePermission('read', 'posts'),
+    parseParams(IdParamSchema),
+    Effect.flatMap(() =>
+      Effect.gen(function* () {
+        const { id } = yield* useParsedParams<{ id: number }>();
+        return yield* getPostById(id);
+      })
+    ),
+    formatOutput(PostOutputSchema)
   )
 );
 ```
 
 #### List Resources
 ```typescript
-router.get(
-  '/posts',
-  effectToExpress(
-    pipe(
-      requireAuth(),
-      requirePermission('read', 'posts'),
-      parseQuery(ListQuerySchema),
-      Effect.flatMap(() =>
-        Effect.gen(function* () {
-          const query = yield* useParsedQuery<ListQuery>();
-          const result = yield* getPosts(query);
-          
-          return {
-            data: result.posts,
-            total: result.total,
-            page: query.page,
-            limit: query.limit
-          };
-        })
-      ),
-      paginatedOutput(PostOutputSchema)
-    )
+router.get('/posts', (req, res, next) =>
+  Effect.void.pipe(
+    withExpress(req, res, next),
+    requireAuth(),
+    requirePermission('read', 'posts'),
+    parseQuery(ListQuerySchema),
+    Effect.flatMap(() =>
+      Effect.gen(function* () {
+        const query = yield* useParsedQuery<ListQuery>();
+        const result = yield* getPosts(query);
+        
+        return {
+          data: result.posts,
+          total: result.total,
+          page: query.page,
+          limit: query.limit
+        };
+      })
+    ),
+    paginatedOutput(PostOutputSchema)
   )
 );
 ```
 
 #### Update Resource
 ```typescript
-router.put(
-  '/posts/:id',
-  effectToExpress(
-    pipe(
-      requireAuth(),
-      requirePermission('update', 'posts'),
-      parseParams(IdParamSchema),
-      parseBody(UpdatePostSchema),
-      Effect.flatMap(() =>
-        Effect.gen(function* () {
-          const { id } = yield* useParsedParams<{ id: number }>();
-          const updateData = yield* useParsedBody<UpdatePostInput>();
-          
-          return yield* updatePost(id, updateData);
-        })
-      ),
-      formatOutput(PostOutputSchema)
-    )
+router.put('/posts/:id', (req, res, next) =>
+  Effect.void.pipe(
+    withExpress(req, res, next),
+    requireAuth(),
+    requirePermission('update', 'posts'),
+    parseParams(IdParamSchema),
+    parseBody(UpdatePostSchema),
+    Effect.flatMap(() =>
+      Effect.gen(function* () {
+        const { id } = yield* useParsedParams<{ id: number }>();
+        const updateData = yield* useParsedBody<UpdatePostInput>();
+        
+        return yield* updatePost(id, updateData);
+      })
+    ),
+    formatOutput(PostOutputSchema)
   )
 );
 ```

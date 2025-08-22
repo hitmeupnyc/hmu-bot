@@ -20,25 +20,28 @@ export * from './formatters';
 // Authentication and authorization
 export * from './auth';
 
-// Re-export pipe for convenience
-export { pipe } from 'effect';
+// Effect router
+export * from './router';
 
 /**
  * Example usage:
  *
  * ```typescript
- * router.get(
- *   '/members/:id',
- *   effectToExpress(
- *     pipe(
- *       requireAuth(),
- *       requirePermission('read', 'members'),
- *       parseParams(IdParamSchema),
- *       parseQuery(ListQuerySchema),
- *       MemberController.getMemberDetails,
- *       formatOutput(memberDetailsSchema)
- *     )
+ * import { createEffectRouter, pipe } from '~/services/effect/http';
+ *
+ * const router = createEffectRouter();
+ *
+ * router.get('/members/:id',
+ *   pipe(
+ *     requireAuth(),
+ *     requirePermission('read', 'members'),
+ *     parseParams(IdParamSchema),
+ *     parseQuery(ListQuerySchema),
+ *     MemberController.getMemberDetails,
+ *     formatOutput(memberDetailsSchema)
  *   )
  * );
+ *
+ * export const memberRoutes = router.express;
  * ```
  */

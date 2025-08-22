@@ -102,21 +102,12 @@ export const ListQuerySchema = Schema.extend(
   Schema.extend(SortSchema, FilterSchema)
 );
 
-// Common parameter schemas
-export const IdParamSchema = Schema.Struct({
-  id: Schema.NumberFromString.pipe(Schema.int()).pipe(Schema.positive())
-});
-
-export const UuidParamSchema = Schema.Struct({
-  id: Schema.UUID
-});
-
 // Helper to access parsed data from context
 export const useParsedBody = <A>() =>
-  ParsedBody.pipe(Effect.map(body => body as A));
+  ParsedBody.pipe(Effect.map((body) => body as A));
 
 export const useParsedQuery = <A>() =>
-  ParsedQuery.pipe(Effect.map(query => query as A));
+  ParsedQuery.pipe(Effect.map((query) => query as A));
 
 export const useParsedParams = <A>() =>
-  ParsedParams.pipe(Effect.map(params => params as A));
+  ParsedParams.pipe(Effect.map((params) => params as A));

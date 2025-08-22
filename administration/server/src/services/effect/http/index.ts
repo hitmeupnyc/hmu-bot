@@ -1,6 +1,6 @@
 /**
  * Effect HTTP Pipeline - Main exports
- * 
+ *
  * This module provides a complete Effect-based HTTP handling system for Express,
  * enabling type-safe, composable request processing pipelines.
  */
@@ -25,7 +25,7 @@ export { pipe } from 'effect';
 
 /**
  * Example usage:
- * 
+ *
  * ```typescript
  * router.get(
  *   '/members/:id',

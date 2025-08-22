@@ -2,7 +2,6 @@ import { Context, Data, Effect, Layer, Schedule } from 'effect';
 import { TimeoutException } from 'effect/Cause';
 import { DurationInput } from 'effect/Duration';
 import * as Schema from 'effect/Schema';
-import { AuthorizationService } from '~/services/effect/AuthorizationEffects';
 import {
   BetterAuth,
   BetterAuthLive,
@@ -74,10 +73,7 @@ export const AuthLive = Layer.effect(
   Auth,
   Effect.gen(function* () {
     // Create a service layer to provide dependencies to helper functions
-    const serviceLayer = Layer.mergeAll(
-      Layer.succeed(BetterAuth, yield* BetterAuth),
-      Layer.succeed(AuthorizationService, yield* AuthorizationService)
-    );
+    const betterAuthService = yield* BetterAuth;
 
     return {
       validateSession: (
@@ -88,8 +84,6 @@ export const AuthLive = Layer.effect(
         never
       > => {
         return Effect.gen(function* () {
-          const betterAuthService = yield* BetterAuth;
-
           // Validate headers schema
           const validHeaders = yield* Schema.decodeUnknown(
             ExpressHeadersSchema
@@ -161,10 +155,8 @@ export const AuthLive = Layer.effect(
           return session;
         })
           .pipe(Effect.withSpan('validate-session'))
-          .pipe(Effect.provide(serviceLayer));
+          .pipe(Effect.provide(BetterAuthLive));
       },
     } satisfies IAuth;
   })
-).pipe(
-  Layer.provide(Layer.mergeAll(BetterAuthLive, AuthorizationService.Live))
-);
+).pipe(Layer.provide(BetterAuthLive));

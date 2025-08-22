@@ -62,7 +62,6 @@ export interface CreateMemberRequest {
   email: string;
   pronouns?: string;
   sponsor_notes?: string;
-  is_professional_affiliate?: boolean;
 }
 
 export interface UpdateMemberRequest extends Partial<CreateMemberRequest> {
@@ -281,7 +280,6 @@ export interface MemberFormData {
   email: string;
   pronouns: string;
   sponsor_notes: string;
-  is_professional_affiliate: boolean;
 }
 
 export interface ApplicationFormData {

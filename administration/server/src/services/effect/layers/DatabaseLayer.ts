@@ -6,7 +6,7 @@ import path from 'path';
 import type { DB as DatabaseSchema } from '~/types';
 import { TransactionError } from '../errors/CommonErrors';
 
-interface IDatabaseService {
+export interface IDatabaseService {
   readonly query: <T>(
     fn: (db: Kysely<DatabaseSchema>) => Promise<T>
   ) => Effect.Effect<T, never, never>;

@@ -28,6 +28,9 @@ export const ParsedParams = Context.GenericTag<'ParsedParams', unknown>(
   '@effect-http/ParsedParams'
 );
 
-export const AuthUser = Context.GenericTag<'AuthUser', Session['user']>(
-  '@effect-http/AuthUser'
+export const ActiveUser = Context.GenericTag<'ActiveUser', Session['user']>(
+  '@effect-http/ActiveUser'
+);
+export const ActiveSession = Context.GenericTag<'ActiveSession', Session>(
+  '@effect-http/ActiveSession'
 );

@@ -1,12 +1,15 @@
 import { Cause, Effect, Exit, Layer } from 'effect';
 import type { NextFunction, Request, Response } from 'express';
-import { AuditServiceLive } from '../AuditEffects';
-import { EventServiceLive } from '../EventEffects';
-import { Express } from '../http/context';
-import { DatabaseLive } from '../layers/DatabaseLayer';
-import { MemberServiceLive } from '../MemberEffects';
+
 import { transformError } from './errorResponseBuilder';
 import { withRequestObservability } from './observabilityUtils';
+
+import { AuditServiceLive, IAuditService } from '../AuditEffects';
+import { EventServiceLive, IEventService } from '../EventEffects';
+import { Express } from '../http/context';
+import { DatabaseLive, IDatabaseService } from '../layers/DatabaseLayer';
+import { FlagLive, IFlag } from '../layers/FlagLayer';
+import { IMemberService, MemberServiceLive } from '../MemberEffects';
 
 // Create a comprehensive application layer that includes all services
 // DatabaseLive provides DatabaseService directly
@@ -15,7 +18,8 @@ const ApplicationLive = Layer.mergeAll(
   DatabaseLive,
   MemberServiceLive,
   EventServiceLive,
-  AuditServiceLive
+  AuditServiceLive,
+  FlagLive
 );
 
 /**
@@ -23,12 +27,18 @@ const ApplicationLive = Layer.mergeAll(
  * Injects Express Request/Response and metadata into Effect context
  */
 export const effectToExpress =
-  <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+  <A, E>(
+    effect: Effect.Effect<
+      A,
+      E,
+      IDatabaseService | IMemberService | IEventService | IAuditService | IFlag
+    >
+  ) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const result = await Effect.runPromiseExit(
         effect.pipe(
-          Effect.provideService(Express, {req, res, next}),
+          Effect.provideService(Express, { req, res, next }),
           Effect.provide(ApplicationLive)
         ) as Effect.Effect<A, E, never>
       );
@@ -38,6 +48,7 @@ export const effectToExpress =
           const error = Cause.failureOption(cause);
 
           if (error._tag === 'Some') {
+            // TODO: This whole function can probably be made into a pipeline with error tag matching.
             const errorResponse = transformError(error.value);
             res.status(errorResponse.status).json(errorResponse.body);
           } else {

@@ -32,7 +32,7 @@ export type Subject = Resource | ResourceType;
 
 type AnyAbility = any; // TODO: implement authz logic
 
-interface IAuthorizationService {
+export interface IAuthorizationService {
   readonly checkPermission: (
     userId: string,
     action: Action,

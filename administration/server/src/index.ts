@@ -10,7 +10,7 @@ import {
   HttpServer 
 } from "@effect/platform"
 import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
-import { Layer, Logger, LogLevel } from "effect"
+import { Effect, Layer, Logger, LogLevel } from "effect"
 import { createServer } from "node:http"
 import dotenv from "dotenv"
 
@@ -22,20 +22,13 @@ import { api, ApiLive } from "./api"
 import { AuthenticationLive, AuthorizationLive } from "./middleware/auth"
 import { ApplicationLive } from "./services/effect/adapters/expressAdapter"
 
-const PORT = process.env.PORT || 3000
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000
 
 // Configure and serve the API
 const ServerLive = HttpApiBuilder.serve(HttpMiddleware.logger).pipe(
   // Add Swagger documentation
   Layer.provide(HttpApiSwagger.layer({ 
-    path: "/docs",
-    openApi: { 
-      info: {
-        title: "Club Management System API",
-        version: "1.0.0",
-        description: "RESTful API for managing club members, events, and operations"
-      }
-    }
+    path: "/docs"
   })),
   
   // Add CORS middleware
@@ -62,4 +55,6 @@ const MainLive = ServerLive.pipe(
 )
 
 // Launch the server
-Layer.launch(MainLive).pipe(NodeRuntime.runMain)
+Effect.gen(function* () {
+  yield* Layer.launch(MainLive)
+}).pipe(NodeRuntime.runMain)

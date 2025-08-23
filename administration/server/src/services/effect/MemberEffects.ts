@@ -245,7 +245,7 @@ export const MemberServiceLive = Layer.effect(
               email: validatedData.email,
               pronouns: validatedData.pronouns || null,
               sponsor_notes: validatedData.sponsor_notes || null,
-              flags: flags,
+              flags: flags.toString(),
             })
             .returning('id')
             .executeTakeFirstOrThrow()

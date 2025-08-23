@@ -7,6 +7,7 @@ import {
   HttpApiEndpoint,
   HttpApiGroup,
   HttpApiSchema,
+  OpenApi,
 } from "@effect/platform"
 import { Schema } from "effect"
 import {
@@ -52,18 +53,14 @@ export const membersGroup = HttpApiGroup.make("members")
       }))
       .setUrlParams(MemberListQuery)
       // .middleware(Authentication) // Temporarily disabled for testing
-      .annotate(HttpApiSchema.annotations({
-        description: "List all members with pagination and search"
-      }))
+      .annotate(OpenApi.Description, "List all members with pagination and search")
   )
   .add(
     HttpApiEndpoint.get("getMember")`/members/${idParam}`
       .addSuccess(MemberSchema)
       .addError(MemberNotFound)
       // .middleware(Authentication) // Temporarily disabled for testing
-      .annotate(HttpApiSchema.annotations({
-        description: "Get a member by ID"
-      }))
+      .annotate(OpenApi.Description, "Get a member by ID")
   )
   .add(
     HttpApiEndpoint.post("createMember", "/members")
@@ -71,9 +68,7 @@ export const membersGroup = HttpApiGroup.make("members")
       .addSuccess(MemberSchema, { status: 201 })
       .addError(MemberEmailExists)
       // .middleware(Authentication) // Temporarily disabled for testing
-      .annotate(HttpApiSchema.annotations({
-        description: "Create a new member"
-      }))
+      .annotate(OpenApi.Description, "Create a new member")
   )
   .add(
     HttpApiEndpoint.put("updateMember")`/members/${idParam}`
@@ -82,18 +77,14 @@ export const membersGroup = HttpApiGroup.make("members")
       .addError(MemberNotFound)
       .addError(MemberEmailExists)
       // .middleware(Authentication) // Temporarily disabled for testing
-      .annotate(HttpApiSchema.annotations({
-        description: "Update an existing member"
-      }))
+      .annotate(OpenApi.Description, "Update an existing member")
   )
   .add(
     HttpApiEndpoint.del("deleteMember")`/members/${idParam}`
       .addSuccess(Schema.Struct({ message: Schema.String }))
       .addError(MemberNotFound)
       // .middleware(Authentication) // Temporarily disabled for testing
-      .annotate(HttpApiSchema.annotations({
-        description: "Delete a member"
-      }))
+      .annotate(OpenApi.Description, "Delete a member")
   )
 
 // Export error classes for use in handlers

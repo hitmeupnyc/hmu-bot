@@ -9,10 +9,11 @@ import { MemberService } from "~/services/effect/MemberEffects"
 import { DatabaseError, NotFoundError, UniqueError } from "~/services/effect/errors/CommonErrors"
 import { MemberNotFound, MemberEmailExists } from "./endpoints"
 import { CurrentUser } from "~/middleware/auth"
+import type { api } from "../index"
 
 // Factory function that takes the API as a parameter to avoid circular dependency
-export const createMembersApiLive = (api: any) => HttpApiBuilder.group(
-  api,
+export const createMembersApiLive = (apiParam: typeof api) => HttpApiBuilder.group(
+  apiParam,
   "members", 
   (handlers) =>
     Effect.gen(function* () {

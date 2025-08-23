@@ -13,7 +13,7 @@ import { MemberServiceLive } from '../MemberEffects';
 // Create a comprehensive application layer that includes all services
 // DatabaseLive provides DatabaseService directly
 // Other services are built on top of DatabaseLive
-const ApplicationLive = Layer.mergeAll(
+export const ApplicationLive = Layer.mergeAll(
   DatabaseLive,
   MemberServiceLive,
   EventServiceLive,

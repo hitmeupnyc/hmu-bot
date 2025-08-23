@@ -3,7 +3,7 @@
  * Combines all API groups into a single HttpApi
  */
 
-import { HttpApi, HttpApiBuilder } from "@effect/platform"
+import { HttpApi, HttpApiBuilder, OpenApi } from "@effect/platform"
 import { Layer } from "effect"
 import { healthGroup, HealthApiLive } from "./health"
 import { membersGroup, createMembersApiLive } from "./members"
@@ -12,8 +12,8 @@ import { membersGroup, createMembersApiLive } from "./members"
 export const api = HttpApi.make("ClubManagementAPI")
   .add(healthGroup)
   .add(membersGroup)
-  .annotate(HttpApi.Description, "Club Management System API")
-  .annotate(HttpApi.Version, "1.0.0")
+  .annotate(OpenApi.Description, "Club Management System API")
+  .annotate(OpenApi.Summary, "RESTful API for club management")
 
 // Create the complete API implementation
 export const ApiLive = HttpApiBuilder.api(api).pipe(

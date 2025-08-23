@@ -30,9 +30,9 @@ const EnvStatusSchema = Schema.Struct({
   status: Schema.Literal("ok", "configuration_issues"),
   timestamp: Schema.String,
   environment: Schema.Struct({
-    values: Schema.Record(Schema.String, Schema.Any),
-    required: Schema.Record(Schema.String, Schema.Boolean),
-    optional: Schema.Record(Schema.String, Schema.Boolean),
+    values: Schema.Record({ key: Schema.String, value: Schema.Any }),
+    required: Schema.Record({ key: Schema.String, value: Schema.Boolean }),
+    optional: Schema.Record({ key: Schema.String, value: Schema.Boolean }),
     issues: Schema.Array(Schema.String)
   }),
   database: Schema.Any

@@ -1,46 +1,65 @@
-import dotenv from 'dotenv';
-import express from 'express';
-import logger from './utils/logger';
+/**
+ * Club Management System API Server
+ * Built with @effect/platform-node and HttpApi
+ */
+
+import { 
+  HttpApiBuilder, 
+  HttpApiSwagger, 
+  HttpMiddleware, 
+  HttpServer 
+} from "@effect/platform"
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { Layer, Logger, LogLevel } from "effect"
+import { createServer } from "node:http"
+import dotenv from "dotenv"
 
 // Load environment variables
-dotenv.config();
+dotenv.config()
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+// Import our API definition and implementations
+import { api, ApiLive } from "./api"
+import { AuthenticationLive, AuthorizationLive } from "./middleware/auth"
+import { ApplicationLive } from "./services/effect/adapters/expressAdapter"
 
-// Basic middleware
-app.use(express.json());
+const PORT = process.env.PORT || 3000
 
-// Simple health check endpoint without Effect dependencies
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || '1.0.0',
-    environment: process.env.NODE_ENV || 'development',
-  });
-});
+// Configure and serve the API
+const ServerLive = HttpApiBuilder.serve(HttpMiddleware.logger).pipe(
+  // Add Swagger documentation
+  Layer.provide(HttpApiSwagger.layer({ 
+    path: "/docs",
+    openApi: { 
+      info: {
+        title: "Club Management System API",
+        version: "1.0.0",
+        description: "RESTful API for managing club members, events, and operations"
+      }
+    }
+  })),
+  
+  // Add CORS middleware
+  Layer.provide(HttpApiBuilder.middlewareCors()),
+  
+  // Add authentication and authorization middleware
+  Layer.provide(AuthenticationLive),
+  Layer.provide(AuthorizationLive),
+  
+  // Add API implementation
+  Layer.provide(ApiLive),
+  
+  // Add application services (database, etc.)
+  Layer.provide(ApplicationLive),
+  
+  // Configure HTTP server
+  HttpServer.withLogAddress,
+  Layer.provide(NodeHttpServer.layer(createServer, { port: PORT }))
+)
 
-// 404 handler
-app.use('*', (_, res) => {
-  res.status(404).json({ error: 'Route not found' });
-});
+// Configure logging level
+const MainLive = ServerLive.pipe(
+  Layer.provide(Logger.minimumLogLevel(LogLevel.Info))
+)
 
-const server = app.listen(PORT, () => {
-  logger.info('Server started', {
-    port: PORT,
-    environment: process.env.NODE_ENV,
-    healthCheck: `http://localhost:${PORT}/health`,
-  });
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down gracefully');
-  server.close(() => process.exit(0));
-});
-
-process.on('SIGINT', () => {
-  logger.info('SIGINT received, shutting down gracefully');  
-  server.close(() => process.exit(0));
-});
+// Launch the server
+Layer.launch(MainLive).pipe(NodeRuntime.runMain)

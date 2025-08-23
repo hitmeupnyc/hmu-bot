@@ -1,6 +1,10 @@
 import { Context, Effect, Layer, Schema } from 'effect';
 import { sql } from 'kysely';
 import { DatabaseLive, DatabaseService } from './layers/DatabaseLayer';
+import { 
+  withServiceObservability, 
+  withDatabaseObservability 
+} from './adapters/observabilityUtils';
 import {
   CreateMemberSchema,
   MemberFlagsSchema,
@@ -139,7 +143,9 @@ export const MemberServiceLive = Layer.effect(
             countQuery.executeTakeFirst() as Promise<{ total: string }>,
             selectQuery.execute(),
           ]);
-        });
+        }).pipe(
+          withDatabaseObservability('select', 'members')
+        );
 
         const members = yield* Effect.forEach(memberRows, (row) =>
           Schema.decodeUnknown(MemberSchema)(row)
@@ -157,7 +163,9 @@ export const MemberServiceLive = Layer.effect(
             totalPages,
           },
         };
-      });
+      }).pipe(
+        withServiceObservability('MemberService', 'getMembers')
+      );
 
     const getMemberById = (
       id: number
@@ -186,6 +194,8 @@ export const MemberServiceLive = Layer.effect(
             .where('id', '=', id)
             .where('flags', '=', '1')
             .executeTakeFirst()
+        ).pipe(
+          withDatabaseObservability('select', 'members', id)
         );
 
         if (!member) {
@@ -196,7 +206,9 @@ export const MemberServiceLive = Layer.effect(
         }
 
         return yield* Schema.decodeUnknown(MemberSchema)(member);
-      });
+      }).pipe(
+        withServiceObservability('MemberService', 'getMemberById', id)
+      );
 
     const createMember = (
       data: CreateMember
@@ -249,10 +261,14 @@ export const MemberServiceLive = Layer.effect(
             })
             .returning('id')
             .executeTakeFirstOrThrow()
+        ).pipe(
+          withDatabaseObservability('insert', 'members')
         );
 
         return yield* getMemberById(result.id!);
-      });
+      }).pipe(
+        withServiceObservability('MemberService', 'createMember')
+      );
 
     const updateMember = (
       data: UpdateMember

@@ -1,60 +1,37 @@
-/**
- * Club Management System API Server
- * Built with @effect/platform-node and HttpApi
- */
+import {
+  HttpApiBuilder,
+  HttpApiSwagger,
+  HttpMiddleware,
+  HttpServer,
+} from '@effect/platform';
+import { NodeHttpServer, NodeRuntime } from '@effect/platform-node';
+import dotenv from 'dotenv';
+import { Effect, Layer, Logger, LogLevel } from 'effect';
+import { createServer } from 'node:http';
+import { ApiLive } from './api';
+import { ApplicationLive } from './services/effect/adapters/expressAdapter';
+import { NodeSdkLive } from './services/effect/adapters/observabilityUtils';
 
-import { 
-  HttpApiBuilder, 
-  HttpApiSwagger, 
-  HttpMiddleware, 
-  HttpServer 
-} from "@effect/platform"
-import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
-import { Effect, Layer, Logger, LogLevel } from "effect"
-import { createServer } from "node:http"
-import dotenv from "dotenv"
+dotenv.config();
 
-// Load environment variables
-dotenv.config()
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
-// Import our API definition and implementations
-import { api, ApiLive } from "./api"
-import { AuthenticationLive, AuthorizationLive } from "./middleware/auth"
-import { ApplicationLive } from "./services/effect/adapters/expressAdapter"
-
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000
-
-// Configure and serve the API
 const ServerLive = HttpApiBuilder.serve(HttpMiddleware.logger).pipe(
-  // Add Swagger documentation
-  Layer.provide(HttpApiSwagger.layer({ 
-    path: "/docs"
-  })),
-  
-  // Add CORS middleware
+  Layer.provide(HttpApiSwagger.layer({ path: '/docs' })),
   Layer.provide(HttpApiBuilder.middlewareCors()),
-  
-  // Add authentication and authorization middleware
-  // Layer.provide(AuthenticationLive), // Temporarily disabled for testing
-  // Layer.provide(AuthorizationLive), // Temporarily disabled for testing
-  
-  // Add API implementation
   Layer.provide(ApiLive),
-  
-  // Add application services (database, etc.)
   Layer.provide(ApplicationLive),
-  
-  // Configure HTTP server
+  Layer.provide(NodeSdkLive),
   HttpServer.withLogAddress,
   Layer.provide(NodeHttpServer.layer(createServer, { port: PORT }))
-)
+);
 
 // Configure logging level
 const MainLive = ServerLive.pipe(
   Layer.provide(Logger.minimumLogLevel(LogLevel.Info))
-)
+);
 
 // Launch the server
 Effect.gen(function* () {
-  yield* Layer.launch(MainLive)
-}).pipe(NodeRuntime.runMain)
+  yield* Layer.launch(MainLive);
+}).pipe(NodeRuntime.runMain);

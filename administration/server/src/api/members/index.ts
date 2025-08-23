@@ -3,6 +3,5 @@
  * Exports the complete Members API group and handlers
  */
 
-export { membersGroup } from "./endpoints"
-export { createMembersApiLive } from "./handlers"
-export { MemberNotFound, MemberEmailExists } from "./endpoints"
+export { MemberEmailExists, MemberNotFound, membersGroup } from './endpoints';
+export { createMembersApiLive } from './handlers';

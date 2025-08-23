@@ -36,11 +36,6 @@ import {
  */
 
 const router = Router();
-
-// =====================================
-// Basic Event Operations
-// =====================================
-
 // GET /api/events - List all events with pagination and filtering
 // Requires: read permission on Event
 router.get('/', (req, res, next) =>
@@ -145,10 +140,6 @@ router.put('/:id', (req, res, next) =>
   )
 );
 
-// =====================================
-// Event Marketing Operations
-// =====================================
-
 // GET /api/events/:id/marketing - Get event marketing
 // Requires: view permission on event
 router.get('/:id/marketing', (req, res, next) =>
@@ -195,10 +186,6 @@ router.post('/:id/marketing', (req, res, next) =>
     auditMiddleware('event-marketing')
   )
 );
-
-// =====================================
-// Event Volunteer Operations
-// =====================================
 
 // GET /api/events/:id/volunteers - Get event volunteers
 // Requires: manage_volunteers permission on event

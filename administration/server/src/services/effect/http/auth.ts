@@ -13,8 +13,9 @@ import {
   type Action,
   type Subject,
 } from '../AuthorizationEffects';
-import { Auth, AuthenticationError, IAuth, Session } from '../layers/AuthLayer';
+import { Auth, AuthenticationError, IAuth } from '../layers/AuthLayer';
 import { ActiveSession, ActiveUser, Express, IExpress } from './context';
+import { useParsedParams } from './parsers';
 
 /**
  * Require authentication and inject user into context
@@ -52,16 +53,17 @@ export const requireAuth =
 export const requirePermission =
   (
     action: Action,
-    subject: Subject | ((user: Session['user']) => Subject),
+    subject: Subject | (({ params }) => Subject),
     field?: string
   ) =>
   <A, E, R>(effect: Effect.Effect<A, E, R>) =>
     Effect.gen(function* () {
       const user = yield* ActiveUser;
       const authorizationService = yield* AuthorizationService;
+      const id = yield* useParsedParams<{ id: number }>();
 
       const targetSubject =
-        typeof subject === 'function' ? subject(user) : subject;
+        typeof subject === 'function' ? subject({ params: { id } }) : subject;
 
       const hasPermission = yield* authorizationService
         .checkPermission(user.id, action, targetSubject, field)

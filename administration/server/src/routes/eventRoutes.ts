@@ -1,7 +1,19 @@
-import { Effect, Schema } from 'effect';
+import { Schema } from 'effect';
+import { Effect } from 'effect/index';
 import { Router } from 'express';
-import { EventSchema } from '~/services/effect/schemas/EventSchemas';
-import * as EventController from '../controllers/EventController';
+import { EventService } from '~/services/effect/EventEffects';
+import {
+  useParsedBody,
+  useParsedParams,
+  useParsedQuery,
+} from '~/services/effect/http';
+import {
+  CreateEvent,
+  CreateEventMarketing,
+  CreateVolunteer,
+  EventSchema,
+  UpdateEvent,
+} from '~/services/effect/schemas/EventSchemas';
 import { auditMiddleware } from '../middleware/auditLogging';
 import { withExpress } from '../services/effect/adapters/expressAdapter';
 import {
@@ -38,11 +50,11 @@ router.get('/', (req, res, next) =>
     requirePermission('read', 'events'),
     Effect.flatMap(() =>
       Effect.gen(function* () {
+        const { upcoming } = yield* useParsedQuery<{ upcoming: boolean }>();
         const { page, limit } = yield* useParsedQuery<{
           page: number;
           limit: number;
         }>();
-        const upcoming = yield* useParsedQuery<{ upcoming: boolean }>();
 
         const eventService = yield* EventService;
         return yield* eventService.getEvents({ page, limit, upcoming });
@@ -62,7 +74,7 @@ router.get('/:id', (req, res, next) =>
     requirePermission('read', ({ params: { id } }) => ({ type: 'events', id })),
     Effect.map(() =>
       Effect.gen(function* () {
-        const id = yield* ParsedParams<{ id: number }>();
+        const { id } = yield* useParsedParams<{ id: number }>();
         const eventService = yield* EventService;
         return yield* eventService.getEventById(id);
       })
@@ -79,7 +91,13 @@ router.get('/:id/details', (req, res, next) =>
     requireAuth(),
     parseParams(IdParamSchema),
     requirePermission('read', ({ params: { id } }) => ({ type: 'events', id })),
-    EventController.getEventDetails
+    Effect.flatMap(() =>
+      Effect.gen(function* () {
+        const { id } = yield* useParsedParams<{ id: number }>();
+        const eventService = yield* EventService;
+        return yield* eventService.getEventWithDetails(id);
+      })
+    )
   )
 );
 
@@ -90,7 +108,15 @@ router.post('/', (req, res, next) =>
     withExpress(req, res, next),
     requireAuth(),
     requirePermission('create', 'events'),
-    EventController.createEvent
+    Effect.flatMap(() =>
+      Effect.gen(function* () {
+        const eventData = yield* useParsedBody<CreateEvent>();
+        // Ensure flags has a default value (bitfield for active state)
+        const eventWithFlags = { ...eventData, flags: eventData.flags ?? 1 };
+        const eventService = yield* EventService;
+        return yield* eventService.createEvent(eventWithFlags);
+      })
+    )
   )
 );
 
@@ -105,7 +131,16 @@ router.put('/:id', (req, res, next) =>
       type: 'events',
       id: req.params.id,
     })),
-    EventController.updateEvent,
+    Effect.flatMap(() =>
+      Effect.gen(function* () {
+        const { id } = yield* useParsedParams<{ id: number }>();
+        const eventData = yield* useParsedBody<Partial<UpdateEvent>>();
+
+        const updatePayload = { ...eventData, id };
+        const eventService = yield* EventService;
+        return yield* eventService.updateEvent(updatePayload);
+      })
+    ),
     auditMiddleware('event')
   )
 );
@@ -122,7 +157,13 @@ router.get('/:id/marketing', (req, res, next) =>
     requireAuth(),
     parseParams(IdParamSchema),
     requirePermission('read', (req) => ({ type: 'events', id: req.params.id })),
-    EventController.getEventMarketing
+    Effect.flatMap(() =>
+      Effect.gen(function* () {
+        const { id } = yield* useParsedParams<{ id: number }>();
+        const eventService = yield* EventService;
+        return yield* eventService.getEventMarketing(id);
+      })
+    )
   )
 );
 
@@ -137,7 +178,20 @@ router.post('/:id/marketing', (req, res, next) =>
       type: 'events',
       id: req.params.id,
     })),
-    EventController.createEventMarketing,
+    Effect.flatMap(() =>
+      Effect.gen(function* () {
+        const eventId = yield* useParsedParams<{ id: number }>();
+        const bodyData = yield* useParsedBody<CreateEventMarketing>();
+
+        const eventService = yield* EventService;
+        if (eventId.id !== bodyData.event_id) {
+          return yield* Effect.fail(
+            new Error('Event ID in URL does not match event ID in body')
+          );
+        }
+        return yield* eventService.createEventMarketing(bodyData);
+      })
+    ),
     auditMiddleware('event-marketing')
   )
 );
@@ -154,7 +208,13 @@ router.get('/:id/volunteers', (req, res, next) =>
     requireAuth(),
     parseParams(IdParamSchema),
     requirePermission('read', (req) => ({ type: 'events', id: req.params.id })),
-    EventController.getEventVolunteers
+    Effect.flatMap(() =>
+      Effect.gen(function* () {
+        const { id } = yield* useParsedParams<{ id: number }>();
+        const eventService = yield* EventService;
+        return yield* eventService.getEventVolunteers(id);
+      })
+    )
   )
 );
 
@@ -169,7 +229,15 @@ router.post('/:id/volunteers', (req, res, next) =>
       type: 'events',
       id: req.params.id,
     })),
-    EventController.createVolunteer,
+    Effect.flatMap(() =>
+      Effect.gen(function* () {
+        const eventId = yield* useParsedParams<{ id: number }>();
+        const bodyData = yield* useParsedBody<CreateVolunteer>();
+
+        const eventService = yield* EventService;
+        return yield* eventService.createVolunteer(bodyData);
+      })
+    ),
     auditMiddleware('event-volunteers')
   )
 );

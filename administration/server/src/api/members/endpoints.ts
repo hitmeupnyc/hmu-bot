@@ -1,0 +1,100 @@
+/**
+ * Member API endpoints using @effect/platform HttpApi
+ * Defines the complete Members API with proper schemas and middleware
+ */
+
+import {
+  HttpApiEndpoint,
+  HttpApiGroup,
+  HttpApiSchema,
+} from "@effect/platform"
+import { Schema } from "effect"
+import {
+  MemberSchema,
+  CreateMemberSchema,
+  UpdateMemberSchema,
+} from "~/services/effect/schemas/MemberSchemas"
+import { Authentication } from "~/middleware/auth"
+
+// Common error schemas
+class MemberNotFound extends Schema.TaggedError<MemberNotFound>()(
+  "MemberNotFound",
+  { memberId: Schema.Number },
+  HttpApiSchema.annotations({ status: 404 })
+) {}
+
+class MemberEmailExists extends Schema.TaggedError<MemberEmailExists>()(
+  "MemberEmailExists", 
+  { email: Schema.String },
+  HttpApiSchema.annotations({ status: 409 })
+) {}
+
+// Path parameter schema
+const idParam = HttpApiSchema.param("id", Schema.NumberFromString)
+
+// Query parameter schemas for listing members
+const MemberListQuery = Schema.Struct({
+  page: Schema.optional(Schema.NumberFromString.pipe(Schema.positive())),
+  limit: Schema.optional(Schema.NumberFromString.pipe(Schema.positive(), Schema.lessThanOrEqualTo(100))),
+  search: Schema.optional(Schema.String)
+})
+
+// Members API group
+export const membersGroup = HttpApiGroup.make("members")
+  .add(
+    HttpApiEndpoint.get("listMembers", "/members")
+      .addSuccess(Schema.Struct({
+        data: Schema.Array(MemberSchema),
+        total: Schema.Number,
+        page: Schema.Number, 
+        limit: Schema.Number,
+        totalPages: Schema.Number
+      }))
+      .setUrlParams(MemberListQuery)
+      .middleware(Authentication)
+      .annotate(HttpApiSchema.annotations({
+        description: "List all members with pagination and search"
+      }))
+  )
+  .add(
+    HttpApiEndpoint.get("getMember")`/members/${idParam}`
+      .addSuccess(MemberSchema)
+      .addError(MemberNotFound)
+      .middleware(Authentication)
+      .annotate(HttpApiSchema.annotations({
+        description: "Get a member by ID"
+      }))
+  )
+  .add(
+    HttpApiEndpoint.post("createMember", "/members")
+      .setPayload(CreateMemberSchema)
+      .addSuccess(MemberSchema, { status: 201 })
+      .addError(MemberEmailExists)
+      .middleware(Authentication)
+      .annotate(HttpApiSchema.annotations({
+        description: "Create a new member"
+      }))
+  )
+  .add(
+    HttpApiEndpoint.put("updateMember")`/members/${idParam}`
+      .setPayload(UpdateMemberSchema)
+      .addSuccess(MemberSchema)
+      .addError(MemberNotFound)
+      .addError(MemberEmailExists)
+      .middleware(Authentication)
+      .annotate(HttpApiSchema.annotations({
+        description: "Update an existing member"
+      }))
+  )
+  .add(
+    HttpApiEndpoint.del("deleteMember")`/members/${idParam}`
+      .addSuccess(Schema.Struct({ message: Schema.String }))
+      .addError(MemberNotFound)
+      .middleware(Authentication)
+      .annotate(HttpApiSchema.annotations({
+        description: "Delete a member"
+      }))
+  )
+
+// Export error classes for use in handlers
+export { MemberNotFound, MemberEmailExists }

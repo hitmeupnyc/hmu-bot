@@ -1,4 +1,5 @@
 import { Context, Effect, Layer, Schema } from 'effect';
+import { sql } from 'kysely';
 import { DatabaseLive, DatabaseService } from './layers/DatabaseLayer';
 import {
   CreateMemberSchema,
@@ -99,7 +100,7 @@ export const MemberServiceLive = Layer.effect(
         const [countResult, memberRows] = yield* dbService.query(async (db) => {
           let query = db
             .selectFrom('members')
-            .where((eb) => eb('flags', '&', '1'), '=', '1'); // Only active members
+            .where('flags', '=', '1'); // Only active members
 
           if (search) {
             const searchTerm = `%${search}%`;
@@ -117,7 +118,19 @@ export const MemberServiceLive = Layer.effect(
             .select((eb) => eb.fn.count('id').as('total'));
 
           const selectQuery = query
-            .selectAll()
+            .select([
+              'id',
+              'first_name',
+              'last_name', 
+              'preferred_name',
+              'email',
+              'pronouns',
+              'sponsor_notes',
+              (eb) => sql`CAST(flags AS INTEGER)`.as('flags'),
+              'date_added',
+              'created_at',
+              'updated_at'
+            ])
             .orderBy('created_at', 'desc')
             .limit(limit)
             .offset(offset);
@@ -157,9 +170,21 @@ export const MemberServiceLive = Layer.effect(
         const member = yield* dbService.query(async (db) =>
           db
             .selectFrom('members')
-            .selectAll()
+            .select([
+              'id',
+              'first_name',
+              'last_name', 
+              'preferred_name',
+              'email',
+              'pronouns',
+              'sponsor_notes',
+              (eb) => sql`CAST(flags AS INTEGER)`.as('flags'),
+              'date_added',
+              'created_at',
+              'updated_at'
+            ])
             .where('id', '=', id)
-            .where((eb) => eb('flags', '&', '1'), '=', '1')
+            .where('flags', '=', '1')
             .executeTakeFirst()
         );
 
@@ -220,7 +245,7 @@ export const MemberServiceLive = Layer.effect(
               email: validatedData.email,
               pronouns: validatedData.pronouns || null,
               sponsor_notes: validatedData.sponsor_notes || null,
-              flags: flags.toString(),
+              flags: flags,
             })
             .returning('id')
             .executeTakeFirstOrThrow()

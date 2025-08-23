@@ -25,6 +25,7 @@ export function LoginPage() {
     try {
       const { error } = await signIn.magicLink({
         email,
+        // TODO: redirect back to originally requested page
         callbackURL: '/',
       });
 

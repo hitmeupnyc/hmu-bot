@@ -43,7 +43,7 @@ const MemberListQuery = Schema.Struct({
 // Members API group
 export const membersGroup = HttpApiGroup.make("members")
   .add(
-    HttpApiEndpoint.get("listMembers", "/members")
+    HttpApiEndpoint.get("listMembers", "/api/members")
       .addSuccess(Schema.Struct({
         data: Schema.Array(MemberSchema),
         total: Schema.Number,
@@ -52,38 +52,38 @@ export const membersGroup = HttpApiGroup.make("members")
         totalPages: Schema.Number
       }))
       .setUrlParams(MemberListQuery)
-      // .middleware(Authentication) // Temporarily disabled for testing
+      // .middleware(Authentication) // Applied globally via HttpApiBuilder
       .annotate(OpenApi.Description, "List all members with pagination and search")
   )
   .add(
-    HttpApiEndpoint.get("getMember")`/members/${idParam}`
+    HttpApiEndpoint.get("getMember")`/api/members/${idParam}`
       .addSuccess(MemberSchema)
       .addError(MemberNotFound)
-      // .middleware(Authentication) // Temporarily disabled for testing
+      // .middleware(Authentication) // Applied globally via HttpApiBuilder
       .annotate(OpenApi.Description, "Get a member by ID")
   )
   .add(
-    HttpApiEndpoint.post("createMember", "/members")
+    HttpApiEndpoint.post("createMember", "/api/members")
       .setPayload(CreateMemberSchema)
       .addSuccess(MemberSchema, { status: 201 })
       .addError(MemberEmailExists)
-      // .middleware(Authentication) // Temporarily disabled for testing
+      // .middleware(Authentication) // Applied globally via HttpApiBuilder
       .annotate(OpenApi.Description, "Create a new member")
   )
   .add(
-    HttpApiEndpoint.put("updateMember")`/members/${idParam}`
+    HttpApiEndpoint.put("updateMember")`/api/members/${idParam}`
       .setPayload(UpdateMemberSchema)
       .addSuccess(MemberSchema)
       .addError(MemberNotFound)
       .addError(MemberEmailExists)
-      // .middleware(Authentication) // Temporarily disabled for testing
+      // .middleware(Authentication) // Applied globally via HttpApiBuilder
       .annotate(OpenApi.Description, "Update an existing member")
   )
   .add(
-    HttpApiEndpoint.del("deleteMember")`/members/${idParam}`
+    HttpApiEndpoint.del("deleteMember")`/api/members/${idParam}`
       .addSuccess(Schema.Struct({ message: Schema.String }))
       .addError(MemberNotFound)
-      // .middleware(Authentication) // Temporarily disabled for testing
+      // .middleware(Authentication) // Applied globally via HttpApiBuilder
       .annotate(OpenApi.Description, "Delete a member")
   )
 

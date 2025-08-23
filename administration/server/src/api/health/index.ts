@@ -41,14 +41,14 @@ const EnvStatusSchema = Schema.Struct({
 // Health check group
 export const healthGroup = HttpApiGroup.make("health")
   .add(
-    HttpApiEndpoint.get("basicHealth", "/health")
+    HttpApiEndpoint.get("basicHealth", "/api/health")
       .addSuccess(HealthStatusSchema)
       .setHeaders(Schema.Struct({
         "x-debug-key": Schema.optional(Schema.String)
       }))
   )
   .add(
-    HttpApiEndpoint.get("envHealth", "/health/env")
+    HttpApiEndpoint.get("envHealth", "/api/health/env")
       .addSuccess(EnvStatusSchema)
   )
 

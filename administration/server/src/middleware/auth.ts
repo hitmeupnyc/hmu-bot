@@ -1,122 +1,272 @@
-import { Effect, Layer } from 'effect';
-import { NextFunction, Request, Response } from 'express';
-import { transformError } from '~/services/effect/adapters/errorResponseBuilder';
-import { withRequestObservability } from '~/services/effect/adapters/observabilityUtils';
-import {
-  Action,
-  AuthorizationService,
-  Subject,
-} from '~/services/effect/AuthorizationEffects';
-import { Auth, AuthLive } from '~/services/effect/layers/AuthLayer';
-import { FlagLive } from '~/services/effect/layers/FlagLayer';
+/**
+ * Authentication and Authorization middleware for @effect/platform HttpApi
+ * Migrated from Effect HTTP pipeline functions
+ */
 
-// Extend Express Request type to include session
-declare global {
-  namespace Express {
-    interface Request {
-      session?: {
-        user: {
-          id: string;
-          email: string;
-          name: string;
-        };
-        id: string;
-        userId: string;
-        expiresAt: Date;
-      };
-      permissionResult?: {
-        allowed: boolean;
-        reason?: string;
-      };
+import {
+  HttpApiMiddleware,
+  HttpApiSecurity,
+  HttpApiSchema,
+  HttpServerRequest,
+} from "@effect/platform"
+import { Context, Effect, Layer, Redacted, Schema } from "effect"
+import { TimeoutException } from "effect/Cause"
+import {
+  AuthorizationError,
+  AuthorizationService,
+  type Action,
+  type Subject,
+} from "~/services/effect/AuthorizationEffects"
+import { 
+  Auth, 
+  AuthenticationError, 
+  type Session,
+  type IAuth 
+} from "~/services/effect/layers/AuthLayer"
+
+// Context tags for authenticated user and session
+export class CurrentUser extends Context.Tag("CurrentUser")<CurrentUser, Session["user"]>() {}
+export class ActiveSession extends Context.Tag("ActiveSession")<ActiveSession, Session>() {}
+
+// Authentication error for HttpApi
+class UnauthorizedError extends Schema.TaggedError<UnauthorizedError>()(
+  "UnauthorizedError",
+  {
+    reason: Schema.Literal("missing_session", "invalid_session", "expired_session", "auth_service_error"),
+    message: Schema.String
+  },
+  HttpApiSchema.annotations({ status: 401 })
+) {}
+
+// Authorization error for HttpApi  
+class ForbiddenError extends Schema.TaggedError<ForbiddenError>()(
+  "ForbiddenError", 
+  {
+    reason: Schema.Literal("permission_denied"),
+    message: Schema.String,
+    resource: Schema.optional(Schema.String),
+    requiredPermission: Schema.optional(Schema.String)
+  },
+  HttpApiSchema.annotations({ status: 403 })
+) {}
+
+// Authentication middleware
+export class Authentication extends HttpApiMiddleware.Tag<Authentication>()(
+  "Authentication",
+  {
+    failure: UnauthorizedError,
+    provides: CurrentUser,
+    security: {
+      bearer: HttpApiSecurity.bearer.pipe(
+        HttpApiSecurity.annotate({
+          description: "Bearer token authentication using session tokens"
+        })
+      ),
+      // Also support cookie-based auth for web clients
+      sessionCookie: HttpApiSecurity.apiKey({
+        in: "cookie",
+        key: "better-auth.session_token"
+      }).pipe(
+        HttpApiSecurity.annotate({
+          description: "Session cookie authentication"
+        })
+      )
     }
   }
+) {}
+
+// Authorization middleware (requires authentication)
+export class Authorization extends HttpApiMiddleware.Tag<Authorization>()(
+  "Authorization",
+  {
+    failure: ForbiddenError,
+    provides: ActiveSession,
+    security: {
+      bearer: HttpApiSecurity.bearer
+    }
+  }
+) {}
+
+// Authentication middleware implementation
+export const AuthenticationLive = Layer.effect(
+  Authentication,
+  Effect.gen(function* () {
+    const authService = yield* Auth
+    
+    return {
+      bearer: (token) =>
+        Effect.gen(function* () {
+          const headers = { 
+            authorization: `Bearer ${Redacted.value(token)}`
+          }
+          
+          const session = yield* authService.validateSession(headers)
+            .pipe(
+              Effect.mapError((error) => {
+                if (error instanceof AuthenticationError) {
+                  return new UnauthorizedError({
+                    reason: error.reason,
+                    message: error.message
+                  })
+                }
+                if (error instanceof TimeoutException) {
+                  return new UnauthorizedError({
+                    reason: "auth_service_error",
+                    message: "Authentication service timeout"
+                  })
+                }
+                return new UnauthorizedError({
+                  reason: "auth_service_error", 
+                  message: "Unknown authentication error"
+                })
+              })
+            )
+          
+          return session.user
+        }),
+        
+      sessionCookie: (sessionToken) =>
+        Effect.gen(function* () {
+          const headers = {
+            cookie: `better-auth.session_token=${Redacted.value(sessionToken)}`
+          }
+          
+          const session = yield* authService.validateSession(headers)
+            .pipe(
+              Effect.mapError((error) => {
+                if (error instanceof AuthenticationError) {
+                  return new UnauthorizedError({
+                    reason: error.reason,
+                    message: error.message
+                  })
+                }
+                if (error instanceof TimeoutException) {
+                  return new UnauthorizedError({
+                    reason: "auth_service_error",
+                    message: "Authentication service timeout"
+                  })
+                }
+                return new UnauthorizedError({
+                  reason: "auth_service_error",
+                  message: "Unknown authentication error"
+                })
+              })
+            )
+          
+          return session.user
+        })
+    }
+  })
+)
+
+// Authorization middleware implementation
+export const AuthorizationLive = Layer.effect(
+  Authorization,
+  Effect.gen(function* () {
+    const authService = yield* Auth
+    
+    return {
+      bearer: (token) =>
+        Effect.gen(function* () {
+          const headers = { 
+            authorization: `Bearer ${Redacted.value(token)}`
+          }
+          
+          const session = yield* authService.validateSession(headers)
+            .pipe(
+              Effect.mapError((error) => {
+                if (error instanceof AuthenticationError) {
+                  return new UnauthorizedError({
+                    reason: error.reason,
+                    message: error.message
+                  })
+                }
+                return new UnauthorizedError({
+                  reason: "auth_service_error",
+                  message: "Unknown authentication error"
+                })
+              })
+            )
+          
+          return session
+        })
+    }
+  })
+)
+
+// Helper function to create permission-checking middleware
+export const requirePermission = (
+  action: Action,
+  subject: Subject | ((request: any) => Subject),
+  field?: string
+) => {
+  class PermissionMiddleware extends HttpApiMiddleware.Tag<PermissionMiddleware>()(
+    `Permission_${action}_${typeof subject === "string" ? subject : "dynamic"}`,
+    {
+      failure: ForbiddenError
+    }
+  ) {}
+
+  const PermissionMiddlewareLive = Layer.effect(
+    PermissionMiddleware,
+    Effect.gen(function* () {
+      const authorizationService = yield* AuthorizationService
+      
+      return Effect.gen(function* () {
+        const user = yield* CurrentUser
+        const request = yield* HttpServerRequest.HttpServerRequest
+        
+        // Extract path parameters for dynamic subjects
+        const targetSubject = typeof subject === "function" 
+          ? subject(request)
+          : subject
+        
+        const hasPermission = yield* authorizationService
+          .checkPermission(user.id, action, targetSubject, field)
+          .pipe(
+            Effect.catchAll(() => Effect.succeed(false))
+          )
+        
+        if (!hasPermission) {
+          return yield* Effect.fail(
+            new ForbiddenError({
+              reason: "permission_denied",
+              message: `Insufficient permissions for ${action} on ${
+                typeof targetSubject === "string" 
+                  ? targetSubject 
+                  : JSON.stringify(targetSubject)
+              }`,
+              resource: typeof targetSubject === "string" 
+                ? targetSubject 
+                : JSON.stringify(targetSubject),
+              requiredPermission: action
+            })
+          )
+        }
+      })
+    })
+  )
+
+  return { PermissionMiddleware, PermissionMiddlewareLive }
 }
 
-export const extractHeaders = (
-  req: Request
-): Record<string, string | string[] | undefined> => {
-  return req.headers as Record<string, string | string[] | undefined>;
-};
+// Export commonly used permission middleware instances
+export const ReadMembersPermission = requirePermission("read", "members")
+export const CreateMembersPermission = requirePermission("create", "members") 
+export const UpdateMembersPermission = requirePermission("update", "members")
+export const DeleteMembersPermission = requirePermission("delete", "members")
 
-/**
- * Middleware to require authentication for routes
- * Checks for a valid session and attaches it to the request
- */
-export const requireAuth = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const effect = Effect.gen(function* () {
-    const authService = yield* Auth;
-    const session = yield* authService.validateSession(extractHeaders(req));
+export const ReadEventsPermission = requirePermission("read", "events")
+export const CreateEventsPermission = requirePermission("create", "events")
+export const UpdateEventsPermission = requirePermission("update", "events") 
+export const DeleteEventsPermission = requirePermission("delete", "events")
 
-    // Attach context to request
-    if (session) {
-      req.session = session;
-    }
-    next();
-  }).pipe(
-    Effect.provide(AuthLive),
-    withRequestObservability('require-auth', req)
-  );
-  try {
-    await Effect.runPromise(effect);
-  } catch (error) {
-    // Only send response if headers haven't been sent already
-    if (!res.headersSent) {
-      const errorResponse = transformError(error);
-      return res.status(errorResponse.status).json(errorResponse.body);
-    }
-    return Promise.resolve();
-  }
-};
+// Dynamic permission helpers for resource-specific access
+export const ReadMemberPermission = (id: string | number) =>
+  requirePermission("read", { type: "members", id: String(id) })
 
-/**
- * Middleware factory to check if user has specific CASL permission
- * Must be used after requireAuth
- */
-export const requirePermission =
-  (
-    action: Action,
-    subject: Subject | ((req: Request) => Subject),
-    field?: string
-  ) =>
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      await Effect.runPromise(
-        Effect.gen(function* () {
-          const authorizationService = yield* AuthorizationService;
+export const ReadEventPermission = (id: string | number) => 
+  requirePermission("read", { type: "events", id: String(id) })
 
-          // Check basic resource permission first
-          const hasPermission =
-            req.session &&
-            (yield* authorizationService
-              .checkPermission(
-                req.session.userId,
-                action,
-                typeof subject === 'function' ? subject(req) : subject,
-                field
-              )
-              .pipe(Effect.catchAll(() => Effect.succeed(false))));
-
-          req.permissionResult = hasPermission
-            ? { allowed: true }
-            : { allowed: false, reason: 'permission_denied' };
-
-          if (!hasPermission) {
-            throw new Error('Permission denied');
-          }
-        }).pipe(
-          withRequestObservability('require-permission', req),
-          Effect.provide(Layer.mergeAll(AuthorizationService.Live, FlagLive))
-        )
-      );
-      return next();
-    } catch (error) {
-      if (!res.headersSent) {
-        const errorResponse = transformError(error);
-        return res.status(errorResponse.status).json(errorResponse.body);
-      }
-    }
-  };
+export const UpdateEventPermission = (id: string | number) =>
+  requirePermission("update", { type: "events", id: String(id) })

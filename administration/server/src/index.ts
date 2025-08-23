@@ -1,24 +1,6 @@
 import dotenv from 'dotenv';
-
-import cors from 'cors';
 import express from 'express';
-import helmet from 'helmet';
-import morgan from 'morgan';
 import logger from './utils/logger';
-
-import { errorHandler } from './middleware/errorHandler';
-import { apiLimiter } from './middleware/rateLimiting';
-
-import { applicationRoutes } from './routes/applicationRoutes';
-import { auditRoutes } from './routes/auditRoutes';
-import { authRoutes } from './routes/authRoutes';
-import { eventRoutes } from './routes/eventRoutes';
-import { healthCheckRouter } from './routes/healthCheck';
-import { memberRoutes } from './routes/memberRoutes';
-import { memberPipelineRoutes } from './services/effect/http/examples/memberRouteExample';
-import { testRoutes } from './services/effect/http/examples/testRoutes';
-
-import { flagRoutes } from './routes/flagRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -26,50 +8,18 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Security middleware
-app.use(helmet());
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
-    credentials: true,
-  })
-);
+// Basic middleware
+app.use(express.json());
 
-// Logging
-app.use(morgan('combined'));
-
-// Body parsing (exclude auth routes as Better Auth handles its own body parsing)
-app.use((req, res, next) => {
-  if (req.path.startsWith('/api/auth/')) {
-    return next();
-  }
-  express.json({ limit: '10mb' })(req, res, next);
+// Simple health check endpoint without Effect dependencies
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    version: process.env.npm_package_version || '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+  });
 });
-app.use((req, res, next) => {
-  if (req.path.startsWith('/api/auth/')) {
-    return next();
-  }
-  express.urlencoded({ extended: true })(req, res, next);
-});
-
-// Rate limiting
-app.use('/api', apiLimiter);
-
-// Public routes (no auth required)
-app.use('/health', healthCheckRouter);
-app.use('/api/auth', authRoutes);
-app.use('/api/test', testRoutes); // Test routes for Effect pipeline
-
-// Protected routes (require authentication)
-app.use('/api/members', memberRoutes);
-app.use('/api/members-pipeline', memberPipelineRoutes); // New Effect pipeline routes for testing
-app.use('/api/events', eventRoutes);
-app.use('/api/audit', auditRoutes);
-app.use('/api/applications', applicationRoutes);
-app.use('/api', flagRoutes);
-
-// Error handling
-app.use(errorHandler);
 
 // 404 handler
 app.use('*', (_, res) => {
@@ -84,23 +34,13 @@ const server = app.listen(PORT, () => {
   });
 });
 
-// Graceful shutdown handler
-const gracefulShutdown = async (signal: string) => {
-  logger.info(`${signal} received, shutting down gracefully`);
-
-  server.close(async () => {
-    try {
-      logger.info('Server shutdown complete');
-      process.exit(0);
-    } catch (error) {
-      logger.error('Error during shutdown', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-      process.exit(1);
-    }
-  });
-};
-
 // Graceful shutdown
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received, shutting down gracefully');
+  server.close(() => process.exit(0));
+});
+
+process.on('SIGINT', () => {
+  logger.info('SIGINT received, shutting down gracefully');  
+  server.close(() => process.exit(0));
+});

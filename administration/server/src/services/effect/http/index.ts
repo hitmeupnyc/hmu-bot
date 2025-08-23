@@ -20,9 +20,6 @@ export * from './formatters';
 // Authentication and authorization
 export * from './auth';
 
-// Effect router
-export * from './router';
-
 /**
  * Example usage:
  *

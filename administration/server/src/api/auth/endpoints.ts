@@ -8,33 +8,33 @@ import {
   HttpApiGroup,
   HttpApiSchema,
   OpenApi,
-} from "@effect/platform"
-import { Schema } from "effect"
+} from '@effect/platform';
+import { Schema } from 'effect';
 
 // Common error schemas for auth operations
 class AuthenticationError extends Schema.TaggedError<AuthenticationError>()(
-  "AuthenticationError",
-  { 
+  'AuthenticationError',
+  {
     message: Schema.String,
-    code: Schema.optional(Schema.String)
+    code: Schema.optional(Schema.String),
   },
   HttpApiSchema.annotations({ status: 401 })
 ) {}
 
 class AuthorizationError extends Schema.TaggedError<AuthorizationError>()(
-  "AuthorizationError", 
-  { 
+  'AuthorizationError',
+  {
     message: Schema.String,
-    code: Schema.optional(Schema.String)
+    code: Schema.optional(Schema.String),
   },
   HttpApiSchema.annotations({ status: 403 })
 ) {}
 
 class AuthValidationError extends Schema.TaggedError<AuthValidationError>()(
-  "AuthValidationError",
-  { 
+  'AuthValidationError',
+  {
     message: Schema.String,
-    field: Schema.optional(Schema.String)
+    field: Schema.optional(Schema.String),
   },
   HttpApiSchema.annotations({ status: 400 })
 ) {}
@@ -42,78 +42,88 @@ class AuthValidationError extends Schema.TaggedError<AuthValidationError>()(
 // Generic success response for auth operations
 const AuthSuccessResponse = Schema.Struct({
   message: Schema.String,
-  data: Schema.optional(Schema.Any)
-})
+  data: Schema.optional(Schema.Any),
+});
 
 // Session response schema
 const SessionResponse = Schema.Struct({
-  user: Schema.NullishOr(Schema.Struct({
-    id: Schema.String,
-    email: Schema.String,
-    name: Schema.String,
-    image: Schema.NullishOr(Schema.String),
-    emailVerified: Schema.Boolean,
-    createdAt: Schema.Date,
-    updatedAt: Schema.Date
-  })),
-  session: Schema.NullishOr(Schema.Struct({
-    id: Schema.String,
-    userId: Schema.String,
-    expiresAt: Schema.Date,
-    token: Schema.String,
-    ipAddress: Schema.optional(Schema.String),
-    userAgent: Schema.optional(Schema.String)
-  }))
-})
+  user: Schema.NullishOr(
+    Schema.Struct({
+      id: Schema.String,
+      email: Schema.String,
+      name: Schema.String,
+      image: Schema.NullishOr(Schema.String),
+      emailVerified: Schema.Boolean,
+      createdAt: Schema.Date,
+      updatedAt: Schema.Date,
+    })
+  ),
+  session: Schema.NullishOr(
+    Schema.Struct({
+      id: Schema.String,
+      userId: Schema.String,
+      expiresAt: Schema.Date,
+      token: Schema.String,
+      ipAddress: Schema.optional(Schema.String),
+      userAgent: Schema.optional(Schema.String),
+    })
+  ),
+});
 
 // Auth API group with catch-all handler for Better Auth
-export const authGroup = HttpApiGroup.make("auth")
+export const authGroup = HttpApiGroup.make('auth')
   // Test endpoint for basic connectivity
   .add(
-    HttpApiEndpoint.get("authTest", "/api/auth/test")
+    HttpApiEndpoint.get('authTest', '/api/auth/test')
       .addSuccess(AuthSuccessResponse)
-      .annotate(OpenApi.Description, "Test endpoint for auth API connectivity")
+      .annotate(OpenApi.Description, 'Test endpoint for auth API connectivity')
   )
-  
+
   // Session endpoint
   .add(
-    HttpApiEndpoint.get("getSession", "/api/auth/get-session")
+    HttpApiEndpoint.get('getSession', '/api/auth/get-session')
       .addSuccess(SessionResponse)
       .addError(AuthenticationError)
-      .annotate(OpenApi.Description, "Get current user session")
+      .annotate(OpenApi.Description, 'Get current user session')
   )
-  
+
   // Sign out endpoint
   .add(
-    HttpApiEndpoint.post("signOut", "/api/auth/sign-out")
+    HttpApiEndpoint.post('signOut', '/api/auth/sign-out')
       .addSuccess(AuthSuccessResponse)
       .addError(AuthenticationError)
-      .annotate(OpenApi.Description, "Sign out current user")
+      .annotate(OpenApi.Description, 'Sign out current user')
   )
-  
+
   // Magic link endpoints
   .add(
-    HttpApiEndpoint.post("sendMagicLink", "/api/auth/magic-link")
-      .setPayload(Schema.Struct({
-        email: Schema.String
-      }))
+    HttpApiEndpoint.post('sendMagicLink', '/api/auth/sign-in/magic-link')
+      .setPayload(Schema.Struct({ email: Schema.String }))
       .addSuccess(AuthSuccessResponse)
       .addError(AuthValidationError)
-      .annotate(OpenApi.Description, "Send magic link to email address")
+      .annotate(OpenApi.Description, 'Send magic link to email address')
   )
-  
+
   .add(
-    HttpApiEndpoint.get("verifyMagicLink", "/api/auth/magic-link/verify")
-      .setUrlParams(Schema.Struct({
-        token: Schema.String,
-        callbackURL: Schema.optional(Schema.String)
-      }))
+    HttpApiEndpoint.get(
+      'verifyMagicLink',
+      '/api/auth/sign-in/magic-link/verify'
+    )
+      .setUrlParams(
+        Schema.Struct({
+          token: Schema.String,
+          callbackURL: Schema.optional(Schema.String),
+        })
+      )
       .addSuccess(SessionResponse)
       .addError(AuthenticationError)
       .addError(AuthValidationError)
-      .annotate(OpenApi.Description, "Verify magic link token and create session")
+      .annotate(
+        OpenApi.Description,
+        'Verify magic link token and create session'
+      )
   )
-  
+
   // Catch-all endpoints disabled for now - interfere with other API routes
   // TODO: Need better approach for Better Auth pass-through
   // .add(
@@ -133,7 +143,10 @@ export const authGroup = HttpApiGroup.make("auth")
   //     .addError(AuthValidationError)
   //     .annotate(OpenApi.Description, "Pass-through POST handler for Better Auth routes")
   // )
-  .annotate(OpenApi.Description, "Authentication endpoints powered by Better Auth")
+  .annotate(
+    OpenApi.Description,
+    'Authentication endpoints powered by Better Auth'
+  );
 
 // Export error classes for use in handlers
-export { AuthenticationError, AuthorizationError, AuthValidationError }
+export { AuthenticationError, AuthorizationError, AuthValidationError };

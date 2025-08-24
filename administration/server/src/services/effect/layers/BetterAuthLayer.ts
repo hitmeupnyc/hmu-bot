@@ -5,8 +5,39 @@ import { Context, Effect, Layer } from 'effect';
 
 import { DatabaseLive, DatabaseService } from './DatabaseLayer';
 
+// Create a typed auth instance with plugins to capture enhanced types
+const createAuthWithPlugins = (database: any, config: any) => {
+  return betterAuth({
+    database,
+    baseURL: config.baseURL,
+    emailAndPassword: {
+      enabled: false, // We only use magic links
+    },
+    plugins: [
+      magicLink({
+        sendMagicLink: async ({ email, url }) => {
+          // Stub for Phase 2 - will be replaced with actual email service
+          console.log(`                     👇`);
+          console.log(`Send magic link 👉 ${url} 👈 to ${email}`);
+          console.log(`                     ☝️`);
+          // TODO: Integrate with email service, `EmailEffects.ts`
+        },
+        expiresIn: config.magicLinkExpiresIn,
+      }),
+    ],
+    session: {
+      expiresIn: config.sessionExpiresIn,
+      updateAge: config.sessionUpdateAge,
+    },
+    trustedOrigins: [config.clientURL],
+  });
+};
+
+// Extract the type of the configured auth instance
+type AuthWithPlugins = ReturnType<typeof createAuthWithPlugins>;
+
 export interface IBetterAuth {
-  readonly auth: ReturnType<typeof betterAuth>;
+  readonly auth: AuthWithPlugins;
   readonly toNodeHandler: () => ReturnType<typeof toNodeHandler>;
 }
 
@@ -26,35 +57,9 @@ export const BetterAuthLive = Layer.effect(
 
     // Get the raw sqlite database for better-auth
     const sqliteDb = yield* dbService.querySync((db) => db);
-    const auth = betterAuth({
-      database: sqliteDb,
 
-      baseURL: config.baseURL,
-
-      emailAndPassword: {
-        enabled: false, // We only use magic links
-      },
-
-      plugins: [
-        magicLink({
-          sendMagicLink: async ({ email, url }) => {
-            // Stub for Phase 2 - will be replaced with actual email service
-            console.log(`                     👇`);
-            console.log(`Send magic link 👉 ${url} 👈 to ${email}`);
-            console.log(`                     ☝️`);
-            // TODO: Integrate with email service, `EmailEffects.ts`
-          },
-          expiresIn: config.magicLinkExpiresIn,
-        }),
-      ],
-
-      session: {
-        expiresIn: config.sessionExpiresIn,
-        updateAge: config.sessionUpdateAge,
-      },
-
-      trustedOrigins: [config.clientURL],
-    });
+    // Use the typed factory function to create auth with proper plugin types
+    const auth = createAuthWithPlugins(sqliteDb, config);
 
     return {
       auth,

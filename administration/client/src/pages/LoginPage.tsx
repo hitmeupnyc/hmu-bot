@@ -23,11 +23,8 @@ export function LoginPage() {
     setError(null);
 
     try {
-      const { error } = await signIn.magicLink({
-        email,
-        // TODO: redirect back to originally requested page
-        callbackURL: '/',
-      });
+      // TODO: redirect back to originally requested page
+      const { error } = await signIn.magicLink({ email, callbackURL: '/' });
 
       if (error) {
         setError(error.message || 'Failed to send magic link');

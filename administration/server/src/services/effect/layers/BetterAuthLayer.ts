@@ -1,5 +1,4 @@
 import { betterAuth } from 'better-auth';
-import { toNodeHandler } from 'better-auth/node';
 import { magicLink } from 'better-auth/plugins';
 import { Context, Effect, Layer } from 'effect';
 
@@ -38,7 +37,6 @@ type AuthWithPlugins = ReturnType<typeof createAuthWithPlugins>;
 
 export interface IBetterAuth {
   readonly auth: AuthWithPlugins;
-  readonly toNodeHandler: () => ReturnType<typeof toNodeHandler>;
 }
 
 export const BetterAuth = Context.GenericTag<IBetterAuth>('BetterAuth');
@@ -46,24 +44,20 @@ export const BetterAuth = Context.GenericTag<IBetterAuth>('BetterAuth');
 export const BetterAuthLive = Layer.effect(
   BetterAuth,
   Effect.gen(function* () {
-    const config = {
-      baseURL: 'http://localhost:3000',
-      clientURL: 'http://localhost:5173',
-      magicLinkExpiresIn: 60 * 15, // 15 minutes
-      sessionExpiresIn: 60 * 60 * 24 * 7, // 7 days
-      sessionUpdateAge: 60 * 60 * 24, // 1 day
-    };
     const dbService = yield* DatabaseService;
 
     // Get the raw sqlite database for better-auth
     const sqliteDb = yield* dbService.querySync((db) => db);
 
     // Use the typed factory function to create auth with proper plugin types
-    const auth = createAuthWithPlugins(sqliteDb, config);
+    const auth = createAuthWithPlugins(sqliteDb, {
+      baseURL: 'http://localhost:3000',
+      clientURL: 'http://localhost:5173',
+      magicLinkExpiresIn: 60 * 15, // 15 minutes
+      sessionExpiresIn: 60 * 60 * 24 * 7, // 7 days
+      sessionUpdateAge: 60 * 60 * 24, // 1 day
+    });
 
-    return {
-      auth,
-      toNodeHandler: () => toNodeHandler(auth),
-    };
+    return { auth };
   })
 ).pipe(Layer.provide(DatabaseLive));

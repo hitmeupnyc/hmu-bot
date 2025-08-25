@@ -1,25 +1,61 @@
 import { betterAuth } from 'better-auth';
 import { magicLink } from 'better-auth/plugins';
 import { Context, Effect, Layer } from 'effect';
+import { Kysely } from 'kysely';
+import type { DB as DatabaseSchema } from '~/types';
 
 import { DatabaseLive, DatabaseService } from './DatabaseLayer';
 
+// Email validation function to check if email is allowed
+const validateEmailAccess = async (
+  email: string,
+  dbService: any
+): Promise<boolean> => {
+  // Allow any email ending with @hitmeupnyc.com
+  if (email.endsWith('@hitmeupnyc.com')) {
+    return true;
+  }
+
+  // Check if email exists in members table
+  try {
+    const member = await Effect.runPromise(
+      dbService.query(async (db: Kysely<DatabaseSchema>) => {
+        return db
+          .selectFrom('members')
+          .select('id')
+          .where('email', '=', email)
+          .executeTakeFirst();
+      })
+    );
+
+    return member !== undefined;
+  } catch (error) {
+    console.error('Error validating email access:', error);
+    return false;
+  }
+};
+
 // Create a typed auth instance with plugins to capture enhanced types
-const createAuthWithPlugins = (database: any, config: any) => {
+const createAuthWithPlugins = (database: any, config: any, dbService: any) => {
   return betterAuth({
     database,
     baseURL: config.baseURL,
-    emailAndPassword: {
-      enabled: false, // We only use magic links
-    },
+    emailAndPassword: { enabled: false },
     plugins: [
       magicLink({
         sendMagicLink: async ({ email, url }) => {
-          // Stub for Phase 2 - will be replaced with actual email service
-          console.log(`                     👇`);
-          console.log(`Send magic link 👉 ${url} 👈 to ${email}`);
-          console.log(`                     ☝️`);
-          // TODO: Integrate with email service, `EmailEffects.ts`
+          // Only actually send email if it's found in the membership list
+          const isAllowed = (
+            await Promise.allSettled([validateEmailAccess(email, dbService)])
+          ).every((p) => p.status === 'fulfilled' && p.value);
+
+          if (isAllowed) {
+            console.log(`====================================================`);
+            console.log(`magic link 👉 ${url} 👈 to ${email}`);
+            console.log(`====================================================`);
+
+            // TODO: Integrate with email service, `EmailEffects.ts`
+          }
         },
         expiresIn: config.magicLinkExpiresIn,
       }),
@@ -50,13 +86,17 @@ export const BetterAuthLive = Layer.effect(
     const sqliteDb = yield* dbService.querySync((db) => db);
 
     // Use the typed factory function to create auth with proper plugin types
-    const auth = createAuthWithPlugins(sqliteDb, {
-      baseURL: 'http://localhost:5173',
-      clientURL: 'http://localhost:5173',
-      magicLinkExpiresIn: 60 * 15, // 15 minutes
-      sessionExpiresIn: 60 * 60 * 24 * 7, // 7 days
-      sessionUpdateAge: 60 * 60 * 24, // 1 day
-    });
+    const auth = createAuthWithPlugins(
+      sqliteDb,
+      {
+        baseURL: 'http://localhost:5173',
+        clientURL: 'http://localhost:5173',
+        magicLinkExpiresIn: 60 * 15, // 15 minutes
+        sessionExpiresIn: 60 * 60 * 24 * 7, // 7 days
+        sessionUpdateAge: 60 * 60 * 24, // 1 day
+      },
+      dbService
+    );
 
     return { auth };
   })

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import { signIn, useSession } from '@/lib/auth-client';
 
@@ -7,15 +8,19 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(false);
+  const [searchParams] = useSearchParams();
 
   const { data: session, isPending } = useSession();
+  
+  // Get redirect destination from URL params
+  const from = searchParams.get('from') || '/dashboard';
 
   // Redirect if already authenticated
   useEffect(() => {
     if (!isPending && session?.user) {
-      window.location.href = '/';
+      window.location.href = from;
     }
-  }, [session, isPending]);
+  }, [session, isPending, from]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,8 +28,7 @@ export function LoginPage() {
     setError(null);
 
     try {
-      // TODO: redirect back to originally requested page
-      const { error } = await signIn.magicLink({ email, callbackURL: '/' });
+      const { error } = await signIn.magicLink({ email, callbackURL: from });
 
       if (error) {
         setError(error.message || 'Failed to send magic link');

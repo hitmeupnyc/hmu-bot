@@ -24,7 +24,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Redirect to login if not authenticated and trying to access protected route
   useEffect(() => {
     if (!isLoading && !isAuthenticated && !window.location.pathname.startsWith('/login')) {
-      window.location.href = '/login';
+      const currentPath = window.location.pathname + window.location.search;
+      const loginUrl = `/login?from=${encodeURIComponent(currentPath)}`;
+      window.location.href = loginUrl;
     }
   }, [isLoading, isAuthenticated]);
 

@@ -51,7 +51,7 @@ export const BetterAuthLive = Layer.effect(
 
     // Use the typed factory function to create auth with proper plugin types
     const auth = createAuthWithPlugins(sqliteDb, {
-      baseURL: 'http://localhost:3000',
+      baseURL: 'http://localhost:5173',
       clientURL: 'http://localhost:5173',
       magicLinkExpiresIn: 60 * 15, // 15 minutes
       sessionExpiresIn: 60 * 60 * 24 * 7, // 7 days

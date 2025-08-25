@@ -4,6 +4,7 @@
  */
 
 import {
+  HttpApi,
   HttpApiEndpoint,
   HttpApiGroup,
   HttpApiSchema,
@@ -17,20 +18,18 @@ import {
 } from '~/services/effect/schemas/MemberSchemas';
 
 // Common error schemas
-class MemberNotFound extends Schema.TaggedError<MemberNotFound>()(
+export class MemberNotFound extends Schema.TaggedError<MemberNotFound>()(
   'MemberNotFound',
   { memberId: Schema.Number },
   HttpApiSchema.annotations({ status: 404 })
 ) {}
 
-class MemberEmailExists extends Schema.TaggedError<MemberEmailExists>()(
+export class MemberEmailExists extends Schema.TaggedError<MemberEmailExists>()(
   'MemberEmailExists',
   { email: Schema.String },
   HttpApiSchema.annotations({ status: 409 })
 ) {}
 
-// Path parameter schema
-const idParam = HttpApiSchema.param('id', Schema.NumberFromString);
 
 // Query parameter schemas for listing members
 const MemberListQuery = Schema.Struct({
@@ -65,7 +64,8 @@ export const membersGroup = HttpApiGroup.make('members')
       )
   )
   .add(
-    HttpApiEndpoint.get('getMember')`/api/members/${idParam}`
+    HttpApiEndpoint.get('getMember', '/api/members/:id')
+      .setPath(Schema.Struct({ id: Schema.NumberFromString }))
       .addSuccess(MemberSchema)
       .addError(MemberNotFound)
       // .middleware(Authentication) // Applied globally via HttpApiBuilder
@@ -80,7 +80,8 @@ export const membersGroup = HttpApiGroup.make('members')
       .annotate(OpenApi.Description, 'Create a new member')
   )
   .add(
-    HttpApiEndpoint.put('updateMember')`/api/members/${idParam}`
+    HttpApiEndpoint.put('updateMember', '/api/members/:id')
+      .setPath(Schema.Struct({ id: Schema.NumberFromString }))
       .setPayload(UpdateMemberSchema)
       .addSuccess(MemberSchema)
       .addError(MemberNotFound)
@@ -89,12 +90,13 @@ export const membersGroup = HttpApiGroup.make('members')
       .annotate(OpenApi.Description, 'Update an existing member')
   )
   .add(
-    HttpApiEndpoint.del('deleteMember')`/api/members/${idParam}`
+    HttpApiEndpoint.del('deleteMember', '/api/members/:id')
+      .setPath(Schema.Struct({ id: Schema.NumberFromString }))
       .addSuccess(Schema.Struct({ message: Schema.String }))
       .addError(MemberNotFound)
       // .middleware(Authentication) // Applied globally via HttpApiBuilder
       .annotate(OpenApi.Description, 'Delete a member')
   );
 
-// Export error classes for use in handlers
-export { MemberEmailExists, MemberNotFound };
+// Members API
+export const membersApi = HttpApi.make('MembersAPI').add(membersGroup);

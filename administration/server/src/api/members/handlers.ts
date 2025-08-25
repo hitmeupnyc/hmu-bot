@@ -15,12 +15,12 @@ import {
   NotFoundError,
   UniqueError,
 } from '~/services/effect/errors/CommonErrors';
-import type { api } from '../index';
-import { MemberEmailExists, MemberNotFound } from './endpoints';
+import { MemberEmailExists, MemberNotFound, membersApi } from './endpoints';
 
-// Factory function that takes the API as a parameter to avoid circular dependency
-export const createMembersApiLive = (apiParam: typeof api) =>
-  HttpApiBuilder.group(apiParam, 'members', (handlers) =>
+export const MembersApiLive = HttpApiBuilder.group(
+  membersApi,
+  'members',
+  (handlers) =>
     Effect.gen(function* () {
       const memberService = yield* MemberService;
 
@@ -138,4 +138,4 @@ export const createMembersApiLive = (apiParam: typeof api) =>
           )
         );
     }).pipe(Effect.provide(MemberServiceLive))
-  );
+);

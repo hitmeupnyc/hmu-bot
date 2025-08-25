@@ -34,9 +34,7 @@ app.use(
   })
 );
 
-// Body parsing middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Don't add express.json() before BetterAuth - will be added after
 
 // Health check route
 app.get('/health', (_, res) => {
@@ -56,12 +54,9 @@ async function startServer() {
   );
   const authHandler = toNodeHandler(auth);
 
-  // Mount BetterAuth routes - BetterAuth handles its own /api/auth prefix
-  app.use('/api/auth', (req, res) => {
-    console.log(`[BetterAuth] ${req.method} ${req.url}`);
-    // Create a new request with the full path for BetterAuth
-    const originalUrl = req.originalUrl;
-    req.url = originalUrl; // Give BetterAuth the full original URL
+  // Mount BetterAuth routes - use app.all with wildcard as per docs
+  app.all('/api/auth/*', (req, res) => {
+    console.log(`[BetterAuth] ${req.method} ${req.url} ${req.originalUrl}`);
     authHandler(req, res);
   });
 

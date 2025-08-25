@@ -5,7 +5,10 @@
 
 import { HttpApiBuilder } from '@effect/platform';
 import { Effect } from 'effect';
-import { MemberService } from '~/services/effect/MemberEffects';
+import {
+  MemberService,
+  MemberServiceLive,
+} from '~/services/effect/MemberEffects';
 import { withHttpRequestObservability } from '~/services/effect/adapters/observabilityUtils';
 import {
   DatabaseError,
@@ -134,5 +137,5 @@ export const createMembersApiLive = (apiParam: typeof api) =>
             withHttpRequestObservability('api.members.deleteMember', request)
           )
         );
-    })
+    }).pipe(Effect.provide(MemberServiceLive))
   );

@@ -3,23 +3,26 @@
  * Combines all API groups into a single HttpApi
  */
 
-import { HttpApi, HttpApiBuilder, OpenApi } from "@effect/platform"
-import { Layer } from "effect"
-import { authGroup, createAuthApiLive } from "./auth"
-import { healthGroup, HealthApiLive } from "./health"
-import { membersGroup, createMembersApiLive } from "./members"
+import { HttpApi, HttpApiBuilder, OpenApi } from '@effect/platform';
+import { Layer } from 'effect';
+// import { healthGroup } from './health';
+import { AuthLive } from '~/services/effect/layers/AuthLayer';
+import { createMembersApiLive, membersGroup } from './members';
 
-// Create the complete API by combining all groups
-export const api = HttpApi.make("ClubManagementAPI")
-  .add(authGroup)
-  .add(healthGroup)
+// Create the complete API by combining all groups (auth now handled by BetterAuth directly)
+export const api = HttpApi.make('ClubManagementAPI')
+  // .add(healthGroup)
   .add(membersGroup)
-  .annotate(OpenApi.Description, "Club Management System API")
-  .annotate(OpenApi.Summary, "RESTful API for club management")
+  .annotate(OpenApi.Description, 'Club Management System API')
+  .annotate(OpenApi.Summary, 'RESTful API for club management');
 
 // Create the complete API implementation
 export const ApiLive = HttpApiBuilder.api(api).pipe(
-  Layer.provide(createAuthApiLive(api)),
-  Layer.provide(HealthApiLive),
-  Layer.provide(createMembersApiLive(api))
-)
+  Layer.provide(
+    Layer.mergeAll(
+      // HealthApiLive,
+      createMembersApiLive(api),
+      AuthLive
+    )
+  )
+);

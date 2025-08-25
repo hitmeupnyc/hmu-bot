@@ -14,6 +14,7 @@ import { TimeoutException } from 'effect/Cause';
 import {
   Auth,
   AuthenticationError,
+  AuthLive,
   type Session,
 } from '~/services/effect/layers/AuthLayer';
 
@@ -61,13 +62,6 @@ export class Authentication extends HttpApiMiddleware.Tag<Authentication>()(
     failure: UnauthorizedError,
     provides: CurrentUser,
     security: {
-      bearer: HttpApiSecurity.bearer.pipe(
-        HttpApiSecurity.annotate(
-          OpenApi.Description,
-          'Bearer token authentication using session tokens'
-        )
-      ),
-      // Also support cookie-based auth for web clients
       sessionCookie: HttpApiSecurity.apiKey({
         in: 'cookie',
         key: 'better-auth.session_token',
@@ -100,36 +94,6 @@ export const AuthenticationLive = Layer.effect(
     const authService = yield* Auth;
 
     return {
-      bearer: (token) =>
-        Effect.gen(function* () {
-          const headers = {
-            authorization: `Bearer ${Redacted.value(token)}`,
-          };
-
-          const session = yield* authService.validateSession(headers).pipe(
-            Effect.mapError((error) => {
-              if (error instanceof AuthenticationError) {
-                return new UnauthorizedError({
-                  reason: error.reason,
-                  message: error.message,
-                });
-              }
-              if (error instanceof TimeoutException) {
-                return new UnauthorizedError({
-                  reason: 'auth_service_error',
-                  message: 'Authentication service timeout',
-                });
-              }
-              return new UnauthorizedError({
-                reason: 'auth_service_error',
-                message: 'Unknown authentication error',
-              });
-            })
-          );
-
-          return session.user;
-        }),
-
       sessionCookie: (sessionToken) =>
         Effect.gen(function* () {
           const headers = {
@@ -161,7 +125,7 @@ export const AuthenticationLive = Layer.effect(
         }),
     };
   })
-);
+).pipe(Layer.provide(AuthLive));
 
 // Authorization middleware implementation
 export const AuthorizationLive = Layer.effect(
@@ -187,7 +151,8 @@ export const AuthorizationLive = Layer.effect(
               if (error instanceof TimeoutException) {
                 return new ForbiddenError({
                   reason: 'permission_denied',
-                  message: 'Authentication service timeout during authorization',
+                  message:
+                    'Authentication service timeout during authorization',
                 });
               }
               return new ForbiddenError({

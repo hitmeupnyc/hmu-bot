@@ -1,28 +1,27 @@
 /**
  * Main API definition
- * Combines all API groups into a single HttpApi
+ * Combines all API groups with proper authentication separation
  */
 
 import { HttpApi, HttpApiBuilder, OpenApi } from '@effect/platform';
 import { Layer } from 'effect';
-// import { healthGroup } from './health';
-import { AuthLive } from '~/services/effect/layers/AuthLayer';
+import { Authentication, AuthenticationLive } from '~/middleware/auth';
+import { ApplicationLive } from '~/services/effect/adapters/expressAdapter';
+import { HealthApiLive, healthGroup } from './health';
 import { MembersApiLive, membersGroup } from './members';
 
-// Create the complete API by combining all groups (auth now handled by BetterAuth directly)
+// Create the complete API by combining all groups
 export const api = HttpApi.make('ClubManagementAPI')
-  // .add(healthGroup)
-  .add(membersGroup)
+  .add(healthGroup) // Public - no auth required
+  .middleware(Authentication)
+  .add(membersGroup) // Protected - auth required
   .annotate(OpenApi.Description, 'Club Management System API')
   .annotate(OpenApi.Summary, 'RESTful API for club management');
 
 // Create the complete API implementation
 export const ApiLive = HttpApiBuilder.api(api).pipe(
   Layer.provide(
-    Layer.mergeAll(
-      // HealthApiLive,
-      MembersApiLive,
-      AuthLive
-    )
-  )
+    Layer.mergeAll(HealthApiLive, MembersApiLive, AuthenticationLive)
+  ),
+  Layer.provide(ApplicationLive)
 );

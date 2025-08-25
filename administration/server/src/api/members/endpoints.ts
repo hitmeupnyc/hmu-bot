@@ -57,7 +57,6 @@ export const membersGroup = HttpApiGroup.make('members')
         })
       )
       .setUrlParams(MemberListQuery)
-      // .middleware(Authentication) // Applied globally via HttpApiBuilder
       .annotate(
         OpenApi.Description,
         'List all members with pagination and search'
@@ -68,7 +67,6 @@ export const membersGroup = HttpApiGroup.make('members')
       .setPath(Schema.Struct({ id: Schema.NumberFromString }))
       .addSuccess(MemberSchema)
       .addError(MemberNotFound)
-      // .middleware(Authentication) // Applied globally via HttpApiBuilder
       .annotate(OpenApi.Description, 'Get a member by ID')
   )
   .add(
@@ -76,7 +74,6 @@ export const membersGroup = HttpApiGroup.make('members')
       .setPayload(CreateMemberSchema)
       .addSuccess(MemberSchema, { status: 201 })
       .addError(MemberEmailExists)
-      // .middleware(Authentication) // Applied globally via HttpApiBuilder
       .annotate(OpenApi.Description, 'Create a new member')
   )
   .add(
@@ -86,7 +83,6 @@ export const membersGroup = HttpApiGroup.make('members')
       .addSuccess(MemberSchema)
       .addError(MemberNotFound)
       .addError(MemberEmailExists)
-      // .middleware(Authentication) // Applied globally via HttpApiBuilder
       .annotate(OpenApi.Description, 'Update an existing member')
   )
   .add(
@@ -94,7 +90,6 @@ export const membersGroup = HttpApiGroup.make('members')
       .setPath(Schema.Struct({ id: Schema.NumberFromString }))
       .addSuccess(Schema.Struct({ message: Schema.String }))
       .addError(MemberNotFound)
-      // .middleware(Authentication) // Applied globally via HttpApiBuilder
       .annotate(OpenApi.Description, 'Delete a member')
   );
 

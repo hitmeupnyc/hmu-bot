@@ -1,8 +1,3 @@
-/**
- * Authentication and Authorization middleware for @effect/platform HttpApi
- * Migrated from Effect HTTP pipeline functions
- */
-
 import {
   HttpApiMiddleware,
   HttpApiSchema,
@@ -76,6 +71,9 @@ export class Authentication extends HttpApiMiddleware.Tag<Authentication>()(
 ) {}
 
 // Authorization middleware (requires authentication)
+// WIP: TODO: currently non-functional; requires more details about:
+// e2e testing (seeded dataset, bypass helper, tests themselves)
+// production deployment (seeded dataset? create in UI manually?, security audit)
 export class Authorization extends HttpApiMiddleware.Tag<Authorization>()(
   'Authorization',
   {
@@ -102,18 +100,8 @@ export const AuthenticationLive = Layer.effect(
 
           const session = yield* authService.validateSession(headers).pipe(
             Effect.mapError((error) => {
-              if (error instanceof AuthenticationError) {
-                return new UnauthorizedError({
-                  reason: error.reason,
-                  message: error.message,
-                });
-              }
-              if (error instanceof TimeoutException) {
-                return new UnauthorizedError({
-                  reason: 'auth_service_error',
-                  message: 'Authentication service timeout',
-                });
-              }
+              // this gets passed in `AuthenticationError | TimeoutException but
+              // we don't handle those specially
               return new UnauthorizedError({
                 reason: 'auth_service_error',
                 message: 'Unknown authentication error',

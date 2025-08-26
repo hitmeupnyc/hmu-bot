@@ -1,10 +1,10 @@
 import { Context, Effect, Layer, Schema } from 'effect';
 import { sql } from 'kysely';
 import {
-  DatabaseError,
   NotFoundError,
   ParseError,
   UniqueError,
+  UnrecoverableError,
 } from './errors/CommonErrors';
 import { DatabaseLive, DatabaseService } from './layers/DatabaseLayer';
 import {
@@ -37,7 +37,7 @@ export interface IEventService {
         totalPages: number;
       };
     },
-    ParseError | DatabaseError | ParseError,
+    ParseError | UnrecoverableError,
     never
   >;
 
@@ -45,7 +45,7 @@ export interface IEventService {
     id: number
   ) => Effect.Effect<
     typeof EventSchema.Type,
-    NotFoundError | DatabaseError | ParseError,
+    NotFoundError | ParseError | UnrecoverableError,
     never
   >;
 
@@ -53,7 +53,7 @@ export interface IEventService {
     data: CreateEvent
   ) => Effect.Effect<
     typeof EventSchema.Type,
-    ParseError | DatabaseError | ParseError,
+    ParseError | UnrecoverableError,
     never
   >;
 
@@ -61,7 +61,7 @@ export interface IEventService {
     data: UpdateEvent
   ) => Effect.Effect<
     typeof EventSchema.Type,
-    NotFoundError | ParseError | DatabaseError | ParseError,
+    NotFoundError | ParseError | UnrecoverableError,
     never
   >;
 
@@ -69,7 +69,7 @@ export interface IEventService {
     id: number
   ) => Effect.Effect<
     EventWithDetails,
-    NotFoundError | DatabaseError | ParseError,
+    NotFoundError | ParseError | UnrecoverableError,
     never
   >;
 
@@ -77,7 +77,7 @@ export interface IEventService {
     eventId: number
   ) => Effect.Effect<
     typeof EventMarketingSchema.Type | null,
-    NotFoundError | DatabaseError | ParseError,
+    NotFoundError | ParseError | UnrecoverableError,
     never
   >;
 
@@ -85,7 +85,7 @@ export interface IEventService {
     data: CreateEventMarketing
   ) => Effect.Effect<
     typeof EventMarketingSchema.Type,
-    ParseError | UniqueError | DatabaseError | ParseError,
+    ParseError | UniqueError | UnrecoverableError,
     never
   >;
 
@@ -93,7 +93,7 @@ export interface IEventService {
     eventId: number
   ) => Effect.Effect<
     (typeof EventVolunteerSchema.Type)[],
-    NotFoundError | DatabaseError | ParseError,
+    NotFoundError | ParseError | UnrecoverableError,
     never
   >;
 
@@ -101,7 +101,7 @@ export interface IEventService {
     data: CreateVolunteer
   ) => Effect.Effect<
     void,
-    ParseError | UniqueError | DatabaseError | ParseError,
+    ParseError | UniqueError | NotFoundError | UnrecoverableError,
     never
   >;
 }
@@ -114,21 +114,7 @@ export const EventServiceLive = Layer.effect(
   Effect.gen(function* () {
     const dbService = yield* DatabaseService;
 
-    const getEvents = (
-      options: EventQueryOptions
-    ): Effect.Effect<
-      {
-        events: (typeof EventSchema.Type)[];
-        pagination: {
-          page: number;
-          limit: number;
-          total: number;
-          totalPages: number;
-        };
-      },
-      ParseError | DatabaseError | ParseError,
-      never
-    > =>
+    const getEvents: IEventService['getEvents'] = (options) =>
       Effect.gen(function* () {
         const validatedOptions = yield* Schema.decodeUnknown(
           EventQueryOptionsSchema
@@ -183,13 +169,7 @@ export const EventServiceLive = Layer.effect(
         };
       });
 
-    const getEventById = (
-      id: number
-    ): Effect.Effect<
-      typeof EventSchema.Type,
-      NotFoundError | DatabaseError | ParseError,
-      never
-    > =>
+    const getEventById: IEventService['getEventById'] = (id) =>
       Effect.gen(function* () {
         const event = yield* dbService.query(async (db) =>
           db
@@ -210,13 +190,7 @@ export const EventServiceLive = Layer.effect(
         return yield* Schema.decodeUnknown(EventSchema)(event);
       });
 
-    const createEvent = (
-      data: CreateEvent
-    ): Effect.Effect<
-      typeof EventSchema.Type,
-      ParseError | DatabaseError | ParseError,
-      never
-    > =>
+    const createEvent: IEventService['createEvent'] = (data) =>
       Effect.gen(function* () {
         const validatedData =
           yield* Schema.decodeUnknown(CreateEventSchema)(data);
@@ -239,8 +213,10 @@ export const EventServiceLive = Layer.effect(
         );
 
         if (!result.id) {
-          return yield* new DatabaseError({
+          return yield* new UnrecoverableError({
             message: 'Failed to create event',
+            stack: '',
+            attributes: { result },
           });
         }
 
@@ -248,21 +224,17 @@ export const EventServiceLive = Layer.effect(
       }).pipe(
         Effect.mapError((error) => {
           if (error._tag === 'NotFoundError') {
-            return new DatabaseError({
+            return new UnrecoverableError({
               message: 'Failed to create event',
+              stack: error.stack || '',
+              attributes: { error },
             });
           }
           return error;
         })
       );
 
-    const updateEvent = (
-      data: UpdateEvent
-    ): Effect.Effect<
-      typeof EventSchema.Type,
-      NotFoundError | ParseError | DatabaseError | ParseError,
-      never
-    > =>
+    const updateEvent: IEventService['updateEvent'] = (data) =>
       Effect.gen(function* () {
         const validatedData =
           yield* Schema.decodeUnknown(UpdateEventSchema)(data);
@@ -307,13 +279,7 @@ export const EventServiceLive = Layer.effect(
         return yield* getEventById(validatedData.id);
       });
 
-    const getEventWithDetails = (
-      id: number
-    ): Effect.Effect<
-      EventWithDetails,
-      NotFoundError | DatabaseError | ParseError,
-      never
-    > =>
+    const getEventWithDetails: IEventService['getEventWithDetails'] = (id) =>
       Effect.gen(function* () {
         const event = yield* getEventById(id);
 
@@ -336,13 +302,7 @@ export const EventServiceLive = Layer.effect(
         );
       });
 
-    const getEventMarketing = (
-      eventId: number
-    ): Effect.Effect<
-      typeof EventMarketingSchema.Type | null,
-      NotFoundError | DatabaseError | ParseError,
-      never
-    > =>
+    const getEventMarketing: IEventService['getEventMarketing'] = (eventId) =>
       Effect.gen(function* () {
         const result = yield* dbService.query(async (db) =>
           db
@@ -359,13 +319,9 @@ export const EventServiceLive = Layer.effect(
         return yield* Schema.decodeUnknown(EventMarketingSchema)(result);
       });
 
-    const createEventMarketing = (
-      data: CreateEventMarketing
-    ): Effect.Effect<
-      typeof EventMarketingSchema.Type,
-      ParseError | UniqueError | DatabaseError | ParseError,
-      never
-    > =>
+    const createEventMarketing: IEventService['createEventMarketing'] = (
+      data
+    ) =>
       Effect.gen(function* () {
         const validatedData = yield* Schema.decodeUnknown(
           CreateEventMarketingSchema
@@ -412,21 +368,17 @@ export const EventServiceLive = Layer.effect(
       }).pipe(
         Effect.mapError((error) => {
           if (error._tag === 'NotFoundError') {
-            return new DatabaseError({
+            return new UnrecoverableError({
               message: 'Failed to create event marketing',
+              stack: error.stack || '',
+              attributes: { error },
             });
           }
           return error;
         })
       );
 
-    const getEventVolunteers = (
-      eventId: number
-    ): Effect.Effect<
-      (typeof EventVolunteerSchema.Type)[],
-      NotFoundError | DatabaseError | ParseError,
-      never
-    > =>
+    const getEventVolunteers: IEventService['getEventVolunteers'] = (eventId) =>
       Effect.gen(function* () {
         const volunteers = yield* dbService.query(async (db) =>
           db
@@ -441,13 +393,7 @@ export const EventServiceLive = Layer.effect(
         );
       });
 
-    const createVolunteer = (
-      data: CreateVolunteer
-    ): Effect.Effect<
-      void,
-      ParseError | UniqueError | DatabaseError | ParseError,
-      never
-    > =>
+    const createVolunteer: IEventService['createVolunteer'] = (data) =>
       Effect.gen(function* () {
         const validatedData = yield* Schema.decodeUnknown(
           CreateVolunteerSchema
@@ -483,13 +429,7 @@ export const EventServiceLive = Layer.effect(
             })
             .execute()
         );
-      }).pipe(
-        Effect.catchTag(
-          'NotFoundError',
-          (error) =>
-            new DatabaseError({ message: 'Failed to create event volunteer' })
-        )
-      );
+      });
 
     return {
       getEvents,

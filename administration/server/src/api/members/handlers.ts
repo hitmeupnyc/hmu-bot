@@ -21,7 +21,7 @@ export const MembersApiLive = HttpApiBuilder.group(
       const memberService = yield* MemberService;
 
       return handlers
-        .handle('listMembers', ({ urlParams, request }) =>
+        .handle('api.members.list', ({ urlParams }) =>
           Effect.gen(function* () {
             const page = urlParams.page ?? 1;
             const limit = urlParams.limit ?? 20;
@@ -49,7 +49,7 @@ export const MembersApiLive = HttpApiBuilder.group(
           })
         )
 
-        .handle('getMember', ({ path, request }) =>
+        .handle('api.members.read', ({ path }) =>
           Effect.gen(function* () {
             const member = yield* memberService.getMemberById(path.id).pipe(
               Effect.mapError((error) => {
@@ -69,7 +69,7 @@ export const MembersApiLive = HttpApiBuilder.group(
           })
         )
 
-        .handle('createMember', ({ payload, request }) =>
+        .handle('api.members.create', ({ payload }) =>
           Effect.gen(function* () {
             const member = yield* memberService.createMember(payload).pipe(
               Effect.mapError((error) => {
@@ -89,7 +89,7 @@ export const MembersApiLive = HttpApiBuilder.group(
           })
         )
 
-        .handle('updateMember', ({ path, payload, request }) =>
+        .handle('api.members.update', ({ path, payload }) =>
           Effect.gen(function* () {
             const member = yield* memberService.updateMember({
               ...payload,
@@ -106,7 +106,7 @@ export const MembersApiLive = HttpApiBuilder.group(
           )
         )
 
-        .handle('deleteMember', ({ path, request }) =>
+        .handle('api.members.delete', ({ path }) =>
           Effect.gen(function* () {
             yield* memberService.deleteMember(path.id).pipe(
               Effect.mapError((error) => {

@@ -1,3 +1,13 @@
+/*
+===============================================================================
+TODO: (2025-08-22)
+
+These schemas are outdated and may be incorrect. The authoritative answer to 
+the shape of our persisted data is in administration/client/src/types/index.ts.
+It is generated with `npm run --workspace=api-server db:codegen`
+===============================================================================
+*/
+
 import { Schema } from 'effect';
 
 export const EventSchema = Schema.Struct({

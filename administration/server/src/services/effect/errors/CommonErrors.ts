@@ -1,6 +1,12 @@
 import { HttpApiSchema } from '@effect/platform/index';
 import { Schema } from 'effect';
 
+export class UnrecoverableError extends Schema.TaggedError<UnrecoverableError>()(
+  'UnrecoverableError',
+  { message: Schema.String, stack: Schema.String, attributes: Schema.Any },
+  HttpApiSchema.annotations({ status: 500 })
+) {}
+
 // Network
 export class NotFoundError extends Schema.TaggedError<NotFoundError>()(
   'NotFoundError',

@@ -1,4 +1,5 @@
 import { Context, Data, Effect, Layer } from 'effect';
+import { UnrecoverableError } from '../errors/CommonErrors';
 import { DatabaseLive, DatabaseService } from './DatabaseLayer';
 
 // Error types
@@ -22,14 +23,14 @@ export interface IFlag {
     userId: string,
     flagId: string,
     options: FlagGrantOptions
-  ) => Effect.Effect<void, FlagError, never>;
+  ) => Effect.Effect<void, FlagError | UnrecoverableError, never>;
 
   readonly revokeFlag: (
     userId: string,
     flagId: string,
     revokedBy: string,
     reason?: string
-  ) => Effect.Effect<void, FlagError, never>;
+  ) => Effect.Effect<void, FlagError | UnrecoverableError, never>;
 
   readonly getMemberFlags: (userId: string) => Effect.Effect<
     {
@@ -41,7 +42,7 @@ export interface IFlag {
       granted_by: string | null;
       metadata: string | null;
     }[],
-    FlagError,
+    FlagError | UnrecoverableError,
     never
   >;
 
@@ -51,11 +52,11 @@ export interface IFlag {
       flagId: string;
       options: FlagGrantOptions;
     }>
-  ) => Effect.Effect<void, FlagError, never>;
+  ) => Effect.Effect<void, FlagError | UnrecoverableError, never>;
 
   readonly processExpiredFlags: () => Effect.Effect<
     ProcessingResult,
-    FlagError,
+    FlagError | UnrecoverableError,
     never
   >;
 }

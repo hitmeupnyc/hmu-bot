@@ -20,7 +20,7 @@ import {
 // Members API group
 export const membersGroup = HttpApiGroup.make('members')
   .add(
-    HttpApiEndpoint.get('listMembers', '/api/members')
+    HttpApiEndpoint.get('api.members.list', '/api/members')
       .addSuccess(
         Schema.Struct({
           data: Schema.Array(MemberSchema),
@@ -37,21 +37,21 @@ export const membersGroup = HttpApiGroup.make('members')
       )
   )
   .add(
-    HttpApiEndpoint.get('getMember', '/api/members/:id')
-      .setPath(Schema.Struct({ id: Schema.NumberFromString }))
-      .addSuccess(MemberSchema)
-      .addError(NotFoundError)
-      .annotate(OpenApi.Description, 'Get a member by ID')
-  )
-  .add(
-    HttpApiEndpoint.post('createMember', '/api/members')
+    HttpApiEndpoint.post('api.members.create', '/api/members')
       .setPayload(CreateMemberSchema)
       .addSuccess(MemberSchema, { status: 201 })
       .addError(UniqueError)
       .annotate(OpenApi.Description, 'Create a new member')
   )
   .add(
-    HttpApiEndpoint.put('updateMember', '/api/members/:id')
+    HttpApiEndpoint.get('api.members.read', '/api/members/:id')
+      .setPath(Schema.Struct({ id: Schema.NumberFromString }))
+      .addSuccess(MemberSchema)
+      .addError(NotFoundError)
+      .annotate(OpenApi.Description, 'Get a member by ID')
+  )
+  .add(
+    HttpApiEndpoint.put('api.members.update', '/api/members/:id')
       .setPath(Schema.Struct({ id: Schema.NumberFromString }))
       .setPayload(UpdateMemberSchema)
       .addSuccess(MemberSchema)
@@ -61,7 +61,7 @@ export const membersGroup = HttpApiGroup.make('members')
       .annotate(OpenApi.Description, 'Update an existing member')
   )
   .add(
-    HttpApiEndpoint.del('deleteMember', '/api/members/:id')
+    HttpApiEndpoint.del('api.members.delete', '/api/members/:id')
       .setPath(Schema.Struct({ id: Schema.NumberFromString }))
       .addSuccess(Schema.Struct({ message: Schema.String }))
       .addError(NotFoundError)

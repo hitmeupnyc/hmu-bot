@@ -14,10 +14,10 @@ import {
 
 // Import the database error for interface types
 import {
-  DatabaseError,
   NotFoundError,
   ParseError,
   UniqueError,
+  UnrecoverableError,
 } from './errors/CommonErrors';
 
 // Service interface
@@ -32,7 +32,7 @@ export interface IMemberService {
         totalPages: number;
       };
     },
-    ParseError | DatabaseError,
+    ParseError | UnrecoverableError,
     never
   >;
 
@@ -40,7 +40,7 @@ export interface IMemberService {
     id: number
   ) => Effect.Effect<
     typeof MemberSchema.Type,
-    NotFoundError | DatabaseError | ParseError,
+    ParseError | NotFoundError | UnrecoverableError,
     never
   >;
 
@@ -48,7 +48,7 @@ export interface IMemberService {
     data: CreateMember
   ) => Effect.Effect<
     typeof MemberSchema.Type,
-    UniqueError | ParseError | NotFoundError | DatabaseError,
+    UniqueError | ParseError | NotFoundError | UnrecoverableError,
     never
   >;
 
@@ -56,13 +56,17 @@ export interface IMemberService {
     data: UpdateMember
   ) => Effect.Effect<
     typeof MemberSchema.Type,
-    NotFoundError | UniqueError | ParseError | DatabaseError,
+    UniqueError | ParseError | NotFoundError | UnrecoverableError,
     never
   >;
 
   readonly deleteMember: (
     id: number
-  ) => Effect.Effect<void, NotFoundError | DatabaseError | ParseError, never>;
+  ) => Effect.Effect<
+    void,
+    NotFoundError | ParseError | UnrecoverableError,
+    never
+  >;
 }
 
 export const MemberService =
@@ -74,21 +78,7 @@ export const MemberServiceLive = Layer.effect(
   Effect.gen(function* () {
     const dbService = yield* DatabaseService;
 
-    const getMembers = (
-      options: MemberQueryOptions
-    ): Effect.Effect<
-      {
-        members: (typeof MemberSchema.Type)[];
-        pagination: {
-          page: number;
-          limit: number;
-          total: number;
-          totalPages: number;
-        };
-      },
-      ParseError | DatabaseError,
-      never
-    > =>
+    const getMembers: IMemberService['getMembers'] = (options) =>
       Effect.gen(function* () {
         const validatedOptions = yield* Schema.decodeUnknown(
           MemberQueryOptionsSchema
@@ -160,13 +150,7 @@ export const MemberServiceLive = Layer.effect(
         };
       });
 
-    const getMemberById = (
-      id: number
-    ): Effect.Effect<
-      typeof MemberSchema.Type,
-      NotFoundError | DatabaseError | ParseError,
-      never
-    > =>
+    const getMemberById: IMemberService['getMemberById'] = (id) =>
       Effect.gen(function* () {
         const member = yield* dbService.obQuery('members.get', async (db) =>
           db
@@ -199,13 +183,7 @@ export const MemberServiceLive = Layer.effect(
         return yield* Schema.decodeUnknown(MemberSchema)(member);
       });
 
-    const createMember = (
-      data: CreateMember
-    ): Effect.Effect<
-      typeof MemberSchema.Type,
-      UniqueError | ParseError | NotFoundError | DatabaseError,
-      never
-    > =>
+    const createMember: IMemberService['createMember'] = (data) =>
       Effect.gen(function* () {
         const validatedData =
           yield* Schema.decodeUnknown(CreateMemberSchema)(data);
@@ -257,13 +235,7 @@ export const MemberServiceLive = Layer.effect(
         return yield* getMemberById(result.id!);
       });
 
-    const updateMember = (
-      data: UpdateMember
-    ): Effect.Effect<
-      typeof MemberSchema.Type,
-      NotFoundError | UniqueError | ParseError | DatabaseError,
-      never
-    > =>
+    const updateMember: IMemberService['updateMember'] = (data) =>
       Effect.gen(function* () {
         const validatedData =
           yield* Schema.decodeUnknown(UpdateMemberSchema)(data);
@@ -313,9 +285,7 @@ export const MemberServiceLive = Layer.effect(
         return yield* getMemberById(validatedData.id);
       });
 
-    const deleteMember = (
-      id: number
-    ): Effect.Effect<void, NotFoundError | DatabaseError | ParseError, never> =>
+    const deleteMember: IMemberService['deleteMember'] = (id) =>
       Effect.gen(function* () {
         const member = yield* getMemberById(id);
 

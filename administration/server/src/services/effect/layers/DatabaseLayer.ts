@@ -5,28 +5,39 @@ import fs from 'fs';
 import { Kysely, SqliteDialect } from 'kysely';
 import path from 'path';
 import type { DB as DatabaseSchema } from '~/types';
-import { TransactionError } from '../errors/CommonErrors';
+import { TransactionError, UnrecoverableError } from '../errors/CommonErrors';
 
 export interface IDatabaseService {
   readonly obQuery: <T>(
     name: string,
     fn: (db: Kysely<DatabaseSchema>) => Promise<T>
-  ) => Effect.Effect<T, never, never>;
+  ) => Effect.Effect<T, UnrecoverableError, never>;
   readonly query: <T>(
     fn: (db: Kysely<DatabaseSchema>) => Promise<T>
-  ) => Effect.Effect<T, never, never>;
+  ) => Effect.Effect<T, UnrecoverableError, never>;
   readonly querySync: <T>(
     fn: (db: Database.Database) => T
-  ) => Effect.Effect<T, never, never>;
+  ) => Effect.Effect<T, UnrecoverableError, never>;
   readonly transaction: <T, E>(
     fn: (db: Kysely<DatabaseSchema>) => Effect.Effect<T, E>
-  ) => Effect.Effect<T, E | TransactionError, never>;
+  ) => Effect.Effect<T, E | TransactionError | UnrecoverableError, never>;
 }
 
 export const DatabaseService =
   Context.GenericTag<IDatabaseService>('DatabaseService');
 
-const Crash = Effect.catchAll(Effect.die);
+const Crash = Effect.catchAll((error) => {
+  if (error instanceof Error) {
+    return Effect.fail(
+      new UnrecoverableError({
+        message: 'Database error',
+        stack: error.stack || '',
+        attributes: error,
+      })
+    );
+  }
+  return Effect.die(error);
+});
 
 export const DatabaseLive = Layer.effect(
   DatabaseService,
@@ -65,26 +76,30 @@ export const DatabaseLive = Layer.effect(
       }
     })();
 
+    // TODO: Add more precise error handling https://sqlite.org/rescode.html
+    // There are a number of errors that don't indicate actual failure, or
+    // are recoverable. e.g. SQLITE_ABORT/SQLITE_INTERRUPT, or SQLITE_BUSY
+    // which could resolve after a rety.
     return {
       obQuery: <T>(
         name: string,
         fn: (db: Kysely<DatabaseSchema>) => Promise<T>
-      ): Effect.Effect<T, never, never> =>
+      ): Effect.Effect<T, UnrecoverableError, never> =>
         Effect.tryPromise(() => fn(db)).pipe(Crash, withSpan(`db.${name}`)),
 
       query: <T>(
         fn: (db: Kysely<DatabaseSchema>) => Promise<T>
-      ): Effect.Effect<T, never, never> =>
+      ): Effect.Effect<T, UnrecoverableError, never> =>
         Effect.tryPromise(() => fn(db)).pipe(Crash, withSpan(`db.query`)),
 
       querySync: <T>(
         fn: (db: Database.Database) => T
-      ): Effect.Effect<T, never, never> =>
+      ): Effect.Effect<T, UnrecoverableError, never> =>
         Effect.try(() => fn(sqliteDb)).pipe(Crash, withSpan(`db.querySync`)),
 
       transaction: <T, E>(
         fn: (db: Kysely<DatabaseSchema>) => Effect.Effect<T, E>
-      ): Effect.Effect<T, E | TransactionError, never> =>
+      ): Effect.Effect<T, E | TransactionError | UnrecoverableError, never> =>
         Effect.tryPromise(() =>
           db.transaction().execute((trx) => Effect.runPromise(fn(trx)))
         ).pipe(Crash, withSpan(`db.transaction`)),

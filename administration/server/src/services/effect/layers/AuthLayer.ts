@@ -109,7 +109,7 @@ export const AuthLive = Layer.effect(
                 cause: error,
               }),
           }).pipe(
-            Effect.withSpan('validate-session-external'),
+            Effect.withSpan('auth.session.betterauth'),
             Effect.retry(
               Schedule.exponential(config.retryDelay).pipe(
                 Schedule.intersect(Schedule.recurs(config.retryAttempts))
@@ -154,7 +154,7 @@ export const AuthLive = Layer.effect(
 
           return session;
         })
-          .pipe(Effect.withSpan('validate-session'))
+          .pipe(Effect.withSpan('auth.session.validate'))
           .pipe(Effect.provide(BetterAuthLive));
       },
     } satisfies IAuth;

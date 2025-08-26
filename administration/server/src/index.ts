@@ -1,8 +1,13 @@
+import { NodeSdk } from '@effect/opentelemetry/index';
 import { HttpApiBuilder } from '@effect/platform';
+import {
+  ConsoleSpanExporter,
+  SimpleSpanProcessor,
+} from '@opentelemetry/sdk-trace-base';
 import { toNodeHandler } from 'better-auth/node';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { Effect } from 'effect';
+import { Effect, Layer } from 'effect';
 import express from 'express';
 import { ApiLive } from './api';
 import {
@@ -60,6 +65,7 @@ async function startServer() {
     authHandler(req, res);
   });
 
+  // TODO: fix this, it's super neat to have
   // const MainServer = HttpApiSwagger.layer({
   //   path: '/api/docs',
   //   // @ts-ignore also seemingly busted types?
@@ -73,10 +79,16 @@ async function startServer() {
   //   },
   // }).pipe(Layer.provide(ApiLive));
 
+  const NodeSdkLive = NodeSdk.layer(() => ({
+    resource: { serviceName: 'club-management-api' },
+    spanProcessor: new SimpleSpanProcessor(new ConsoleSpanExporter()),
+  }));
+  const Prod = ApiLive.pipe(Layer.provide(NodeSdkLive));
+
   // Convert Effect API to Express middleware and mount it
   const { handler: effectHandler } = HttpApiBuilder.toWebHandler(
     // @ts-expect-error I'm not sure what's wrong here, but it seems like it might be a type bug from @effect/platform, which is marked as unstable. Sooooo ignore (2025-08)
-    ApiLive
+    Prod
   );
 
   // Mount Effect API routes for everything else under /api

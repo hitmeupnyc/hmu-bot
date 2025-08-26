@@ -1,8 +1,3 @@
-/**
- * Member API handlers using @effect/platform HttpApi
- * Implements the business logic for all member endpoints
- */
-
 import { HttpApiBuilder } from '@effect/platform';
 import { Effect } from 'effect';
 import { ParseError as InternalParseError } from 'effect/ParseResult';
@@ -10,7 +5,6 @@ import {
   MemberService,
   MemberServiceLive,
 } from '~/services/effect/MemberEffects';
-import { withHttpRequestObservability } from '~/services/effect/adapters/observabilityUtils';
 import {
   DatabaseError,
   NotFoundError,
@@ -52,9 +46,7 @@ export const MembersApiLive = HttpApiBuilder.group(
               limit: result.pagination.limit,
               totalPages: result.pagination.totalPages,
             };
-          }).pipe(
-            withHttpRequestObservability('api.members.listMembers', request)
-          )
+          })
         )
 
         .handle('getMember', ({ path, request }) =>
@@ -74,9 +66,7 @@ export const MembersApiLive = HttpApiBuilder.group(
               })
             );
             return member;
-          }).pipe(
-            withHttpRequestObservability('api.members.getMember', request)
-          )
+          })
         )
 
         .handle('createMember', ({ payload, request }) =>
@@ -96,9 +86,7 @@ export const MembersApiLive = HttpApiBuilder.group(
               })
             );
             return member;
-          }).pipe(
-            withHttpRequestObservability('api.members.createMember', request)
-          )
+          })
         )
 
         .handle('updateMember', ({ path, payload, request }) =>
@@ -114,8 +102,7 @@ export const MembersApiLive = HttpApiBuilder.group(
                 return new ParseError(error);
               }
               throw error;
-            }),
-            withHttpRequestObservability('api.members.updateMember', request)
+            })
           )
         )
 
@@ -136,9 +123,7 @@ export const MembersApiLive = HttpApiBuilder.group(
               })
             );
             return { message: 'Member deleted successfully' };
-          }).pipe(
-            withHttpRequestObservability('api.members.deleteMember', request)
-          )
+          })
         );
     }).pipe(Effect.provide(MemberServiceLive))
 );

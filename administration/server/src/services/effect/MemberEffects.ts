@@ -1,9 +1,5 @@
 import { Context, Effect, Layer, Schema } from 'effect';
 import { sql } from 'kysely';
-import {
-  withDatabaseObservability,
-  withServiceObservability,
-} from './adapters/observabilityUtils';
 import { DatabaseLive, DatabaseService } from './layers/DatabaseLayer';
 import {
   CreateMemberSchema,
@@ -101,8 +97,9 @@ export const MemberServiceLive = Layer.effect(
         const { page, limit, search } = validatedOptions;
         const offset = (page - 1) * limit;
 
-        const [countResult, memberRows] = yield* dbService
-          .query(async (db) => {
+        const [countResult, memberRows] = yield* dbService.obQuery(
+          'members.list.active',
+          async (db) => {
             let query = db.selectFrom('members').where('flags', '=', '1'); // Only active members
 
             if (search) {
@@ -129,7 +126,7 @@ export const MemberServiceLive = Layer.effect(
                 'email',
                 'pronouns',
                 'sponsor_notes',
-                (eb) => sql`CAST(flags AS INTEGER)`.as('flags'),
+                sql`CAST(flags AS INTEGER)`.as('flags'),
                 'date_added',
                 'created_at',
                 'updated_at',
@@ -142,8 +139,8 @@ export const MemberServiceLive = Layer.effect(
               countQuery.executeTakeFirst() as Promise<{ total: string }>,
               selectQuery.execute(),
             ]);
-          })
-          .pipe(withDatabaseObservability('select', 'members'));
+          }
+        );
 
         const members = yield* Effect.forEach(memberRows, (row) =>
           Schema.decodeUnknown(MemberSchema)(row)
@@ -161,7 +158,7 @@ export const MemberServiceLive = Layer.effect(
             totalPages,
           },
         };
-      }).pipe(withServiceObservability('MemberService', 'getMembers'));
+      });
 
     const getMemberById = (
       id: number
@@ -171,28 +168,26 @@ export const MemberServiceLive = Layer.effect(
       never
     > =>
       Effect.gen(function* () {
-        const member = yield* dbService
-          .query(async (db) =>
-            db
-              .selectFrom('members')
-              .select([
-                'id',
-                'first_name',
-                'last_name',
-                'preferred_name',
-                'email',
-                'pronouns',
-                'sponsor_notes',
-                (eb) => sql`CAST(flags AS INTEGER)`.as('flags'),
-                'date_added',
-                'created_at',
-                'updated_at',
-              ])
-              .where('id', '=', id)
-              .where('flags', '=', '1')
-              .executeTakeFirst()
-          )
-          .pipe(withDatabaseObservability('select', 'members', id));
+        const member = yield* dbService.obQuery('members.get', async (db) =>
+          db
+            .selectFrom('members')
+            .select([
+              'id',
+              'first_name',
+              'last_name',
+              'preferred_name',
+              'email',
+              'pronouns',
+              'sponsor_notes',
+              (eb) => sql`CAST(flags AS INTEGER)`.as('flags'),
+              'date_added',
+              'created_at',
+              'updated_at',
+            ])
+            .where('id', '=', id)
+            .where('flags', '=', '1')
+            .executeTakeFirst()
+        );
 
         if (!member) {
           return yield* new NotFoundError({
@@ -202,7 +197,7 @@ export const MemberServiceLive = Layer.effect(
         }
 
         return yield* Schema.decodeUnknown(MemberSchema)(member);
-      }).pipe(withServiceObservability('MemberService', 'getMemberById', id));
+      });
 
     const createMember = (
       data: CreateMember
@@ -216,12 +211,14 @@ export const MemberServiceLive = Layer.effect(
           yield* Schema.decodeUnknown(CreateMemberSchema)(data);
 
         // Check if email already exists
-        const existingMember = yield* dbService.query(async (db) =>
-          db
-            .selectFrom('members')
-            .select('id')
-            .where('email', '=', validatedData.email)
-            .executeTakeFirst()
+        const existingMember = yield* dbService.obQuery(
+          'members.create.check',
+          async (db) =>
+            db
+              .selectFrom('members')
+              .select('id')
+              .where('email', '=', validatedData.email)
+              .executeTakeFirst()
         );
 
         if (existingMember) {
@@ -241,26 +238,24 @@ export const MemberServiceLive = Layer.effect(
           return result;
         });
 
-        const result = yield* dbService
-          .query(async (db) =>
-            db
-              .insertInto('members')
-              .values({
-                first_name: validatedData.first_name,
-                last_name: validatedData.last_name,
-                preferred_name: validatedData.preferred_name || null,
-                email: validatedData.email,
-                pronouns: validatedData.pronouns || null,
-                sponsor_notes: validatedData.sponsor_notes || null,
-                flags: flags.toString(),
-              })
-              .returning('id')
-              .executeTakeFirstOrThrow()
-          )
-          .pipe(withDatabaseObservability('insert', 'members'));
+        const result = yield* dbService.obQuery('members.create', async (db) =>
+          db
+            .insertInto('members')
+            .values({
+              first_name: validatedData.first_name,
+              last_name: validatedData.last_name,
+              preferred_name: validatedData.preferred_name || null,
+              email: validatedData.email,
+              pronouns: validatedData.pronouns || null,
+              sponsor_notes: validatedData.sponsor_notes || null,
+              flags: flags.toString(),
+            })
+            .returning('id')
+            .executeTakeFirstOrThrow()
+        );
 
         return yield* getMemberById(result.id!);
-      }).pipe(withServiceObservability('MemberService', 'createMember'));
+      });
 
     const updateMember = (
       data: UpdateMember
@@ -280,13 +275,15 @@ export const MemberServiceLive = Layer.effect(
           validatedData.email &&
           validatedData.email !== existingMember.email
         ) {
-          const emailConflict = yield* dbService.query(async (db) =>
-            db
-              .selectFrom('members')
-              .select('id')
-              .where('email', '=', validatedData.email!)
-              .where('id', '!=', validatedData.id)
-              .executeTakeFirst()
+          const emailConflict = yield* dbService.obQuery(
+            'members.update.check',
+            async (db) =>
+              db
+                .selectFrom('members')
+                .select('id')
+                .where('email', '=', validatedData.email!)
+                .where('id', '!=', validatedData.id)
+                .executeTakeFirst()
           );
 
           if (emailConflict) {
@@ -297,30 +294,15 @@ export const MemberServiceLive = Layer.effect(
           }
         }
 
-        const updateData: Record<string, any> = {};
-
-        if (validatedData.first_name !== undefined) {
-          updateData.first_name = validatedData.first_name;
-        }
-        if (validatedData.last_name !== undefined) {
-          updateData.last_name = validatedData.last_name;
-        }
-        if (validatedData.preferred_name !== undefined) {
-          updateData.preferred_name = validatedData.preferred_name;
-        }
-        if (validatedData.email !== undefined) {
-          updateData.email = validatedData.email;
-        }
-        if (validatedData.pronouns !== undefined) {
-          updateData.pronouns = validatedData.pronouns;
-        }
-        if (validatedData.sponsor_notes !== undefined) {
-          updateData.sponsor_notes = validatedData.sponsor_notes;
-        }
+        const updateData = Object.fromEntries(
+          Object.entries(validatedData).filter(
+            ([_, value]) => value !== undefined
+          )
+        );
 
         updateData.updated_at = new Date().toISOString();
 
-        yield* dbService.query(async (db) =>
+        yield* dbService.obQuery('members.update', async (db) =>
           db
             .updateTable('members')
             .set(updateData)
@@ -340,7 +322,7 @@ export const MemberServiceLive = Layer.effect(
         // Soft delete by setting active flag to false
         const flags = member.flags & ~1; // Clear active bit
 
-        yield* dbService.query(async (db) =>
+        yield* dbService.obQuery('members.delete', async (db) =>
           db
             .updateTable('members')
             .set({

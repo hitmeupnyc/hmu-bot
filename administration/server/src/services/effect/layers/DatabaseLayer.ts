@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import { Context, Effect, Layer } from 'effect';
+import { withSpan } from 'effect/Effect';
 import fs from 'fs';
 import { Kysely, SqliteDialect } from 'kysely';
 import path from 'path';
@@ -7,6 +8,10 @@ import type { DB as DatabaseSchema } from '~/types';
 import { TransactionError } from '../errors/CommonErrors';
 
 export interface IDatabaseService {
+  readonly obQuery: <T>(
+    name: string,
+    fn: (db: Kysely<DatabaseSchema>) => Promise<T>
+  ) => Effect.Effect<T, never, never>;
   readonly query: <T>(
     fn: (db: Kysely<DatabaseSchema>) => Promise<T>
   ) => Effect.Effect<T, never, never>;
@@ -61,17 +66,28 @@ export const DatabaseLive = Layer.effect(
     })();
 
     return {
-      query: (fn) => Effect.tryPromise(() => fn(db)).pipe(Crash),
+      obQuery: <T>(
+        name: string,
+        fn: (db: Kysely<DatabaseSchema>) => Promise<T>
+      ): Effect.Effect<T, never, never> =>
+        Effect.tryPromise(() => fn(db)).pipe(Crash, withSpan(`db.${name}`)),
 
-      querySync: <T>(fn: (db: Database.Database) => T) =>
-        Effect.try(() => fn(sqliteDb)).pipe(Crash),
+      query: <T>(
+        fn: (db: Kysely<DatabaseSchema>) => Promise<T>
+      ): Effect.Effect<T, never, never> =>
+        Effect.tryPromise(() => fn(db)).pipe(Crash, withSpan(`db.query`)),
+
+      querySync: <T>(
+        fn: (db: Database.Database) => T
+      ): Effect.Effect<T, never, never> =>
+        Effect.try(() => fn(sqliteDb)).pipe(Crash, withSpan(`db.querySync`)),
 
       transaction: <T, E>(
         fn: (db: Kysely<DatabaseSchema>) => Effect.Effect<T, E>
-      ) =>
+      ): Effect.Effect<T, E | TransactionError, never> =>
         Effect.tryPromise(() =>
           db.transaction().execute((trx) => Effect.runPromise(fn(trx)))
-        ).pipe(Crash),
+        ).pipe(Crash, withSpan(`db.transaction`)),
     };
   })
 );

@@ -1,31 +1,41 @@
-import { Data } from 'effect';
+import { HttpApiSchema } from '@effect/platform/index';
+import { Schema } from 'effect';
 
 // Network
-export class NotFoundError extends Data.TaggedError('NotFoundError')<{
-  readonly id: string;
-  readonly resource: string;
-}> {}
+export class NotFoundError extends Schema.TaggedError<NotFoundError>()(
+  'NotFoundError',
+  { id: Schema.String, resource: Schema.String },
+  HttpApiSchema.annotations({ status: 404 })
+) {}
 
-export class UniqueError extends Data.TaggedError('UniqueError')<{
-  readonly field: string;
-  readonly value: string;
-}> {}
+export class UniqueError extends Schema.TaggedError<UniqueError>()(
+  'UniqueError',
+  { field: Schema.String, value: Schema.String },
+  HttpApiSchema.annotations({ status: 409 })
+) {}
 
 // Database
-export class DatabaseError extends Data.TaggedError('DatabaseError')<{
-  readonly message: string;
-  readonly cause?: unknown;
-}> {}
+export class DatabaseError extends Schema.TaggedError<DatabaseError>()(
+  'DatabaseError',
+  { message: Schema.String, cause: Schema.optional(Schema.Any) },
+  HttpApiSchema.annotations({ status: 500 })
+) {}
 
-export class TransactionError extends Data.TaggedError('TransactionError')<{
-  readonly message: string;
-  readonly operation: string;
-}> {}
+export class TransactionError extends Schema.TaggedError<TransactionError>()(
+  'TransactionError',
+  { message: Schema.String, operation: Schema.String },
+  HttpApiSchema.annotations({ status: 500 })
+) {}
 
-export class ConnectionError extends Data.TaggedError('ConnectionError')<{
-  readonly message: string;
-  readonly path?: string;
-}> {}
+export class ConnectionError extends Schema.TaggedError<ConnectionError>()(
+  'ConnectionError',
+  { message: Schema.String, path: Schema.optional(Schema.String) },
+  HttpApiSchema.annotations({ status: 500 })
+) {}
 
 // Schema
-export { ParseError } from 'effect/ParseResult';
+export class ParseError extends Schema.TaggedError<ParseError>()(
+  'ParseError',
+  { message: Schema.String },
+  HttpApiSchema.annotations({ status: 400 })
+) {}

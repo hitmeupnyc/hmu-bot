@@ -5,6 +5,7 @@
 
 import { HttpApiBuilder } from '@effect/platform';
 import { Effect } from 'effect';
+import { ParseError as InternalParseError } from 'effect/ParseResult';
 import {
   MemberService,
   MemberServiceLive,
@@ -13,9 +14,10 @@ import { withHttpRequestObservability } from '~/services/effect/adapters/observa
 import {
   DatabaseError,
   NotFoundError,
+  ParseError,
   UniqueError,
 } from '~/services/effect/errors/CommonErrors';
-import { MemberEmailExists, MemberNotFound, membersApi } from './endpoints';
+import { membersApi } from './endpoints';
 
 export const MembersApiLive = HttpApiBuilder.group(
   membersApi,
@@ -60,7 +62,10 @@ export const MembersApiLive = HttpApiBuilder.group(
             const member = yield* memberService.getMemberById(path.id).pipe(
               Effect.mapError((error) => {
                 if (error instanceof NotFoundError) {
-                  return new MemberNotFound({ memberId: path.id });
+                  return new NotFoundError({
+                    id: path.id.toString(),
+                    resource: 'member',
+                  });
                 }
                 if (error instanceof DatabaseError) {
                   throw new Error('Database error occurred');
@@ -79,7 +84,10 @@ export const MembersApiLive = HttpApiBuilder.group(
             const member = yield* memberService.createMember(payload).pipe(
               Effect.mapError((error) => {
                 if (error instanceof UniqueError) {
-                  return new MemberEmailExists({ email: payload.email });
+                  return new UniqueError({
+                    field: 'email',
+                    value: payload.email,
+                  });
                 }
                 if (error instanceof DatabaseError) {
                   throw new Error('Database error occurred');
@@ -95,26 +103,18 @@ export const MembersApiLive = HttpApiBuilder.group(
 
         .handle('updateMember', ({ path, payload, request }) =>
           Effect.gen(function* () {
-            const member = yield* memberService
-              .updateMember({ ...payload, id: path.id })
-              .pipe(
-                Effect.mapError((error) => {
-                  if (error instanceof NotFoundError) {
-                    return new MemberNotFound({ memberId: path.id });
-                  }
-                  if (error instanceof UniqueError) {
-                    return new MemberEmailExists({
-                      email: payload.email || '',
-                    });
-                  }
-                  if (error instanceof DatabaseError) {
-                    throw new Error('Database error occurred');
-                  }
-                  throw error;
-                })
-              );
+            const member = yield* memberService.updateMember({
+              ...payload,
+              id: path.id,
+            });
             return member;
           }).pipe(
+            Effect.mapError((error) => {
+              if (error instanceof InternalParseError) {
+                return new ParseError(error);
+              }
+              throw error;
+            }),
             withHttpRequestObservability('api.members.updateMember', request)
           )
         )
@@ -124,7 +124,10 @@ export const MembersApiLive = HttpApiBuilder.group(
             yield* memberService.deleteMember(path.id).pipe(
               Effect.mapError((error) => {
                 if (error instanceof NotFoundError) {
-                  return new MemberNotFound({ memberId: path.id });
+                  return new NotFoundError({
+                    id: path.id.toString(),
+                    resource: 'member',
+                  });
                 }
                 if (error instanceof DatabaseError) {
                   throw new Error('Database error occurred');

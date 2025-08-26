@@ -1,10 +1,10 @@
 import { Context, Effect, Layer, Schema } from 'effect';
 import { sql } from 'kysely';
-import { DatabaseLive, DatabaseService } from './layers/DatabaseLayer';
-import { 
-  withServiceObservability, 
-  withDatabaseObservability 
+import {
+  withDatabaseObservability,
+  withServiceObservability,
 } from './adapters/observabilityUtils';
+import { DatabaseLive, DatabaseService } from './layers/DatabaseLayer';
 import {
   CreateMemberSchema,
   MemberFlagsSchema,
@@ -101,51 +101,49 @@ export const MemberServiceLive = Layer.effect(
         const { page, limit, search } = validatedOptions;
         const offset = (page - 1) * limit;
 
-        const [countResult, memberRows] = yield* dbService.query(async (db) => {
-          let query = db
-            .selectFrom('members')
-            .where('flags', '=', '1'); // Only active members
+        const [countResult, memberRows] = yield* dbService
+          .query(async (db) => {
+            let query = db.selectFrom('members').where('flags', '=', '1'); // Only active members
 
-          if (search) {
-            const searchTerm = `%${search}%`;
-            query = query.where((eb) =>
-              eb.or([
-                eb('first_name', 'like', searchTerm),
-                eb('last_name', 'like', searchTerm),
-                eb('email', 'like', searchTerm),
+            if (search) {
+              const searchTerm = `%${search}%`;
+              query = query.where((eb) =>
+                eb.or([
+                  eb('first_name', 'like', searchTerm),
+                  eb('last_name', 'like', searchTerm),
+                  eb('email', 'like', searchTerm),
+                ])
+              );
+            }
+
+            const countQuery = query
+              .clearSelect()
+              .select((eb) => eb.fn.count('id').as('total'));
+
+            const selectQuery = query
+              .select([
+                'id',
+                'first_name',
+                'last_name',
+                'preferred_name',
+                'email',
+                'pronouns',
+                'sponsor_notes',
+                (eb) => sql`CAST(flags AS INTEGER)`.as('flags'),
+                'date_added',
+                'created_at',
+                'updated_at',
               ])
-            );
-          }
+              .orderBy('created_at', 'desc')
+              .limit(limit)
+              .offset(offset);
 
-          const countQuery = query
-            .clearSelect()
-            .select((eb) => eb.fn.count('id').as('total'));
-
-          const selectQuery = query
-            .select([
-              'id',
-              'first_name',
-              'last_name', 
-              'preferred_name',
-              'email',
-              'pronouns',
-              'sponsor_notes',
-              (eb) => sql`CAST(flags AS INTEGER)`.as('flags'),
-              'date_added',
-              'created_at',
-              'updated_at'
-            ])
-            .orderBy('created_at', 'desc')
-            .limit(limit)
-            .offset(offset);
-
-          return Promise.all([
-            countQuery.executeTakeFirst() as Promise<{ total: string }>,
-            selectQuery.execute(),
-          ]);
-        }).pipe(
-          withDatabaseObservability('select', 'members')
-        );
+            return Promise.all([
+              countQuery.executeTakeFirst() as Promise<{ total: string }>,
+              selectQuery.execute(),
+            ]);
+          })
+          .pipe(withDatabaseObservability('select', 'members'));
 
         const members = yield* Effect.forEach(memberRows, (row) =>
           Schema.decodeUnknown(MemberSchema)(row)
@@ -163,9 +161,7 @@ export const MemberServiceLive = Layer.effect(
             totalPages,
           },
         };
-      }).pipe(
-        withServiceObservability('MemberService', 'getMembers')
-      );
+      }).pipe(withServiceObservability('MemberService', 'getMembers'));
 
     const getMemberById = (
       id: number
@@ -175,28 +171,28 @@ export const MemberServiceLive = Layer.effect(
       never
     > =>
       Effect.gen(function* () {
-        const member = yield* dbService.query(async (db) =>
-          db
-            .selectFrom('members')
-            .select([
-              'id',
-              'first_name',
-              'last_name', 
-              'preferred_name',
-              'email',
-              'pronouns',
-              'sponsor_notes',
-              (eb) => sql`CAST(flags AS INTEGER)`.as('flags'),
-              'date_added',
-              'created_at',
-              'updated_at'
-            ])
-            .where('id', '=', id)
-            .where('flags', '=', '1')
-            .executeTakeFirst()
-        ).pipe(
-          withDatabaseObservability('select', 'members', id)
-        );
+        const member = yield* dbService
+          .query(async (db) =>
+            db
+              .selectFrom('members')
+              .select([
+                'id',
+                'first_name',
+                'last_name',
+                'preferred_name',
+                'email',
+                'pronouns',
+                'sponsor_notes',
+                (eb) => sql`CAST(flags AS INTEGER)`.as('flags'),
+                'date_added',
+                'created_at',
+                'updated_at',
+              ])
+              .where('id', '=', id)
+              .where('flags', '=', '1')
+              .executeTakeFirst()
+          )
+          .pipe(withDatabaseObservability('select', 'members', id));
 
         if (!member) {
           return yield* new NotFoundError({
@@ -206,9 +202,7 @@ export const MemberServiceLive = Layer.effect(
         }
 
         return yield* Schema.decodeUnknown(MemberSchema)(member);
-      }).pipe(
-        withServiceObservability('MemberService', 'getMemberById', id)
-      );
+      }).pipe(withServiceObservability('MemberService', 'getMemberById', id));
 
     const createMember = (
       data: CreateMember
@@ -247,28 +241,26 @@ export const MemberServiceLive = Layer.effect(
           return result;
         });
 
-        const result = yield* dbService.query(async (db) =>
-          db
-            .insertInto('members')
-            .values({
-              first_name: validatedData.first_name,
-              last_name: validatedData.last_name,
-              preferred_name: validatedData.preferred_name || null,
-              email: validatedData.email,
-              pronouns: validatedData.pronouns || null,
-              sponsor_notes: validatedData.sponsor_notes || null,
-              flags: flags.toString(),
-            })
-            .returning('id')
-            .executeTakeFirstOrThrow()
-        ).pipe(
-          withDatabaseObservability('insert', 'members')
-        );
+        const result = yield* dbService
+          .query(async (db) =>
+            db
+              .insertInto('members')
+              .values({
+                first_name: validatedData.first_name,
+                last_name: validatedData.last_name,
+                preferred_name: validatedData.preferred_name || null,
+                email: validatedData.email,
+                pronouns: validatedData.pronouns || null,
+                sponsor_notes: validatedData.sponsor_notes || null,
+                flags: flags.toString(),
+              })
+              .returning('id')
+              .executeTakeFirstOrThrow()
+          )
+          .pipe(withDatabaseObservability('insert', 'members'));
 
         return yield* getMemberById(result.id!);
-      }).pipe(
-        withServiceObservability('MemberService', 'createMember')
-      );
+      }).pipe(withServiceObservability('MemberService', 'createMember'));
 
     const updateMember = (
       data: UpdateMember

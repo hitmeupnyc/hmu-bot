@@ -11,9 +11,9 @@ export function LoginPage() {
   const [searchParams] = useSearchParams();
 
   const { data: session, isPending } = useSession();
-  
+
   // Get redirect destination from URL params
-  const from = searchParams.get('from') || '/dashboard';
+  const from = searchParams.get('from') || '/';
 
   // Redirect if already authenticated
   useEffect(() => {

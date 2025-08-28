@@ -31,10 +31,6 @@ export const MembersApiLive = HttpApiBuilder.group(
               .getMembers({ page, limit, search })
               .pipe(
                 Effect.mapError((error) => {
-                  // Map service errors to API errors
-                  if (error instanceof DatabaseError) {
-                    throw new Error('Database error occurred');
-                  }
                   throw error;
                 })
               );

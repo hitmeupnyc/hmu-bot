@@ -13,6 +13,7 @@ import {
   type Action,
   type Subject,
 } from '../AuthorizationEffects';
+import { ParseError, UnrecoverableError } from '../errors/CommonErrors';
 import { Auth, AuthenticationError, IAuth } from '../layers/AuthLayer';
 import { ActiveSession, ActiveUser, Express, IExpress } from './context';
 import { useParsedParams } from './parsers';
@@ -26,21 +27,20 @@ export const requireAuth =
     effect: Effect.Effect<A, E, R>
   ): Effect.Effect<
     A,
-    E | AuthenticationError | TimeoutException,
+    | E
+    | AuthenticationError
+    | TimeoutException
+    | UnrecoverableError
+    | ParseError,
     R | IExpress | IAuth
   > =>
     Effect.gen(function* () {
       const { req } = yield* Express;
       const authService = yield* Auth;
 
-      // Extract headers for auth validation
-      const headers = req.headers as Record<
-        string,
-        string | string[] | undefined
-      >;
-
-      const session = yield* authService.validateSession(headers);
-
+      const session = yield* authService.validateSession(
+        req.headers as Record<string, string | string[] | undefined>
+      );
       return yield* effect.pipe(
         Effect.provideService(ActiveUser, session.user),
         Effect.provideService(ActiveSession, session)

@@ -8,6 +8,7 @@ import { Layer } from 'effect';
 import { Authentication, AuthenticationLive } from '~/middleware/auth';
 import { ApplicationLive } from '~/services/effect/adapters/expressAdapter';
 import { EventsApiLive, eventsGroup } from './events';
+import { FlagsApiLive, flagsGroup } from './flags';
 import { HealthApiLive, healthGroup } from './health';
 import { MembersApiLive, membersGroup } from './members';
 
@@ -17,13 +18,20 @@ export const api = HttpApi.make('ClubManagementAPI')
   .middleware(Authentication)
   .add(membersGroup)
   .add(eventsGroup)
+  .add(flagsGroup)
   .annotate(OpenApi.Description, 'Club Management System API')
   .annotate(OpenApi.Summary, 'RESTful API for club management');
 
 // Create the complete API implementation
 export const ApiLive = HttpApiBuilder.api(api).pipe(
   Layer.provide(
-    Layer.mergeAll(HealthApiLive, MembersApiLive, EventsApiLive, AuthenticationLive)
+    Layer.mergeAll(
+      HealthApiLive, 
+      MembersApiLive, 
+      EventsApiLive, 
+      FlagsApiLive, 
+      AuthenticationLive
+    )
   ),
   Layer.provide(ApplicationLive)
 );

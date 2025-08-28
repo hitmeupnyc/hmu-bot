@@ -55,6 +55,10 @@ export function useFlags() {
         credentials: 'include',
       });
       if (!response.ok) {
+        if (response.status === 404) {
+          console.warn('Flags API not available, returning empty array');
+          return [];
+        }
         throw new Error('Failed to fetch flags');
       }
       return response.json();
@@ -88,6 +92,10 @@ export function useMemberFlags(email: string) {
         credentials: 'include',
       });
       if (!response.ok) {
+        if (response.status === 404) {
+          console.warn('Member flags API not available, returning empty array');
+          return [];
+        }
         throw new Error('Failed to fetch member flags');
       }
       return response.json();

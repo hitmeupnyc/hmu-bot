@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { Modal } from '@/components/Modal';
+import { FeatureErrorBoundary } from '@/components/FeatureErrorBoundary';
 import {
   ApplicationNotes,
   AuditHistory,
@@ -238,7 +239,9 @@ export function MemberDetails() {
 
         {activeTab === 'flags' && (
           <div className="bg-white shadow rounded-lg p-6">
-            <MemberFlags memberEmail={member.email} onGrantFlag={handleGrantFlag} />
+            <FeatureErrorBoundary featureName="Member Flags & Permissions">
+              <MemberFlags memberEmail={member.email} onGrantFlag={handleGrantFlag} />
+            </FeatureErrorBoundary>
           </div>
         )}
 
@@ -248,11 +251,13 @@ export function MemberDetails() {
               <ClockIcon className="h-5 w-5 mr-2" />
               Audit History
             </h2>
-            {auditLoading ? (
-              <div className="text-gray-500 text-sm">Loading audit history...</div>
-            ) : (
-              <AuditHistory auditLog={auditLog} />
-            )}
+            <FeatureErrorBoundary featureName="Audit History">
+              {auditLoading ? (
+                <div className="text-gray-500 text-sm">Loading audit history...</div>
+              ) : (
+                <AuditHistory auditLog={auditLog} />
+              )}
+            </FeatureErrorBoundary>
           </div>
         )}
       </div>

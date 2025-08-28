@@ -37,7 +37,7 @@ export function useEventCrud() {
       description: formData.description || undefined,
       start_datetime: formData.start_datetime,
       end_datetime: formData.end_datetime,
-      is_public: formData.is_public,
+      flags: 1, // Active flag - ignoring is_public for now since it's not implemented yet
       max_capacity: formData.max_capacity
         ? parseInt(formData.max_capacity)
         : undefined,

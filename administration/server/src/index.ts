@@ -65,6 +65,9 @@ async function startServer() {
     authHandler(req, res);
   });
 
+  // Add JSON parsing middleware after BetterAuth routes are mounted
+  app.use(express.json());
+
   // TODO: fix this, it's super neat to have
   // const MainServer = HttpApiSwagger.layer({
   //   path: '/api/docs',

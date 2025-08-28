@@ -44,7 +44,6 @@ export function useMemberCrud() {
           email: formData.email,
           pronouns: formData.pronouns || '',
           sponsor_notes: formData.sponsor_notes || '',
-          is_professional_affiliate: formData.is_professional_affiliate,
         });
       } else {
         await createMember.mutateAsync({
@@ -54,7 +53,6 @@ export function useMemberCrud() {
           email: formData.email,
           pronouns: formData.pronouns || '',
           sponsor_notes: formData.sponsor_notes || '',
-          is_professional_affiliate: formData.is_professional_affiliate,
         });
       }
 

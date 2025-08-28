@@ -32,13 +32,22 @@ export function useAuditLog(
   return useQuery({
     queryKey: ['audit', entityType, entityId],
     queryFn: async (): Promise<AuditLogEntry[]> => {
-      const response = await api.get<AuditResponse>(`/audit`, {
-        params: {
-          entity_type: entityType,
-          entity_id: entityId,
-        },
-      });
-      return response.data.data;
+      try {
+        const response = await api.get<AuditResponse>(`/audit`, {
+          params: {
+            entity_type: entityType,
+            entity_id: entityId,
+          },
+        });
+        return response.data.data;
+      } catch (error: any) {
+        // If audit API is not available (404), return empty array instead of throwing
+        if (error?.response?.status === 404) {
+          console.warn('Audit API not available, returning empty audit log');
+          return [];
+        }
+        throw error;
+      }
     },
     enabled: enabled && !!entityId,
     staleTime: 30 * 1000, // 30 seconds

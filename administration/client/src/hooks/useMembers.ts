@@ -64,8 +64,9 @@ export function useMember(id: number, enabled = true) {
   return useQuery({
     queryKey: memberKeys.detail(id),
     queryFn: async (): Promise<Member> => {
-      const response = await api.get<MemberResponse>(`/members/${id}`);
-      return response.data.data;
+      const response = await api.get<Member>(`/members/${id}`);
+      // Effect HTTP API returns the member object directly, not wrapped in a data object
+      return response.data;
     },
     enabled: enabled && !!id,
     staleTime: 5 * 60 * 1000, // 5 minutes

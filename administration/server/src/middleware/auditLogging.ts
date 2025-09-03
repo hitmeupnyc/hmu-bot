@@ -1,44 +1,39 @@
-import { Effect } from 'effect';
-import { Request } from 'express';
-import { Audit } from '~/services/effect/schemas/AuditSchema';
-import { effectToExpress } from '../services/effect/adapters/expressAdapter';
-import { AuditService } from '../services/effect/AuditEffects';
+import { Request, Response, NextFunction } from 'express';
+// Approved by vcarl 2025-09-03
+import { db_DO_NOT_USE_WITHOUT_PRIOR_AUTHORIZATION as db } from '~/services/effect/layers/DatabaseLayer';
 
-// Extend Express Request/Response types
+// Extend Express Request type to include session
 declare global {
   namespace Express {
     interface Request {
-      auditInfo?: {
-        sessionId: string;
-        userIp: string;
+      session?: {
+        id?: string;
+        user?: {
+          id?: string;
+          email?: string;
+        };
       };
-      _auditStartTime?: number;
-    }
-    interface Response {
-      _auditEntityType?: string;
-      _auditEntityId?: number;
-      _auditAction?: string;
-      _auditOldData?: any;
-      _auditMetadata?: Record<string, any>;
     }
   }
 }
 
-const matchRequest = (
-  req: Request
-): {
-  entityId?: number;
-  action: 'create' | 'update' | 'delete' | 'view' | 'search' | 'unknown';
-} => {
-  const id = parseInt(req.params.id);
-  const action = (function () {
-    switch (req.method) {
+// Parse route to extract entity type, ID, and action
+const parseRoute = (path: string, method: string) => {
+  const segments = path.split('/').filter(Boolean);
+  
+  // Skip 'api' prefix
+  if (segments[0] === 'api') segments.shift();
+  
+  const entityType = segments[0]?.replace(/s$/, ''); // Remove plural (members -> member)
+  const entityId = segments[1] && !isNaN(Number(segments[1])) ? parseInt(segments[1]) : null;
+  
+  const action = (() => {
+    switch (method) {
       case 'GET':
-        return 'view';
+        return entityId ? 'view' : 'search';
       case 'POST':
         return 'create';
       case 'PUT':
-        return 'update';
       case 'PATCH':
         return 'update';
       case 'DELETE':
@@ -47,47 +42,85 @@ const matchRequest = (
         return 'unknown';
     }
   })();
-
-  return { entityId: id, action };
+  
+  return { entityType, entityId, action };
 };
 
-export const auditMiddleware = (entityType: string) =>
-  effectToExpress((req, res) =>
-    Effect.gen(function* () {
-      const { entityId, action } = matchRequest(req);
-      if (!entityType || action === 'unknown') {
+// Express middleware for audit logging
+export const auditMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  // Skip non-API routes or auth routes
+  if (!req.path.startsWith('/api/') || req.path.startsWith('/api/auth/')) {
+    return next();
+  }
+
+  const { entityType, entityId, action } = parseRoute(req.path, req.method);
+  
+  if (!entityType || action === 'unknown') {
+    console.log(
+      '[AuditLog]: Skipping -',
+      JSON.stringify({ path: req.path, method: req.method, entityType, entityId, action })
+    );
+    return next();
+  }
+
+  // Store the request body as potential newValues
+  const newValues = (action === 'create' || action === 'update') && req.body ? req.body : null;
+  
+  // Set up response listener for when the request completes
+  res.on('finish', async () => {
+    // Only log successful operations (2xx/3xx status codes)
+    if (res.statusCode < 200 || res.statusCode >= 400) {
+      console.log(
+        '[AuditLog]: Skipping failed request -',
+        JSON.stringify({ path: req.path, method: req.method, status: res.statusCode })
+      );
+      return;
+    }
+
+    try {
+      // Check if database is ready
+      if (!db) {
+        console.log('[AuditLog]: Database not ready yet, skipping audit log');
         return;
       }
 
-      const auditLog = yield* Effect.async<Audit | undefined>((resume) => {
-        res.on('finish', () => {
-          // Only log successful operations (2xx/3xx status codes)
-          if (res.statusCode < 200 || res.statusCode >= 400) {
-            resume(Effect.succeed(undefined));
-          }
+      const auditData = {
+        entity_type: entityType,
+        entity_id: entityId, // Only number or null as per DB schema
+        action,
+        user_session_id: req.session?.id || null,
+        user_id: req.session?.user?.id || null,
+        user_email: req.session?.user?.email || null,
+        user_ip: req.ip || req.socket?.remoteAddress || null,
+        old_values_json: null, // TODO: Capture old values for updates
+        new_values_json: newValues ? JSON.stringify(newValues) : null,
+        metadata_json: JSON.stringify({
+          userAgent: req.get('User-Agent'),
+          referer: req.get('Referer'),
+          method: req.method,
+          path: req.path,
+          statusCode: res.statusCode
+        })
+      };
 
-          resume(
-            Effect.succeed({
-              entity_type: entityType,
-              entity_id: entityId,
-              action,
-              oldValues: res._auditOldData ? res._auditOldData : undefined,
-              newValues:
-                action === 'create' || action === 'update'
-                  ? req.body
-                  : undefined,
-              metadata: undefined,
-              userSessionId: req.session?.id || 'anonymous',
-              userId: req.session?.user.id || 'anonymous',
-              userEmail: req.session?.user.email || 'anonymous',
-              userIp: req.ip || req.socket?.remoteAddress || 'unknown',
-            })
-          );
-        });
-      });
-      if (auditLog) {
-        const auditService = yield* AuditService;
-        yield* auditService.logAuditEvent(auditLog);
-      }
-    })
-  );
+      console.log(
+        '[AuditLog]: Logging -',
+        JSON.stringify({
+          entity_type: auditData.entity_type,
+          entity_id: auditData.entity_id,
+          action: auditData.action,
+          user: auditData.user_email || 'anonymous',
+          status: res.statusCode
+        })
+      );
+
+      await db.insertInto('audit_log').values(auditData).execute();
+      
+      console.log('[AuditLog]: Successfully logged audit entry');
+    } catch (error) {
+      console.error('[AuditLog]: Failed to log audit entry:', error);
+    }
+  });
+
+  next();
+};

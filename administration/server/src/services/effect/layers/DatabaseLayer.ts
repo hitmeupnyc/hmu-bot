@@ -54,10 +54,10 @@ export const DatabaseLive = Layer.effect(
     // Create the better-sqlite3 instance
     const sqliteDb = yield* (() => {
       try {
-        const db = new Database(dbPath);
-        db.pragma('journal_mode = WAL');
-        db.pragma('foreign_keys = ON');
-        return Effect.succeed(db);
+        const dbInstance = new Database(dbPath);
+        dbInstance.pragma('journal_mode = WAL');
+        dbInstance.pragma('foreign_keys = ON');
+        return Effect.succeed(dbInstance);
       } catch (_) {
         return Effect.die('Failed to connect to sqlite');
       }
@@ -106,3 +106,17 @@ export const DatabaseLive = Layer.effect(
     };
   })
 );
+
+export let db_DO_NOT_USE_WITHOUT_PRIOR_AUTHORIZATION: Kysely<DatabaseSchema>;
+
+const extractKysely = Effect.gen(function* () {
+  const dbService = yield* DatabaseService;
+  const innerDb = yield* dbService.query((db) => Promise.resolve(db));
+  return innerDb;
+}).pipe(Effect.provide(DatabaseLive));
+
+Effect.runPromise(
+  extractKysely as Effect.Effect<Kysely<DatabaseSchema>, never, never>
+).then((db) => {
+  db_DO_NOT_USE_WITHOUT_PRIOR_AUTHORIZATION = db;
+});

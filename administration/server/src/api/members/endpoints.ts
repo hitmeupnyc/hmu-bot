@@ -66,6 +66,15 @@ export const membersGroup = HttpApiGroup.make('members')
       .addSuccess(Schema.Struct({ message: Schema.String }))
       .addError(NotFoundError)
       .annotate(OpenApi.Description, 'Delete a member')
+  )
+  .add(
+    HttpApiEndpoint.post('api.members.note', '/api/members/:id/note')
+      .setPath(Schema.Struct({ id: Schema.NumberFromString }))
+      .setPayload(Schema.Struct({ content: Schema.String }))
+      .addSuccess(Schema.Struct({ message: Schema.String }), { status: 201 })
+      .addError(NotFoundError)
+      .addError(ParseError)
+      .annotate(OpenApi.Description, 'Add a note to a member profile')
   );
 
 // Members API

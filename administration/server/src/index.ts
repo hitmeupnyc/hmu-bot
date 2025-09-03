@@ -68,6 +68,10 @@ async function startServer() {
   // Add JSON parsing middleware after BetterAuth routes are mounted
   app.use(express.json());
 
+  // Add audit logging middleware for all API routes (except auth)
+  const { auditMiddleware } = await import('./middleware/auditLogging');
+  app.use(auditMiddleware);
+
   // TODO: fix this, it's super neat to have
   // const MainServer = HttpApiSwagger.layer({
   //   path: '/api/docs',

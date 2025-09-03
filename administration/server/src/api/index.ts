@@ -7,6 +7,7 @@ import { HttpApi, HttpApiBuilder, OpenApi } from '@effect/platform';
 import { Layer } from 'effect';
 import { Authentication, AuthenticationLive } from '~/middleware/auth';
 import { ApplicationLive } from '~/services/effect/adapters/expressAdapter';
+import { AuditApiLive, auditGroup } from './audit';
 import { EventsApiLive, eventsGroup } from './events';
 import { FlagsApiLive, flagsGroup } from './flags';
 import { HealthApiLive, healthGroup } from './health';
@@ -19,6 +20,7 @@ export const api = HttpApi.make('ClubManagementAPI')
   .add(membersGroup)
   .add(eventsGroup)
   .add(flagsGroup)
+  .add(auditGroup)
   .annotate(OpenApi.Description, 'Club Management System API')
   .annotate(OpenApi.Summary, 'RESTful API for club management');
 
@@ -30,6 +32,7 @@ export const ApiLive = HttpApiBuilder.api(api).pipe(
       MembersApiLive, 
       EventsApiLive, 
       FlagsApiLive, 
+      AuditApiLive,
       AuthenticationLive
     )
   ),

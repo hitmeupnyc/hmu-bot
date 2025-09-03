@@ -17,13 +17,8 @@ export function ApplicationNotes({
 
   const addNoteMutation = useMutation({
     mutationFn: async ({ content }: { content: string }) => {
-      const response = await api.post(`/audit`, {
-        entity_type: 'member',
-        entity_id: memberId,
-        action: 'note',
-        metadata: {
-          content,
-        },
+      const response = await api.post(`/members/${memberId}/note`, {
+        content,
       });
       return response.data;
     },

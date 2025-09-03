@@ -1,7 +1,6 @@
 import { Effect, Layer } from 'effect';
 import type { NextFunction, Request, Response } from 'express';
 
-import { AuditServiceLive } from '../AuditEffects';
 import { AuthorizationService } from '../AuthorizationEffects';
 import { EventServiceLive } from '../EventEffects';
 import { Express } from '../http/context';
@@ -17,7 +16,6 @@ export const ApplicationLive = Layer.mergeAll(
   DatabaseLive,
   MemberServiceLive,
   EventServiceLive,
-  AuditServiceLive,
   FlagLive,
   AuthLive,
   AuthorizationService.Live

@@ -68,6 +68,34 @@ async function startServer() {
   // Add JSON parsing middleware after BetterAuth routes are mounted
   app.use(express.json());
 
+  // In test mode, add endpoint to get magic link for testing
+  if (process.env.NODE_ENV === 'test') {
+    console.log('⚠️  BetterAuth running in TEST MODE - accepting test tokens');
+    
+    // Test endpoint to get magic link URL
+    app.post('/api/test-magic-link', async (req, res) => {
+      try {
+        const { email = 'test@hitmeupnyc.com' } = req.body || {};
+        const testToken = 'test-token-e2e';
+        
+        // Generate the magic link URL directly using the test token
+        const magicLinkUrl = `http://localhost:5173/api/auth/magic-link/verify?token=${testToken}&callbackURL=${encodeURIComponent('/')}`;
+        
+        console.log(`Test magic link generated: ${magicLinkUrl}`);
+        
+        res.json({ 
+          success: true, 
+          magicLinkUrl,
+          email,
+          message: 'Magic link generated for testing'
+        });
+      } catch (error) {
+        console.error('Error generating test magic link:', error);
+        res.status(500).json({ error: 'Failed to generate test magic link' });
+      }
+    });
+  }
+
   // Add audit logging middleware for all API routes (except auth)
   const { auditMiddleware } = await import('./middleware/auditLogging');
   app.use(auditMiddleware);
@@ -100,8 +128,8 @@ async function startServer() {
 
   // Mount Effect API routes for everything else under /api
   app.use('/api', async (req, res, next) => {
-    // Skip auth routes - they're handled above
-    if (req.path.startsWith('/auth')) {
+    // Skip auth routes and test-auth routes - they're handled above
+    if (req.path.startsWith('/auth') || req.path.startsWith('/test-auth')) {
       return next();
     }
 

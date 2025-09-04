@@ -1,6 +1,11 @@
 import { Context, Effect, Layer, Schema } from 'effect';
 import { sql } from 'kysely';
-import { DatabaseLive, DatabaseService } from './layers/DatabaseLayer';
+import {
+  NotFoundError,
+  ParseError,
+  UniqueError,
+  UnrecoverableError,
+} from '~/api/errors';
 import {
   CreateMemberSchema,
   MemberFlagsSchema,
@@ -10,15 +15,11 @@ import {
   type CreateMember,
   type MemberQueryOptions,
   type UpdateMember,
-} from './schemas/MemberSchemas';
-
-// Import the database error for interface types
+} from '~/api/members/schemas';
 import {
-  NotFoundError,
-  ParseError,
-  UniqueError,
-  UnrecoverableError,
-} from './errors/CommonErrors';
+  DatabaseLive,
+  DatabaseService,
+} from '~/services/effect/layers/DatabaseLayer';
 
 // Service interface
 export interface IMemberService {

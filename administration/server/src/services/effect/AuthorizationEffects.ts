@@ -1,5 +1,5 @@
 import { Data, Effect, Layer } from 'effect';
-import { NotFoundError } from './errors/CommonErrors';
+import { NotFoundError } from '~/api/errors';
 
 import { Flag, FlagLive, IFlag } from './layers/FlagLayer';
 

@@ -5,18 +5,9 @@ import {
   OpenApi,
 } from '@effect/platform';
 import { Schema } from 'effect';
-import {
-  NotFoundError,
-  ParseError,
-  UniqueError,
-} from '~/services/effect/errors/CommonErrors';
-import { ListQuerySchema } from '~/services/effect/http';
-// TODO: Fix and use schemas
-import {
-  CreateEventSchema,
-  EventSchema,
-  UpdateEventSchema,
-} from '~/services/effect/schemas/EventSchemas';
+import { NotFoundError, ParseError, UniqueError } from '~/api/errors';
+import { ListQuerySchema } from '~/api/schemas';
+import { CreateEventSchema, EventSchema, UpdateEventSchema } from './schemas';
 
 // Events API group
 export const eventsGroup = HttpApiGroup.make('events')

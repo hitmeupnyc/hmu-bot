@@ -5,10 +5,7 @@ import {
   OpenApi,
 } from '@effect/platform';
 import { Schema } from 'effect';
-import {
-  DatabaseError,
-  ParseError,
-} from '~/services/effect/errors/CommonErrors';
+import { DatabaseError, ParseError } from '~/api/errors';
 
 // Audit log schema based on database structure
 const AuditLogSchema = Schema.Struct({

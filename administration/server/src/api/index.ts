@@ -1,22 +1,36 @@
-/**
- * Main API definition
- * Combines all API groups with proper authentication separation
- */
-
 import { HttpApi, HttpApiBuilder, OpenApi } from '@effect/platform';
 import { Layer } from 'effect';
-import { Authentication, AuthenticationLive } from '~/middleware/auth';
-import { ApplicationLive } from '~/services/effect/adapters/expressAdapter';
+
+import { AuthMiddleware, AuthMiddlewareLive } from '~/middleware/auth';
+import { AuthorizationService } from '~/services/effect/AuthorizationEffects';
+import { EventServiceLive } from '~/services/effect/EventEffects';
+import { AuthLive } from '~/services/effect/layers/AuthLayer';
+import { DatabaseLive } from '~/services/effect/layers/DatabaseLayer';
+import { FlagLive } from '~/services/effect/layers/FlagLayer';
+import { MemberServiceLive } from '~/services/effect/MemberEffects';
+
 import { AuditApiLive, auditGroup } from './audit';
 import { EventsApiLive, eventsGroup } from './events';
 import { FlagsApiLive, flagsGroup } from './flags';
 import { HealthApiLive, healthGroup } from './health';
 import { MembersApiLive, membersGroup } from './members';
 
+// Create a comprehensive application layer that includes all services
+// DatabaseLive provides DatabaseService directly
+// Other services are built on top of DatabaseLive
+export const ApplicationLive = Layer.mergeAll(
+  DatabaseLive,
+  MemberServiceLive,
+  EventServiceLive,
+  FlagLive,
+  AuthLive,
+  AuthorizationService.Live
+);
+
 // Create the complete API by combining all groups
-export const api = HttpApi.make('ClubManagementAPI')
+export const Api = HttpApi.make('ClubManagementAPI')
   .add(healthGroup)
-  .middleware(Authentication)
+  .middleware(AuthMiddleware)
   .add(membersGroup)
   .add(eventsGroup)
   .add(flagsGroup)
@@ -25,15 +39,15 @@ export const api = HttpApi.make('ClubManagementAPI')
   .annotate(OpenApi.Summary, 'RESTful API for club management');
 
 // Create the complete API implementation
-export const ApiLive = HttpApiBuilder.api(api).pipe(
+export const ApiLive = HttpApiBuilder.api(Api).pipe(
   Layer.provide(
     Layer.mergeAll(
-      HealthApiLive, 
-      MembersApiLive, 
-      EventsApiLive, 
-      FlagsApiLive, 
+      HealthApiLive,
+      MembersApiLive,
+      EventsApiLive,
+      FlagsApiLive,
       AuditApiLive,
-      AuthenticationLive
+      AuthMiddlewareLive
     )
   ),
   Layer.provide(ApplicationLive)

@@ -1,8 +1,8 @@
 import { HttpApiBuilder } from '@effect/platform';
 import { Effect } from 'effect';
 import { ParseError as InternalParseError } from 'effect/ParseResult';
+import { NotFoundError, ParseError, UniqueError } from '~/api/errors';
 import { EventService, EventServiceLive } from '~/services/effect/EventEffects';
-import { NotFoundError, ParseError, UniqueError } from '~/services/effect/errors/CommonErrors';
 import { eventsApi } from './endpoints';
 
 export const EventsApiLive = HttpApiBuilder.group(

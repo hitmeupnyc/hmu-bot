@@ -5,17 +5,13 @@ import {
   OpenApi,
 } from '@effect/platform';
 import { Schema } from 'effect';
-import {
-  NotFoundError,
-  ParseError,
-  UniqueError,
-} from '~/services/effect/errors/CommonErrors';
-import { ListQuerySchema } from '~/services/effect/http';
+import { NotFoundError, ParseError, UniqueError } from '~/api/errors';
+import { ListQuerySchema } from '~/api/schemas';
 import {
   CreateMemberSchema,
   MemberSchema,
   UpdateMemberSchema,
-} from '~/services/effect/schemas/MemberSchemas';
+} from './schemas';
 
 // Members API group
 export const membersGroup = HttpApiGroup.make('members')

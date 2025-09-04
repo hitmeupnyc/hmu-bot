@@ -1,5 +1,5 @@
 import { Context, Data, Effect, Layer } from 'effect';
-import { UnrecoverableError } from '../errors/CommonErrors';
+import { UnrecoverableError } from '~/api/errors';
 import { DatabaseLive, DatabaseService } from './DatabaseLayer';
 
 // Error types

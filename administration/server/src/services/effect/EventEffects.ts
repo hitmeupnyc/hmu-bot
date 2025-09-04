@@ -5,8 +5,7 @@ import {
   ParseError,
   UniqueError,
   UnrecoverableError,
-} from './errors/CommonErrors';
-import { DatabaseLive, DatabaseService } from './layers/DatabaseLayer';
+} from '~/api/errors';
 import {
   CreateEventMarketingSchema,
   CreateEventSchema,
@@ -23,7 +22,11 @@ import {
   type EventQueryOptions,
   type EventWithDetails,
   type UpdateEvent,
-} from './schemas/EventSchemas';
+} from '~/api/events/schemas';
+import {
+  DatabaseLive,
+  DatabaseService,
+} from '~/services/effect/layers/DatabaseLayer';
 
 // Service interface
 export interface IEventService {

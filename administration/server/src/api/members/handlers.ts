@@ -2,17 +2,20 @@ import { HttpApiBuilder } from '@effect/platform';
 import { Effect, Layer } from 'effect';
 import { ParseError as InternalParseError } from 'effect/ParseResult';
 import {
-  MemberService,
-  MemberServiceLive,
-} from '~/services/effect/MemberEffects';
-import {
   DatabaseError,
   NotFoundError,
   ParseError,
   UniqueError,
-} from '~/services/effect/errors/CommonErrors';
-import { DatabaseService, DatabaseLive } from '~/services/effect/layers/DatabaseLayer';
+} from '~/api/errors';
 import { CurrentUser } from '~/middleware/auth';
+import {
+  DatabaseLive,
+  DatabaseService,
+} from '~/services/effect/layers/DatabaseLayer';
+import {
+  MemberService,
+  MemberServiceLive,
+} from '~/services/effect/MemberEffects';
 import { membersApi } from './endpoints';
 
 export const MembersApiLive = HttpApiBuilder.group(
@@ -143,34 +146,29 @@ export const MembersApiLive = HttpApiBuilder.group(
             );
 
             // Create audit log entry
-            yield* db.query(async (database) => {
-              return database
-                .insertInto('audit_log')
-                .values({
-                  entity_type: 'member',
-                  entity_id: path.id,
-                  action: 'note',
-                  user_email: currentUser.email || null,
-                  user_id: currentUser.id || null,
-                  user_session_id: null, // We don't have session ID from CurrentUser context
-                  metadata_json: JSON.stringify({ content: payload.content }),
-                })
-                .execute();
-            }).pipe(
-              Effect.mapError((error) => {
-                throw new DatabaseError({ message: 'Failed to create note' });
+            yield* db
+              .query(async (database) => {
+                return database
+                  .insertInto('audit_log')
+                  .values({
+                    entity_type: 'member',
+                    entity_id: path.id,
+                    action: 'note',
+                    user_email: currentUser.email || null,
+                    user_id: currentUser.id || null,
+                    user_session_id: null, // We don't have session ID from CurrentUser context
+                    metadata_json: JSON.stringify({ content: payload.content }),
+                  })
+                  .execute();
               })
-            );
+              .pipe(
+                Effect.mapError((error) => {
+                  throw new DatabaseError({ message: 'Failed to create note' });
+                })
+              );
 
             return { message: 'Note added successfully' };
           })
         );
-    }).pipe(
-      Effect.provide(
-        Layer.mergeAll(
-          MemberServiceLive,
-          DatabaseLive
-        )
-      )
-    )
+    }).pipe(Effect.provide(Layer.mergeAll(MemberServiceLive, DatabaseLive)))
 );

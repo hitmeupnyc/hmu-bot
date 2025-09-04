@@ -3,13 +3,13 @@ import { TimeoutException } from 'effect/Cause';
 import { DurationInput } from 'effect/Duration';
 import * as Schema from 'effect/Schema';
 import { sql } from 'kysely';
+import { ParseError, UnrecoverableError } from '~/api/errors';
 import {
   BetterAuth,
   BetterAuthLive,
 } from '~/services/effect/layers/BetterAuthLayer';
 import { Session as DbSession } from '~/types';
 import { SnakeToCamelCaseObject } from '~/types/typehelpers';
-import { ParseError, UnrecoverableError } from '../errors/CommonErrors';
 import { DatabaseLive, DatabaseService } from './DatabaseLayer';
 
 const config = {

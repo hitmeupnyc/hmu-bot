@@ -1,6 +1,6 @@
 import { HttpApiBuilder } from '@effect/platform';
 import { Effect, Layer } from 'effect';
-import { DatabaseError } from '~/services/effect/errors/CommonErrors';
+import { DatabaseError } from '~/api/errors';
 import {
   DatabaseLive,
   DatabaseService,

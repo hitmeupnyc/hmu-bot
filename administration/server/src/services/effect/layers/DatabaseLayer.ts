@@ -4,8 +4,8 @@ import { withSpan } from 'effect/Effect';
 import fs from 'fs';
 import { Kysely, SqliteDialect } from 'kysely';
 import path from 'path';
+import { TransactionError, UnrecoverableError } from '~/api/errors';
 import type { DB as DatabaseSchema } from '~/types';
-import { TransactionError, UnrecoverableError } from '../errors/CommonErrors';
 
 export interface IDatabaseService {
   readonly obQuery: <T>(

@@ -1,13 +1,6 @@
-import {
-  HttpApiEndpoint,
-  HttpApiGroup,
-  OpenApi,
-} from '@effect/platform';
+import { HttpApiEndpoint, HttpApiGroup, OpenApi } from '@effect/platform';
 import { Schema } from 'effect';
-import {
-  NotFoundError,
-  ParseError,
-} from '~/services/effect/errors/CommonErrors';
+import { NotFoundError, ParseError } from '~/api/errors';
 import {
   BulkFlagRequestSchema,
   BulkFlagResponseSchema,
@@ -18,17 +11,14 @@ import {
   MemberWithFlagSchema,
   ProcessingResultSchema,
   RevokeFlagSchema,
-} from '~/services/effect/schemas/FlagSchemas';
+} from './schemas';
 
 // Flags API group
 export const flagsGroup = HttpApiGroup.make('flags')
   .add(
     HttpApiEndpoint.get('api.flags.list', '/api/flags')
       .addSuccess(Schema.Array(FlagSchema))
-      .annotate(
-        OpenApi.Description,
-        'List all available flags in the system'
-      )
+      .annotate(OpenApi.Description, 'List all available flags in the system')
   )
   .add(
     HttpApiEndpoint.get('api.flags.members.list', '/api/members/:id/flags')
@@ -53,11 +43,16 @@ export const flagsGroup = HttpApiGroup.make('flags')
       )
   )
   .add(
-    HttpApiEndpoint.del('api.flags.members.revoke', '/api/members/:id/flags/:flagId')
-      .setPath(Schema.Struct({ 
-        id: Schema.String, 
-        flagId: Schema.String 
-      }))
+    HttpApiEndpoint.del(
+      'api.flags.members.revoke',
+      '/api/members/:id/flags/:flagId'
+    )
+      .setPath(
+        Schema.Struct({
+          id: Schema.String,
+          flagId: Schema.String,
+        })
+      )
       .setPayload(RevokeFlagSchema)
       .addSuccess(FlagOperationResponseSchema)
       .addError(NotFoundError)

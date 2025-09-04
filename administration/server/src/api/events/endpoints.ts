@@ -22,7 +22,13 @@ export const eventsGroup = HttpApiGroup.make('events')
           totalPages: Schema.Number,
         })
       )
-      .setUrlParams(ListQuerySchema)
+      .addError(ParseError)
+      .setUrlParams(
+        Schema.extend(
+          ListQuerySchema,
+          Schema.Struct({ upcoming: Schema.BooleanFromString })
+        )
+      )
       .annotate(
         OpenApi.Description,
         'List all events with pagination and search'

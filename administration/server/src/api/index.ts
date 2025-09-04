@@ -1,5 +1,12 @@
+// organize-imports-ignore Because of funky type errors from @effect/platform
+
 import { HttpApi, HttpApiBuilder, OpenApi } from '@effect/platform';
 import { Layer } from 'effect';
+
+// These aren't directly used but apparently must be in scope for
+// `const Api = HttpApi.make(…` to work without type errors.
+import type { Effect, Sink, Stream, Channel } from 'effect';
+import type { NodeInspectSymbol } from 'effect/Inspectable';
 
 import { AuthMiddleware, AuthMiddlewareLive } from '~/middleware/auth';
 import { AuthorizationService } from '~/services/effect/AuthorizationEffects';

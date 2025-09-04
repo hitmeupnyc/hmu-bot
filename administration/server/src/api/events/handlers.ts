@@ -1,7 +1,6 @@
 import { HttpApiBuilder } from '@effect/platform';
 import { Effect } from 'effect';
-import { ParseError as InternalParseError } from 'effect/ParseResult';
-import { NotFoundError, ParseError, UniqueError } from '~/api/errors';
+import { NotFoundError, UniqueError } from '~/api/errors';
 import { EventService, EventServiceLive } from '~/services/effect/EventEffects';
 import { eventsApi } from './endpoints';
 
@@ -17,13 +16,15 @@ export const EventsApiLive = HttpApiBuilder.group(
           Effect.gen(function* () {
             const page = urlParams.page ?? 1;
             const limit = urlParams.limit ?? 20;
-            const search = urlParams.search;
+            const upcoming = urlParams.upcoming ?? true;
 
-            const result = yield* eventService.getEvents({
-              page,
-              limit,
-              search,
-            });
+            const result = yield* eventService
+              .getEvents({ page, limit, upcoming })
+              .pipe(
+                Effect.mapError((error) => {
+                  throw error;
+                })
+              );
 
             return {
               data: result.events,
@@ -78,9 +79,6 @@ export const EventsApiLive = HttpApiBuilder.group(
             return event;
           }).pipe(
             Effect.mapError((error) => {
-              if (error instanceof InternalParseError) {
-                return new ParseError(error);
-              }
               throw error;
             })
           )

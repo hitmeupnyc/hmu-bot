@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { Member, MemberFormData } from '@/types';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface MembersResponse {
   success: boolean;
@@ -13,10 +13,10 @@ interface MembersResponse {
   };
 }
 
-interface MemberResponse {
-  success: boolean;
-  data: Member;
-}
+// interface MemberResponse {
+//   success: boolean;
+//   data: Member;
+// }
 
 interface CreateMemberResponse {
   success: boolean;
@@ -64,8 +64,9 @@ export function useMember(id: number, enabled = true) {
   return useQuery({
     queryKey: memberKeys.detail(id),
     queryFn: async (): Promise<Member> => {
-      const response = await api.get<MemberResponse>(`/members/${id}`);
-      return response.data.data;
+      const response = await api.get<Member>(`/members/${id}`);
+      // Effect HTTP API returns the member object directly, not wrapped in a data object
+      return response.data;
     },
     enabled: enabled && !!id,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -80,13 +81,16 @@ export function useCreateMember() {
 
   return useMutation({
     mutationFn: async (memberData: MemberFormData): Promise<Member> => {
-      const response = await api.post<CreateMemberResponse>('/members', memberData);
+      const response = await api.post<CreateMemberResponse>(
+        '/members',
+        memberData
+      );
       return response.data.data;
     },
     onSuccess: (newMember) => {
       // Invalidate and refetch members list
       queryClient.invalidateQueries({ queryKey: memberKeys.lists() });
-      
+
       // Add the new member to the cache
       queryClient.setQueryData(memberKeys.detail(newMember.id), newMember);
     },
@@ -100,14 +104,23 @@ export function useUpdateMember() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...memberData }: MemberFormData & { id: number }): Promise<Member> => {
-      const response = await api.put<MemberResponse>(`/members/${id}`, { id, ...memberData });
-      return response.data.data;
+    mutationFn: async ({
+      id,
+      ...memberData
+    }: MemberFormData & { id: number }): Promise<Member> => {
+      const response = await api.put<Member>(`/members/${id}`, {
+        id,
+        ...memberData,
+      });
+      return response.data;
     },
     onSuccess: (updatedMember) => {
       // Update the member in the cache
-      queryClient.setQueryData(memberKeys.detail(updatedMember.id), updatedMember);
-      
+      queryClient.setQueryData(
+        memberKeys.detail(updatedMember.id),
+        updatedMember
+      );
+
       // Invalidate and refetch members list to ensure consistency
       queryClient.invalidateQueries({ queryKey: memberKeys.lists() });
     },
@@ -126,8 +139,10 @@ export function useDeleteMember() {
     },
     onSuccess: (_, deletedMemberId) => {
       // Remove the member from the cache
-      queryClient.removeQueries({ queryKey: memberKeys.detail(deletedMemberId) });
-      
+      queryClient.removeQueries({
+        queryKey: memberKeys.detail(deletedMemberId),
+      });
+
       // Invalidate and refetch members list
       queryClient.invalidateQueries({ queryKey: memberKeys.lists() });
     },
@@ -144,8 +159,8 @@ export function usePrefetchMember() {
     queryClient.prefetchQuery({
       queryKey: memberKeys.detail(id),
       queryFn: async (): Promise<Member> => {
-        const response = await api.get<MemberResponse>(`/members/${id}`);
-        return response.data.data;
+        const response = await api.get<Member>(`/members/${id}`);
+        return response.data;
       },
       staleTime: 5 * 60 * 1000,
     });

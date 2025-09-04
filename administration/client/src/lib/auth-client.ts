@@ -2,9 +2,10 @@ import { magicLinkClient } from 'better-auth/client/plugins';
 import { createAuthClient } from 'better-auth/react';
 
 export const authClient = createAuthClient({
-  // baseURL: import.meta.env.VITE_SITE,
+  baseURL: 'http://localhost:5173',
   plugins: [magicLinkClient()],
 });
 
 // Export commonly used methods for easier imports
-export const { signIn, signOut, useSession, getSession } = authClient;
+export const { signIn, signOut, useSession, getSession, magicLink } =
+  authClient;

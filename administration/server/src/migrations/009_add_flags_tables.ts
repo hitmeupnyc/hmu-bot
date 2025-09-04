@@ -82,7 +82,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
       .execute();
   }
   await db.schema.alterTable('members').dropColumn('access_level').execute();
-  await db.schema.alterTable('members').dropColumn('flags').execute();
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
@@ -97,5 +96,4 @@ export async function down(db: Kysely<any>): Promise<void> {
     .alterTable('members')
     .addColumn('access_level', 'integer')
     .execute();
-  await db.schema.alterTable('members').addColumn('flags', 'text').execute();
 }

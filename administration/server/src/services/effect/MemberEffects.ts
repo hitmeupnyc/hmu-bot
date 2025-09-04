@@ -1,4 +1,5 @@
 import { Context, Effect, Layer, Schema } from 'effect';
+import { sql } from 'kysely';
 import { DatabaseLive, DatabaseService } from './layers/DatabaseLayer';
 import {
   CreateMemberSchema,
@@ -13,10 +14,10 @@ import {
 
 // Import the database error for interface types
 import {
-  DatabaseError,
   NotFoundError,
   ParseError,
   UniqueError,
+  UnrecoverableError,
 } from './errors/CommonErrors';
 
 // Service interface
@@ -31,7 +32,7 @@ export interface IMemberService {
         totalPages: number;
       };
     },
-    ParseError | DatabaseError,
+    ParseError | UnrecoverableError,
     never
   >;
 
@@ -39,7 +40,7 @@ export interface IMemberService {
     id: number
   ) => Effect.Effect<
     typeof MemberSchema.Type,
-    NotFoundError | DatabaseError | ParseError,
+    ParseError | NotFoundError | UnrecoverableError,
     never
   >;
 
@@ -47,7 +48,7 @@ export interface IMemberService {
     data: CreateMember
   ) => Effect.Effect<
     typeof MemberSchema.Type,
-    UniqueError | ParseError | NotFoundError | DatabaseError,
+    UniqueError | ParseError | NotFoundError | UnrecoverableError,
     never
   >;
 
@@ -55,13 +56,17 @@ export interface IMemberService {
     data: UpdateMember
   ) => Effect.Effect<
     typeof MemberSchema.Type,
-    NotFoundError | UniqueError | ParseError | DatabaseError,
+    UniqueError | ParseError | NotFoundError | UnrecoverableError,
     never
   >;
 
   readonly deleteMember: (
     id: number
-  ) => Effect.Effect<void, NotFoundError | DatabaseError | ParseError, never>;
+  ) => Effect.Effect<
+    void,
+    NotFoundError | ParseError | UnrecoverableError,
+    never
+  >;
 }
 
 export const MemberService =
@@ -73,21 +78,7 @@ export const MemberServiceLive = Layer.effect(
   Effect.gen(function* () {
     const dbService = yield* DatabaseService;
 
-    const getMembers = (
-      options: MemberQueryOptions
-    ): Effect.Effect<
-      {
-        members: (typeof MemberSchema.Type)[];
-        pagination: {
-          page: number;
-          limit: number;
-          total: number;
-          totalPages: number;
-        };
-      },
-      ParseError | DatabaseError,
-      never
-    > =>
+    const getMembers: IMemberService['getMembers'] = (options) =>
       Effect.gen(function* () {
         const validatedOptions = yield* Schema.decodeUnknown(
           MemberQueryOptionsSchema
@@ -96,37 +87,50 @@ export const MemberServiceLive = Layer.effect(
         const { page, limit, search } = validatedOptions;
         const offset = (page - 1) * limit;
 
-        const [countResult, memberRows] = yield* dbService.query(async (db) => {
-          let query = db
-            .selectFrom('members')
-            .where((eb) => eb('flags', '&', 1), '=', 1); // Only active members
+        const [countResult, memberRows] = yield* dbService.obQuery(
+          'members.list.active',
+          async (db) => {
+            let query = db.selectFrom('members').where('flags', '=', '1'); // Only active members
 
-          if (search) {
-            const searchTerm = `%${search}%`;
-            query = query.where((eb) =>
-              eb.or([
-                eb('first_name', 'like', searchTerm),
-                eb('last_name', 'like', searchTerm),
-                eb('email', 'like', searchTerm),
+            if (search) {
+              const searchTerm = `%${search}%`;
+              query = query.where((eb) =>
+                eb.or([
+                  eb('first_name', 'like', searchTerm),
+                  eb('last_name', 'like', searchTerm),
+                  eb('email', 'like', searchTerm),
+                ])
+              );
+            }
+
+            const countQuery = query
+              .clearSelect()
+              .select((eb) => eb.fn.count('id').as('total'));
+
+            const selectQuery = query
+              .select([
+                'id',
+                'first_name',
+                'last_name',
+                'preferred_name',
+                'email',
+                'pronouns',
+                'sponsor_notes',
+                sql`CAST(flags AS INTEGER)`.as('flags'),
+                'date_added',
+                'created_at',
+                'updated_at',
               ])
-            );
+              .orderBy('created_at', 'desc')
+              .limit(limit)
+              .offset(offset);
+
+            return Promise.all([
+              countQuery.executeTakeFirst() as Promise<{ total: string }>,
+              selectQuery.execute(),
+            ]);
           }
-
-          const countQuery = query
-            .clearSelect()
-            .select((eb) => eb.fn.count('id').as('total'));
-
-          const selectQuery = query
-            .selectAll()
-            .orderBy('created_at', 'desc')
-            .limit(limit)
-            .offset(offset);
-
-          return Promise.all([
-            countQuery.executeTakeFirst() as Promise<{ total: string }>,
-            selectQuery.execute(),
-          ]);
-        });
+        );
 
         const members = yield* Effect.forEach(memberRows, (row) =>
           Schema.decodeUnknown(MemberSchema)(row)
@@ -146,20 +150,26 @@ export const MemberServiceLive = Layer.effect(
         };
       });
 
-    const getMemberById = (
-      id: number
-    ): Effect.Effect<
-      typeof MemberSchema.Type,
-      NotFoundError | DatabaseError | ParseError,
-      never
-    > =>
+    const getMemberById: IMemberService['getMemberById'] = (id) =>
       Effect.gen(function* () {
-        const member = yield* dbService.query(async (db) =>
+        const member = yield* dbService.obQuery('members.get', async (db) =>
           db
             .selectFrom('members')
-            .selectAll()
+            .select([
+              'id',
+              'first_name',
+              'last_name',
+              'preferred_name',
+              'email',
+              'pronouns',
+              'sponsor_notes',
+              (eb) => sql`CAST(flags AS INTEGER)`.as('flags'),
+              'date_added',
+              'created_at',
+              'updated_at',
+            ])
             .where('id', '=', id)
-            .where((eb) => eb('flags', '&', 1), '=', 1)
+            .where('flags', '=', '1')
             .executeTakeFirst()
         );
 
@@ -173,24 +183,20 @@ export const MemberServiceLive = Layer.effect(
         return yield* Schema.decodeUnknown(MemberSchema)(member);
       });
 
-    const createMember = (
-      data: CreateMember
-    ): Effect.Effect<
-      typeof MemberSchema.Type,
-      UniqueError | ParseError | NotFoundError | DatabaseError,
-      never
-    > =>
+    const createMember: IMemberService['createMember'] = (data) =>
       Effect.gen(function* () {
         const validatedData =
           yield* Schema.decodeUnknown(CreateMemberSchema)(data);
 
         // Check if email already exists
-        const existingMember = yield* dbService.query(async (db) =>
-          db
-            .selectFrom('members')
-            .select('id')
-            .where('email', '=', validatedData.email)
-            .executeTakeFirst()
+        const existingMember = yield* dbService.obQuery(
+          'members.create.check',
+          async (db) =>
+            db
+              .selectFrom('members')
+              .select('id')
+              .where('email', '=', validatedData.email)
+              .executeTakeFirst()
         );
 
         if (existingMember) {
@@ -202,19 +208,15 @@ export const MemberServiceLive = Layer.effect(
 
         const flags = yield* Effect.gen(function* () {
           const validatedFlags = yield* Schema.decodeUnknown(MemberFlagsSchema)(
-            {
-              active: true,
-              professional_affiliate: validatedData.is_professional_affiliate,
-            }
+            { active: true }
           );
 
           let result = 0;
           if (validatedFlags.active) result |= 1;
-          if (validatedFlags.professional_affiliate) result |= 2;
           return result;
         });
 
-        const result = yield* dbService.query(async (db) =>
+        const result = yield* dbService.obQuery('members.create', async (db) =>
           db
             .insertInto('members')
             .values({
@@ -224,7 +226,7 @@ export const MemberServiceLive = Layer.effect(
               email: validatedData.email,
               pronouns: validatedData.pronouns || null,
               sponsor_notes: validatedData.sponsor_notes || null,
-              flags,
+              flags: flags.toString(),
             })
             .returning('id')
             .executeTakeFirstOrThrow()
@@ -233,13 +235,7 @@ export const MemberServiceLive = Layer.effect(
         return yield* getMemberById(result.id!);
       });
 
-    const updateMember = (
-      data: UpdateMember
-    ): Effect.Effect<
-      typeof MemberSchema.Type,
-      NotFoundError | UniqueError | ParseError | DatabaseError,
-      never
-    > =>
+    const updateMember: IMemberService['updateMember'] = (data) =>
       Effect.gen(function* () {
         const validatedData =
           yield* Schema.decodeUnknown(UpdateMemberSchema)(data);
@@ -251,13 +247,15 @@ export const MemberServiceLive = Layer.effect(
           validatedData.email &&
           validatedData.email !== existingMember.email
         ) {
-          const emailConflict = yield* dbService.query(async (db) =>
-            db
-              .selectFrom('members')
-              .select('id')
-              .where('email', '=', validatedData.email!)
-              .where('id', '!=', validatedData.id)
-              .executeTakeFirst()
+          const emailConflict = yield* dbService.obQuery(
+            'members.update.check',
+            async (db) =>
+              db
+                .selectFrom('members')
+                .select('id')
+                .where('email', '=', validatedData.email!)
+                .where('id', '!=', validatedData.id)
+                .executeTakeFirst()
           );
 
           if (emailConflict) {
@@ -268,30 +266,15 @@ export const MemberServiceLive = Layer.effect(
           }
         }
 
-        const updateData: Record<string, any> = {};
-
-        if (validatedData.first_name !== undefined) {
-          updateData.first_name = validatedData.first_name;
-        }
-        if (validatedData.last_name !== undefined) {
-          updateData.last_name = validatedData.last_name;
-        }
-        if (validatedData.preferred_name !== undefined) {
-          updateData.preferred_name = validatedData.preferred_name;
-        }
-        if (validatedData.email !== undefined) {
-          updateData.email = validatedData.email;
-        }
-        if (validatedData.pronouns !== undefined) {
-          updateData.pronouns = validatedData.pronouns;
-        }
-        if (validatedData.sponsor_notes !== undefined) {
-          updateData.sponsor_notes = validatedData.sponsor_notes;
-        }
+        const updateData = Object.fromEntries(
+          Object.entries(validatedData).filter(
+            ([_, value]) => value !== undefined
+          )
+        );
 
         updateData.updated_at = new Date().toISOString();
 
-        yield* dbService.query(async (db) =>
+        yield* dbService.obQuery('members.update', async (db) =>
           db
             .updateTable('members')
             .set(updateData)
@@ -302,20 +285,18 @@ export const MemberServiceLive = Layer.effect(
         return yield* getMemberById(validatedData.id);
       });
 
-    const deleteMember = (
-      id: number
-    ): Effect.Effect<void, NotFoundError | DatabaseError | ParseError, never> =>
+    const deleteMember: IMemberService['deleteMember'] = (id) =>
       Effect.gen(function* () {
         const member = yield* getMemberById(id);
 
         // Soft delete by setting active flag to false
         const flags = member.flags & ~1; // Clear active bit
 
-        yield* dbService.query(async (db) =>
+        yield* dbService.obQuery('members.delete', async (db) =>
           db
             .updateTable('members')
             .set({
-              flags,
+              flags: flags.toString(),
               updated_at: new Date().toISOString(),
             })
             .where('id', '=', id)

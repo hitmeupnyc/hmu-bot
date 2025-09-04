@@ -26,7 +26,11 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
           <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
           <p className="text-gray-600 mb-4">You need to be signed in to access this page.</p>
           <button
-            onClick={() => window.location.href = '/login'}
+            onClick={() => {
+              const currentPath = window.location.pathname + window.location.search;
+              const loginUrl = `/login?from=${encodeURIComponent(currentPath)}`;
+              window.location.href = loginUrl;
+            }}
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
           >
             Sign In

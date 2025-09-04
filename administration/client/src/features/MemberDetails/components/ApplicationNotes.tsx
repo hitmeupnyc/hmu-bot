@@ -17,13 +17,8 @@ export function ApplicationNotes({
 
   const addNoteMutation = useMutation({
     mutationFn: async ({ content }: { content: string }) => {
-      const response = await api.post(`/audit`, {
-        entity_type: 'member',
-        entity_id: memberId,
-        action: 'note',
-        metadata: {
-          content,
-        },
+      const response = await api.post(`/members/${memberId}/note`, {
+        content,
       });
       return response.data;
     },
@@ -49,7 +44,7 @@ export function ApplicationNotes({
   };
 
   return (
-    <div className="mt-6 bg-white shadow rounded-lg p-6">
+    <div className="mt-3 bg-white shadow rounded-lg p-6">
       <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
         <ChatBubbleLeftIcon className="h-5 w-5 mr-2" />
         Notes

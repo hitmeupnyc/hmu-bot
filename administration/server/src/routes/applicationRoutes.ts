@@ -46,7 +46,6 @@ router.post(
         email: applicationData.email,
         pronouns: applicationData.pronouns,
         sponsor_notes: `Application: ${applicationData.sponsor_name} sponsor. Referral: ${applicationData.referral_source}. ${applicationData.referral_details ? 'Details: ' + applicationData.referral_details : ''}`,
-        is_professional_affiliate: false, // Applications start as regular members
       };
 
       // Create the member record
@@ -107,7 +106,6 @@ router.post(
                 email: applicationData.email,
                 pronouns: applicationData.pronouns,
                 sponsor_notes: `CSV Import - Application: ${applicationData.sponsor_name} sponsor. Referral: ${applicationData.referral_source}. ${applicationData.referral_details ? 'Details: ' + applicationData.referral_details : ''}. Kinky Experience: ${applicationData.kinky_experience}. Self Description: ${applicationData.self_description}. Consent Understanding: ${applicationData.consent_understanding}. ${applicationData.additional_info ? 'Additional: ' + applicationData.additional_info : ''}`,
-                is_professional_affiliate: false,
               };
 
               // Create the member record

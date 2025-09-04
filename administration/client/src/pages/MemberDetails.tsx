@@ -2,15 +2,15 @@ import {
   ArrowLeftIcon,
   ClockIcon,
   EnvelopeIcon,
-  PencilIcon,
-  TrashIcon,
   InformationCircleIcon,
-  ChatBubbleLeftIcon,
+  PencilIcon,
   ShieldCheckIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
+import { FeatureErrorBoundary } from '@/components/FeatureErrorBoundary';
 import { Modal } from '@/components/Modal';
 import {
   ApplicationNotes,
@@ -22,8 +22,8 @@ import {
   MemberFlags,
 } from '@/features/MemberDetails/components';
 import { FlagGrantModal } from '@/features/Permissions/components';
-import { useFlags } from '@/hooks/useFlags';
 import { useAuditLog } from '@/hooks/useAudit';
+import { useFlags } from '@/hooks/useFlags';
 import {
   useDeleteMember,
   useMember,
@@ -31,7 +31,7 @@ import {
 } from '@/hooks/useMembers';
 import { MemberFormData } from '@/types';
 
-type TabType = 'info' | 'notes' | 'flags' | 'audit';
+type TabType = 'info' | 'flags' | 'audit';
 
 export function MemberDetails() {
   const { id } = useParams<{ id: string }>();
@@ -116,26 +116,20 @@ export function MemberDetails() {
       id: 'info' as TabType,
       label: 'Member Info',
       icon: InformationCircleIcon,
-      count: null
-    },
-    {
-      id: 'notes' as TabType,
-      label: 'Notes',
-      icon: ChatBubbleLeftIcon,
-      count: null
+      count: null,
     },
     {
       id: 'flags' as TabType,
       label: 'Flags & Permissions',
       icon: ShieldCheckIcon,
-      count: null
+      count: null,
     },
     {
       id: 'audit' as TabType,
       label: 'Audit History',
       icon: ClockIcon,
-      count: null
-    }
+      count: null,
+    },
   ];
 
   // Handle loading and error states
@@ -198,7 +192,7 @@ export function MemberDetails() {
       <div className="mb-6">
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
-            {tabs.map(tab => {
+            {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
@@ -213,9 +207,13 @@ export function MemberDetails() {
                   <Icon className="h-4 w-4" />
                   <span>{tab.label}</span>
                   {tab.count !== null && (
-                    <span className={`ml-2 py-1 px-2 text-xs rounded-full ${
-                      activeTab === tab.id ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
-                    }`}>
+                    <span
+                      className={`ml-2 py-1 px-2 text-xs rounded-full ${
+                        activeTab === tab.id
+                          ? 'bg-blue-100 text-blue-600'
+                          : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
                       {tab.count}
                     </span>
                   )}
@@ -229,30 +227,39 @@ export function MemberDetails() {
       {/* Tab Content */}
       <div className="min-h-96">
         {activeTab === 'info' && (
-          <InfoCards member={member} />
-        )}
+          <>
+            <InfoCards member={member} />
 
-        {activeTab === 'notes' && (
-          <ApplicationNotes memberId={memberId} onNoteAdded={handleNoteAdded} />
+            <ApplicationNotes
+              memberId={memberId}
+              onNoteAdded={handleNoteAdded}
+            />
+            <div className="bg-white shadow rounded-lg p-6 mt-3">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <ClockIcon className="h-5 w-5 mr-2" />
+                Audit History
+              </h2>
+              <FeatureErrorBoundary featureName="Audit History">
+                {auditLoading ? (
+                  <div className="text-gray-500 text-sm">
+                    Loading audit history...
+                  </div>
+                ) : (
+                  <AuditHistory auditLog={auditLog} />
+                )}
+              </FeatureErrorBoundary>
+            </div>
+          </>
         )}
 
         {activeTab === 'flags' && (
           <div className="bg-white shadow rounded-lg p-6">
-            <MemberFlags memberEmail={member.email} onGrantFlag={handleGrantFlag} />
-          </div>
-        )}
-
-        {activeTab === 'audit' && (
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <ClockIcon className="h-5 w-5 mr-2" />
-              Audit History
-            </h2>
-            {auditLoading ? (
-              <div className="text-gray-500 text-sm">Loading audit history...</div>
-            ) : (
-              <AuditHistory auditLog={auditLog} />
-            )}
+            <FeatureErrorBoundary featureName="Member Flags & Permissions">
+              <MemberFlags
+                memberEmail={member.email}
+                onGrantFlag={handleGrantFlag}
+              />
+            </FeatureErrorBoundary>
           </div>
         )}
       </div>

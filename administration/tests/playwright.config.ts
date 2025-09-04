@@ -14,24 +14,28 @@ export default defineConfig({
   },
 
   projects: [
+    // Setup project
+    { name: 'setup', testMatch: /.*\.setup\.ts/ },
+    
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { 
+        ...devices['Desktop Chrome'],
+        // Use prepared auth state
+        storageState: './.auth/user.json',
+      },
+      dependencies: ['setup'],
     },
   ],
 
   webServer: [
     {
-      command: 'cd ../server && DATABASE_PATH=../data/test.db npm run dev',
+      command: 'npm run dev:e2e --workspace=api-server',
       port: 3000,
       reuseExistingServer: !process.env.CI,
-      env: {
-        DATABASE_PATH: '../data/test.db',
-        NODE_ENV: 'test',
-      },
     },
     {
-      command: 'cd ../client && npm run dev',
+      command: 'npm run dev --workspace=client',
       port: 5173,
       reuseExistingServer: !process.env.CI,
     },

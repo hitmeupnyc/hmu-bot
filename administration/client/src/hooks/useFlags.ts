@@ -1,11 +1,16 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 export interface Flag {
   id: string;
   name: string;
   description?: string;
-  category?: 'verification' | 'subscription' | 'feature' | 'compliance' | 'admin';
+  category?:
+    | 'verification'
+    | 'subscription'
+    | 'feature'
+    | 'compliance'
+    | 'admin';
   created_at: string;
   updated_at: string;
 }
@@ -33,7 +38,7 @@ export interface FlagMember {
 }
 
 export interface GrantFlagData {
-  email: string;
+  userId: string;
   flagId: string;
   expiresAt?: string;
   reason?: string;
@@ -41,7 +46,7 @@ export interface GrantFlagData {
 }
 
 export interface RevokeFlagData {
-  email: string;
+  userId: string;
   flagId: string;
   reason?: string;
 }
@@ -55,6 +60,10 @@ export function useFlags() {
         credentials: 'include',
       });
       if (!response.ok) {
+        if (response.status === 404) {
+          console.warn('Flags API not available, returning empty array');
+          return [];
+        }
         throw new Error('Failed to fetch flags');
       }
       return response.json();
@@ -88,6 +97,10 @@ export function useMemberFlags(email: string) {
         credentials: 'include',
       });
       if (!response.ok) {
+        if (response.status === 404) {
+          console.warn('Member flags API not available, returning empty array');
+          return [];
+        }
         throw new Error('Failed to fetch member flags');
       }
       return response.json();
@@ -116,10 +129,10 @@ export function useFlagMembers(flagId: string) {
 // Grant flag mutation
 export function useGrantFlag() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: GrantFlagData) => {
-      const response = await fetch(`/api/members/${data.email}/flags`, {
+      const response = await fetch(`/api/members/${data.userId}/flags`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -132,19 +145,19 @@ export function useGrantFlag() {
           metadata: data.metadata,
         }),
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to grant flag');
       }
-      
+
       return response.json();
     },
-    onSuccess: (_, variables) => {
-      toast.success(`Flag ${variables.flagId} granted to ${variables.email}`);
+    onSuccess: (_, { flagId, userId }) => {
+      toast.success(`Flag ${flagId} granted to ${userId}`);
       // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['member-flags', variables.email] });
-      queryClient.invalidateQueries({ queryKey: ['flag-members', variables.flagId] });
+      queryClient.invalidateQueries({ queryKey: ['member-flags', userId] });
+      queryClient.invalidateQueries({ queryKey: ['flag-members', flagId] });
     },
     onError: (error) => {
       toast.error(error.message);
@@ -155,32 +168,41 @@ export function useGrantFlag() {
 // Revoke flag mutation
 export function useRevokeFlag() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: RevokeFlagData) => {
-      const response = await fetch(`/api/members/${data.email}/flags/${data.flagId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          reason: data.reason,
-        }),
-      });
-      
+      const response = await fetch(
+        `/api/members/${data.userId}/flags/${data.flagId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            reason: data.reason,
+          }),
+        }
+      );
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to revoke flag');
       }
-      
+
       return response.json();
     },
     onSuccess: (_, variables) => {
-      toast.success(`Flag ${variables.flagId} revoked from ${variables.email}`);
+      toast.success(
+        `Flag ${variables.flagId} revoked from ${variables.userId}`
+      );
       // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['member-flags', variables.email] });
-      queryClient.invalidateQueries({ queryKey: ['flag-members', variables.flagId] });
+      queryClient.invalidateQueries({
+        queryKey: ['member-flags', variables.userId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['flag-members', variables.flagId],
+      });
     },
     onError: (error) => {
       toast.error(error.message);
@@ -191,15 +213,17 @@ export function useRevokeFlag() {
 // Bulk grant flags mutation
 export function useBulkGrantFlags() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async (operations: Array<{
-      email: string;
-      flag_id: string;
-      expires_at?: string;
-      reason?: string;
-      metadata?: Record<string, any>;
-    }>) => {
+    mutationFn: async (
+      operations: Array<{
+        email: string;
+        flag_id: string;
+        expires_at?: string;
+        reason?: string;
+        metadata?: Record<string, any>;
+      }>
+    ) => {
       const response = await fetch('/api/flags/bulk', {
         method: 'POST',
         headers: {
@@ -208,12 +232,12 @@ export function useBulkGrantFlags() {
         credentials: 'include',
         body: JSON.stringify({ operations }),
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to process bulk operations');
       }
-      
+
       return response.json();
     },
     onSuccess: (_, variables) => {
@@ -231,19 +255,19 @@ export function useBulkGrantFlags() {
 // Process expired flags mutation
 export function useProcessExpiredFlags() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async () => {
       const response = await fetch('/api/flags/expire', {
         method: 'POST',
         credentials: 'include',
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to process expired flags');
       }
-      
+
       return response.json();
     },
     onSuccess: (data) => {
@@ -260,30 +284,30 @@ export function useProcessExpiredFlags() {
 
 // Check member permissions
 export function useMemberPermissions(
-  email: string,
+  id: string,
   resourceType?: string,
   resourceId?: string,
   permission?: string
 ) {
   return useQuery({
-    queryKey: ['member-permissions', email, resourceType, resourceId, permission],
+    queryKey: ['member-permissions', id, resourceType, resourceId, permission],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (resourceType) params.append('resource_type', resourceType);
       if (resourceId) params.append('resource_id', resourceId);
       if (permission) params.append('permission', permission);
-      
-      const response = await fetch(`/api/members/${email}/permissions?${params}`, {
+
+      const response = await fetch(`/api/members/${id}/flags?${params}`, {
         credentials: 'include',
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to check permissions');
       }
-      
+
       return response.json();
     },
-    enabled: !!email,
+    enabled: !!id,
   });
 }
 
@@ -299,13 +323,15 @@ export function useHasFlags(...flagIds: string[]) {
       return response.json();
     },
   });
-  
-  const { data: permissions } = useMemberPermissions(session?.user?.email || '');
-  
+
+  const { data: permissions } = useMemberPermissions(
+    session?.user?.email || ''
+  );
+
   if (!permissions?.flags) return false;
-  
+
   const userFlagIds = permissions.flags.map((f: MemberFlag) => f.id);
-  return flagIds.every(flagId => userFlagIds.includes(flagId));
+  return flagIds.every((flagId) => userFlagIds.includes(flagId));
 }
 
 // Hook to check if current user is superuser
@@ -320,6 +346,6 @@ export function useIsSuperuser() {
       return response.json();
     },
   });
-  
+
   return session?.user?.email === 'software@hitmeupnyc.com';
 }

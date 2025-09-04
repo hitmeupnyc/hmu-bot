@@ -51,7 +51,7 @@ class ForbiddenError extends Schema.TaggedError<ForbiddenError>()(
 ) {}
 
 // Authentication middleware
-export class Authentication extends HttpApiMiddleware.Tag<Authentication>()(
+export class AuthMiddleware extends HttpApiMiddleware.Tag<AuthMiddleware>()(
   'Authentication',
   {
     failure: UnauthorizedError,
@@ -74,7 +74,7 @@ export class Authentication extends HttpApiMiddleware.Tag<Authentication>()(
 // WIP: TODO: currently non-functional; requires more details about:
 // e2e testing (seeded dataset, bypass helper, tests themselves)
 // production deployment (seeded dataset? create in UI manually?, security audit)
-export class Authorization extends HttpApiMiddleware.Tag<Authorization>()(
+export class AuthorizationHTTP extends HttpApiMiddleware.Tag<AuthorizationHTTP>()(
   'Authorization',
   {
     failure: ForbiddenError,
@@ -86,8 +86,8 @@ export class Authorization extends HttpApiMiddleware.Tag<Authorization>()(
 ) {}
 
 // Authentication middleware implementation
-export const AuthenticationLive = Layer.effect(
-  Authentication,
+export const AuthMiddlewareLive = Layer.effect(
+  AuthMiddleware,
   Effect.gen(function* () {
     const authService = yield* Auth;
 
@@ -116,8 +116,8 @@ export const AuthenticationLive = Layer.effect(
 ).pipe(Layer.provide(AuthLive));
 
 // Authorization middleware implementation
-export const AuthorizationLive = Layer.effect(
-  Authorization,
+export const AuthorizationMiddlewareLive = Layer.effect(
+  AuthorizationHTTP,
   Effect.gen(function* () {
     const authService = yield* Auth;
 

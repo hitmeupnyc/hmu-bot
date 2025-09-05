@@ -1,14 +1,19 @@
-import { useState } from 'react';
-import { ShieldCheckIcon, UsersIcon, BeakerIcon, ChartBarIcon } from '@heroicons/react/24/outline';
-import { useFlags, useFlagMembers, Flag } from '@/hooks/useFlags';
 import {
-  FlagList,
+  BulkOperations,
   FlagDetails,
   FlagGrantModal,
+  FlagList,
   MemberFlagManager,
-  BulkOperations,
-  PermissionTester
+  PermissionTester,
 } from '@/features/Permissions/components';
+import { Flag, useFlagMembers, useFlags } from '@/hooks/useFlags';
+import {
+  BeakerIcon,
+  ChartBarIcon,
+  ShieldCheckIcon,
+  UsersIcon,
+} from '@heroicons/react/24/outline';
+import { useState } from 'react';
 
 type TabType = 'flags' | 'members' | 'bulk' | 'tester';
 
@@ -38,40 +43,44 @@ export default function Permissions() {
       id: 'flags' as TabType,
       label: 'Flags Overview',
       icon: ShieldCheckIcon,
-      description: 'Browse and manage system flags'
+      description: 'Browse and manage system flags',
     },
     {
       id: 'members' as TabType,
       label: 'Member Permissions',
       icon: UsersIcon,
-      description: 'View and manage member-specific permissions'
+      description: 'View and manage member-specific permissions',
     },
     {
       id: 'bulk' as TabType,
       label: 'Bulk Operations',
       icon: ChartBarIcon,
-      description: 'Perform bulk flag operations and cleanup'
+      description: 'Perform bulk flag operations and cleanup',
     },
     {
       id: 'tester' as TabType,
       label: 'Permission Tester',
       icon: BeakerIcon,
-      description: 'Test and validate permission scenarios'
-    }
+      description: 'Test and validate permission scenarios',
+    },
   ];
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Permission Management</h1>
-        <p className="mt-2 text-gray-600">Manage member flags and permissions across the system</p>
+        <h1 className="text-3xl font-bold text-gray-900">
+          Permission Management
+        </h1>
+        <p className="mt-2 text-gray-600">
+          Manage member flags and permissions across the system
+        </p>
       </div>
 
       {/* Tab Navigation */}
       <div className="mb-6">
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
-            {tabs.map(tab => {
+            {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
@@ -90,11 +99,11 @@ export default function Permissions() {
             })}
           </nav>
         </div>
-        
+
         {/* Tab descriptions */}
         <div className="mt-2">
           <p className="text-sm text-gray-600">
-            {tabs.find(tab => tab.id === activeTab)?.description}
+            {tabs.find((tab) => tab.id === activeTab)?.description}
           </p>
         </div>
       </div>
@@ -126,13 +135,9 @@ export default function Permissions() {
           <MemberFlagManager onGrantFlag={handleGrantFlag} />
         )}
 
-        {activeTab === 'bulk' && (
-          <BulkOperations flags={flags} />
-        )}
+        {activeTab === 'bulk' && <BulkOperations flags={flags} />}
 
-        {activeTab === 'tester' && (
-          <PermissionTester />
-        )}
+        {activeTab === 'tester' && <PermissionTester />}
       </div>
 
       {/* Grant Flag Modal */}
@@ -141,7 +146,7 @@ export default function Permissions() {
         onClose={handleCloseGrantModal}
         flags={flags}
         preselectedFlag={selectedFlag || undefined}
-        preselectedEmail={preselectedEmail}
+        preselectedMemberId={preselectedEmail}
       />
     </div>
   );

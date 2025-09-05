@@ -14,7 +14,7 @@ interface FlagGrantModalProps {
   onClose: () => void;
   flags: Flag[];
   preselectedFlag?: Flag;
-  preselectedEmail?: string;
+  preselectedMemberId?: string;
 }
 
 interface GrantFormData {
@@ -49,7 +49,7 @@ export function FlagGrantModal({
   onClose,
   flags,
   preselectedFlag,
-  preselectedEmail: preselectedUserId,
+  preselectedMemberId,
 }: FlagGrantModalProps) {
   const [formData, setFormData] = useState<GrantFormData>({
     userId: '',
@@ -77,7 +77,7 @@ export function FlagGrantModal({
   useEffect(() => {
     if (isOpen) {
       setFormData({
-        userId: preselectedUserId || '',
+        userId: preselectedMemberId || '',
         flagId: preselectedFlag?.id || '',
         expiresAt: '',
         reason: '',
@@ -86,7 +86,7 @@ export function FlagGrantModal({
       setFlagSearch('');
       setShowPermissionPreview(false);
     }
-  }, [isOpen, preselectedUserId, preselectedFlag]);
+  }, [isOpen, preselectedMemberId, preselectedFlag]);
 
   // Filter flags based on search
   const filteredFlags = flags.filter(
@@ -158,17 +158,16 @@ export function FlagGrantModal({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column - Form */}
           <div className="space-y-4">
-            {/* Member Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Member Email *
+                Member ID
               </label>
               <input
                 type="text"
                 required
                 value={formData.userId}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, email: e.target.value }))
+                  setFormData((prev) => ({ ...prev, userId: e.target.value }))
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="member@example.com"
@@ -191,66 +190,6 @@ export function FlagGrantModal({
               )}
             </div>
 
-            {/* Flag Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Flag *
-              </label>
-              <div className="relative mb-2">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search flags..."
-                  value={flagSearch}
-                  onChange={(e) => setFlagSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="border border-gray-300 rounded-md max-h-32 overflow-y-auto">
-                {Object.entries(flagsByCategory).map(
-                  ([category, categoryFlags]) => (
-                    <div key={category}>
-                      <div className="px-3 py-1 bg-gray-50 text-xs font-medium text-gray-500 uppercase">
-                        {category}
-                      </div>
-                      {categoryFlags.map((flag) => (
-                        <label
-                          key={flag.id}
-                          className="flex items-center p-2 hover:bg-gray-50 cursor-pointer"
-                        >
-                          <input
-                            type="radio"
-                            name="flagId"
-                            value={flag.id}
-                            checked={formData.flagId === flag.id}
-                            onChange={(e) =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                flagId: e.target.value,
-                              }))
-                            }
-                            className="mr-3 text-blue-600 focus:ring-blue-500"
-                          />
-                          <div className="flex-1">
-                            <div className="text-sm font-medium">
-                              {flag.name}
-                            </div>
-                            {flag.description && (
-                              <div className="text-xs text-gray-500">
-                                {flag.description}
-                              </div>
-                            )}
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
-
-            {/* Expiration */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Expiration
@@ -326,7 +265,64 @@ export function FlagGrantModal({
 
           {/* Right Column - Preview */}
           <div className="space-y-4">
-            {/* Selection Summary */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Flag *
+              </label>
+              <div className="relative mb-2">
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search flags..."
+                  value={flagSearch}
+                  onChange={(e) => setFlagSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="border border-gray-300 rounded-md max-h-64 overflow-y-auto">
+                {Object.entries(flagsByCategory).map(
+                  ([category, categoryFlags]) => (
+                    <div key={category}>
+                      <div className="px-3 py-1 bg-gray-50 text-xs font-medium text-gray-500 uppercase">
+                        {category}
+                      </div>
+                      {categoryFlags.map((flag) => (
+                        <label
+                          key={flag.id}
+                          className="flex items-center p-2 hover:bg-gray-50 cursor-pointer"
+                        >
+                          <input
+                            type="radio"
+                            name="flagId"
+                            value={flag.id}
+                            checked={formData.flagId === flag.id}
+                            onChange={(e) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                flagId: e.target.value,
+                              }))
+                            }
+                            className="mr-3 text-blue-600 focus:ring-blue-500"
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium">
+                              {flag.name}
+                            </div>
+                            {flag.description && (
+                              <div className="text-xs text-gray-500">
+                                {flag.description}
+                              </div>
+                            )}
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+
             <div className="bg-gray-50 rounded-lg p-4">
               <h3 className="font-medium text-gray-900 mb-3">Grant Summary</h3>
 

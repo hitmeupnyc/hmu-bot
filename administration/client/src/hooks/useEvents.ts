@@ -1,6 +1,11 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { Event, CreateEventRequest, UpdateEventRequest, EventWithDetails } from '@/types';
+import {
+  CreateEventRequest,
+  Event,
+  EventWithDetails,
+  UpdateEventRequest,
+} from '@/types';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface EventsResponse {
   success: boolean;
@@ -46,8 +51,8 @@ export function useEventDetails(id: number, enabled: boolean = true) {
   return useQuery({
     queryKey: eventKeys.detail(id),
     queryFn: async (): Promise<EventWithDetails> => {
-      const response = await api.get(`/events/${id}/details`);
-      return response.data.data;
+      const response = await api.get(`/events/${id}`);
+      return response.data;
     },
     enabled: enabled && id > 0,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -56,7 +61,7 @@ export function useEventDetails(id: number, enabled: boolean = true) {
 
 export function useCreateEvent() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (eventData: CreateEventRequest) => {
       const response = await api.post('/events', eventData);
@@ -70,7 +75,7 @@ export function useCreateEvent() {
 
 export function useUpdateEvent() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (eventData: UpdateEventRequest) => {
       const response = await api.put(`/events/${eventData.id}`, eventData);
@@ -84,7 +89,7 @@ export function useUpdateEvent() {
 
 export function useDeleteEvent() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (eventId: number) => {
       const response = await api.delete(`/events/${eventId}`);

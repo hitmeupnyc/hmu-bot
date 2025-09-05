@@ -1,21 +1,13 @@
 import { HttpApiBuilder } from '@effect/platform';
-import { Effect, Layer } from 'effect';
-import { ParseError as InternalParseError } from 'effect/ParseResult';
-import {
-  DatabaseError,
-  NotFoundError,
-  ParseError,
-  UniqueError,
-} from '~/api/errors';
+import { Effect, Schema } from 'effect';
+import { sql } from 'kysely';
+import { NotFoundError, UniqueError } from '~/api/errors';
+import { MemberSchema } from '~/api/members/schemas';
 import { CurrentUser } from '~/middleware/auth';
 import {
   DatabaseLive,
   DatabaseService,
 } from '~/services/effect/layers/DatabaseLayer';
-import {
-  MemberService,
-  MemberServiceLive,
-} from '~/services/effect/MemberEffects';
 import { membersApi } from './endpoints';
 
 export const MembersApiLive = HttpApiBuilder.group(
@@ -23,132 +15,250 @@ export const MembersApiLive = HttpApiBuilder.group(
   'members',
   (handlers) =>
     Effect.gen(function* () {
-      const memberService = yield* MemberService;
+      const dbService = yield* DatabaseService;
 
       return handlers
         .handle('api.members.list', ({ urlParams }) =>
           Effect.gen(function* () {
-            const page = urlParams.page ?? 1;
-            const limit = urlParams.limit ?? 20;
-            const search = urlParams.search;
+            const { page, limit, search } = urlParams;
+            const offset = (page - 1) * limit;
 
-            const result = yield* memberService
-              .getMembers({ page, limit, search })
-              .pipe(
-                Effect.mapError((error) => {
-                  throw error;
-                })
-              );
+            const [countResult, memberRows] = yield* dbService
+              .query(async (db) => {
+                // Only active members
+                let query = db.selectFrom('members').where('flags', '=', '1');
+
+                if (search) {
+                  const searchTerm = `%${search}%`;
+                  query = query.where((eb) =>
+                    eb.or([
+                      eb('first_name', 'like', searchTerm),
+                      eb('last_name', 'like', searchTerm),
+                      eb('email', 'like', searchTerm),
+                    ])
+                  );
+                }
+
+                const countQuery = query
+                  .clearSelect()
+                  .select((eb) => eb.fn.count('id').as('total'));
+
+                const selectQuery = query
+                  .select([
+                    'id',
+                    'first_name',
+                    'last_name',
+                    'preferred_name',
+                    'email',
+                    'pronouns',
+                    'sponsor_notes',
+                    sql`CAST(flags AS INTEGER)`.as('flags'),
+                    'date_added',
+                    'created_at',
+                    'updated_at',
+                  ])
+                  .orderBy('created_at', 'desc')
+                  .limit(limit)
+                  .offset(offset);
+
+                return Promise.all([
+                  countQuery.executeTakeFirst() as Promise<{ total: string }>,
+                  selectQuery.execute(),
+                ]);
+              })
+              .pipe(Effect.withSpan('db.members.list'));
+
+            const members = yield* Effect.forEach(memberRows, (row) =>
+              Schema.decodeUnknown(MemberSchema)(row).pipe(Effect.orDie)
+            );
+
+            const total = parseInt(countResult?.total || '0');
+            const totalPages = Math.ceil(total / limit);
 
             return {
-              data: result.members,
-              total: result.pagination.total,
-              page: result.pagination.page,
-              limit: result.pagination.limit,
-              totalPages: result.pagination.totalPages,
+              data: members,
+              page,
+              limit,
+              total,
+              totalPages,
             };
           })
         )
 
         .handle('api.members.read', ({ path }) =>
           Effect.gen(function* () {
-            const member = yield* memberService.getMemberById(path.id).pipe(
-              Effect.mapError((error) => {
-                if (error instanceof NotFoundError) {
-                  return new NotFoundError({
-                    id: path.id.toString(),
-                    resource: 'member',
-                  });
-                }
-                if (error instanceof DatabaseError) {
-                  throw new Error('Database error occurred');
-                }
-                throw error;
-              })
+            const member = yield* dbService.query(async (db) =>
+              db
+                .selectFrom('members')
+                .select([
+                  'id',
+                  'first_name',
+                  'last_name',
+                  'preferred_name',
+                  'email',
+                  'pronouns',
+                  'sponsor_notes',
+                  (eb) => sql`CAST(flags AS INTEGER)`.as('flags'),
+                  'date_added',
+                  'created_at',
+                  'updated_at',
+                ])
+                .where('id', '=', path.id)
+                .where('flags', '=', '1')
+                .executeTakeFirst()
             );
-            return member;
+
+            if (!member) {
+              return yield* new NotFoundError({
+                id: path.id.toString(),
+                resource: 'member',
+              });
+            }
+
+            return yield* Schema.decodeUnknown(MemberSchema)(member).pipe(
+              Effect.orDie
+            );
           })
         )
 
         .handle('api.members.create', ({ payload }) =>
           Effect.gen(function* () {
-            const member = yield* memberService.createMember(payload).pipe(
-              Effect.mapError((error) => {
-                if (error instanceof UniqueError) {
-                  return new UniqueError({
-                    field: 'email',
-                    value: payload.email,
-                  });
-                }
-                if (error instanceof DatabaseError) {
-                  throw new Error('Database error occurred');
-                }
-                throw error;
-              })
+            // Check if email already exists
+            const existingMember = yield* dbService.query(async (db) =>
+              db
+                .selectFrom('members')
+                .select('id')
+                .where('email', '=', payload.email)
+                .executeTakeFirst()
             );
-            return member;
+
+            if (existingMember) {
+              return yield* new UniqueError({
+                field: 'email',
+                value: payload.email,
+              });
+            }
+
+            yield* dbService.query(async (db) =>
+              db
+                .insertInto('members')
+                .values({
+                  first_name: payload.first_name,
+                  last_name: payload.last_name,
+                  preferred_name: payload.preferred_name || null,
+                  email: payload.email,
+                  pronouns: payload.pronouns || null,
+                  sponsor_notes: payload.sponsor_notes || null,
+                })
+                .executeTakeFirstOrThrow()
+            );
           })
         )
 
         .handle('api.members.update', ({ path, payload }) =>
           Effect.gen(function* () {
-            const member = yield* memberService.updateMember({
-              ...payload,
-              id: path.id,
-            });
-            return member;
-          }).pipe(
-            Effect.mapError((error) => {
-              if (error instanceof InternalParseError) {
-                return new ParseError(error);
+            const { id, email } = payload;
+            // email conflict
+            if (email) {
+              const conflict = yield* dbService.query(async (db) =>
+                db
+                  .selectFrom('members')
+                  .select('id')
+                  .where('email', '=', email)
+                  .where('id', '!=', id)
+                  .executeTakeFirst()
+              );
+              if (conflict) {
+                throw new UniqueError({ field: 'email', value: email });
               }
-              throw error;
-            })
-          )
+            }
+
+            // deactivated account
+            const member = yield* dbService.query(async (db) =>
+              db
+                .selectFrom('members')
+                .select(['id', 'flags'])
+                .where('id', '=', id)
+                .executeTakeFirst()
+            );
+            if (member && (parseInt(member.flags || '0') & 1) === 0) {
+              throw new NotFoundError({ id: `${id}`, resource: 'member' });
+            }
+
+            //
+
+            const updateData = Object.fromEntries(
+              Object.entries(payload).filter(
+                ([_, value]) => value !== undefined
+              )
+            );
+
+            updateData.updated_at = new Date().toISOString();
+
+            const result = yield* dbService.query(async (db) =>
+              db
+                .updateTable('members')
+                .set(updateData)
+                .where('id', '=', payload.id)
+                .returningAll()
+                .executeTakeFirstOrThrow()
+            );
+
+            return yield* Schema.decodeUnknown(MemberSchema)(result).pipe(
+              Effect.orDie
+            );
+          })
         )
 
         .handle('api.members.delete', ({ path }) =>
           Effect.gen(function* () {
-            yield* memberService.deleteMember(path.id).pipe(
-              Effect.mapError((error) => {
-                if (error instanceof NotFoundError) {
-                  return new NotFoundError({
-                    id: path.id.toString(),
-                    resource: 'member',
-                  });
-                }
-                if (error instanceof DatabaseError) {
-                  throw new Error('Database error occurred');
-                }
-                throw error;
-              })
+            const { id } = path;
+            const member = yield* dbService.query(async (db) =>
+              db
+                .selectFrom('members')
+                .select(['id', 'flags'])
+                .where('id', '=', id)
+                .executeTakeFirst()
             );
-            return { message: 'Member deleted successfully' };
+
+            if (!member) {
+              throw new NotFoundError({ id: `${id}`, resource: 'members' });
+            }
+
+            // Soft delete by setting active flag to false
+            const flags = parseInt(member?.flags || '0') & ~1; // Clear active bit
+
+            yield* dbService.query(async (db) =>
+              db
+                .updateTable('members')
+                .set({
+                  flags: flags.toString(),
+                  updated_at: new Date().toISOString(),
+                })
+                .where('id', '=', path.id)
+                .execute()
+            );
           })
         )
 
         .handle('api.members.note', ({ path, payload }) =>
           Effect.gen(function* () {
-            const db = yield* DatabaseService;
             const currentUser = yield* CurrentUser;
 
             // First verify the member exists
-            const member = yield* memberService.getMemberById(path.id).pipe(
-              Effect.mapError((error) => {
-                if (error instanceof NotFoundError) {
-                  return new NotFoundError({
-                    id: path.id.toString(),
-                    resource: 'member',
-                  });
-                }
-                throw error;
-              })
+            yield* dbService.query(async (db) =>
+              db
+                .selectFrom('members')
+                .select('id')
+                .where('id', '=', path.id)
+                .where('flags', '=', '1')
+                .executeTakeFirst()
             );
 
             // Create audit log entry
-            yield* db
-              .query(async (database) => {
-                return database
+            yield* dbService
+              .query(async (db) =>
+                db
                   .insertInto('audit_log')
                   .values({
                     entity_type: 'member',
@@ -159,16 +269,14 @@ export const MembersApiLive = HttpApiBuilder.group(
                     user_session_id: null, // We don't have session ID from CurrentUser context
                     metadata_json: JSON.stringify({ content: payload.content }),
                   })
-                  .execute();
-              })
+                  .execute()
+              )
               .pipe(
                 Effect.mapError((error) => {
-                  throw new DatabaseError({ message: 'Failed to create note' });
+                  throw error;
                 })
               );
-
-            return { message: 'Note added successfully' };
           })
         );
-    }).pipe(Effect.provide(Layer.mergeAll(MemberServiceLive, DatabaseLive)))
+    }).pipe(Effect.provide(DatabaseLive))
 );

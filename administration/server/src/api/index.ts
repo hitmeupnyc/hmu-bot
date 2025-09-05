@@ -14,7 +14,6 @@ import { EventServiceLive } from '~/services/effect/EventEffects';
 import { AuthLive } from '~/services/effect/layers/AuthLayer';
 import { DatabaseLive } from '~/services/effect/layers/DatabaseLayer';
 import { FlagLive } from '~/services/effect/layers/FlagLayer';
-import { MemberServiceLive } from '~/services/effect/MemberEffects';
 
 import { AuditApiLive, auditGroup } from './audit';
 import { EventsApiLive, eventsGroup } from './events';
@@ -27,7 +26,6 @@ import { MembersApiLive, membersGroup } from './members';
 // Other services are built on top of DatabaseLive
 export const ApplicationLive = Layer.mergeAll(
   DatabaseLive,
-  MemberServiceLive,
   EventServiceLive,
   FlagLive,
   AuthLive,

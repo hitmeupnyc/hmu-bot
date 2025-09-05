@@ -10,7 +10,6 @@ import type { NodeInspectSymbol } from 'effect/Inspectable';
 
 import { AuthMiddleware, AuthMiddlewareLive } from '~/middleware/auth';
 import { AuthorizationService } from '~/services/effect/AuthorizationEffects';
-import { EventServiceLive } from '~/services/effect/EventEffects';
 import { AuthLive } from '~/services/effect/layers/AuthLayer';
 import { DatabaseLive } from '~/services/effect/layers/DatabaseLayer';
 import { FlagLive } from '~/services/effect/layers/FlagLayer';
@@ -26,7 +25,6 @@ import { MembersApiLive, membersGroup } from './members';
 // Other services are built on top of DatabaseLive
 export const ApplicationLive = Layer.mergeAll(
   DatabaseLive,
-  EventServiceLive,
   FlagLive,
   AuthLive,
   AuthorizationService.Live

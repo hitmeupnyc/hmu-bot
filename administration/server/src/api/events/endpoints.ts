@@ -61,7 +61,7 @@ export const eventsGroup = HttpApiGroup.make('events')
   .add(
     HttpApiEndpoint.del('api.events.delete', '/api/events/:id')
       .setPath(Schema.Struct({ id: Schema.NumberFromString }))
-      .addSuccess(Schema.Struct({ message: Schema.String }))
+      .addSuccess(Schema.Void)
       .addError(NotFoundError)
       .annotate(OpenApi.Description, 'Delete an event')
   );

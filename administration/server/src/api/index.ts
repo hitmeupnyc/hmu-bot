@@ -9,10 +9,8 @@ import type { Effect, Sink, Stream, Channel } from 'effect';
 import type { NodeInspectSymbol } from 'effect/Inspectable';
 
 import { AuthMiddleware, AuthMiddlewareLive } from '~/middleware/auth';
-import { AuthorizationService } from '~/services/effect/AuthorizationEffects';
 import { AuthLive } from '~/services/effect/layers/AuthLayer';
 import { DatabaseLive } from '~/services/effect/layers/DatabaseLayer';
-import { FlagLive } from '~/services/effect/layers/FlagLayer';
 
 import { AuditApiLive, auditGroup } from './audit';
 import { EventsApiLive, eventsGroup } from './events';
@@ -23,12 +21,7 @@ import { MembersApiLive, membersGroup } from './members';
 // Create a comprehensive application layer that includes all services
 // DatabaseLive provides DatabaseService directly
 // Other services are built on top of DatabaseLive
-export const ApplicationLive = Layer.mergeAll(
-  DatabaseLive,
-  FlagLive,
-  AuthLive,
-  AuthorizationService.Live
-);
+export const ApplicationLive = Layer.mergeAll(DatabaseLive, AuthLive);
 
 // Create the complete API by combining all groups
 export const Api = HttpApi.make('ClubManagementAPI')

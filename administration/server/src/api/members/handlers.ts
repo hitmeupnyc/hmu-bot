@@ -3,11 +3,8 @@ import { Effect, Schema } from 'effect';
 import { sql } from 'kysely';
 import { NotFoundError, UniqueError } from '~/api/errors';
 import { MemberSchema } from '~/api/members/schemas';
+import { DatabaseLive, DatabaseService } from '~/layers/db';
 import { CurrentUser } from '~/middleware/auth';
-import {
-  DatabaseLive,
-  DatabaseService,
-} from '~/services/effect/layers/DatabaseLayer';
 import { membersApi } from './endpoints';
 
 export const MembersApiLive = HttpApiBuilder.group(

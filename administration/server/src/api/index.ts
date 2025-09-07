@@ -9,8 +9,8 @@ import type { Effect, Sink, Stream, Channel } from 'effect';
 import type { NodeInspectSymbol } from 'effect/Inspectable';
 
 import { AuthMiddleware, AuthMiddlewareLive } from '~/middleware/auth';
-import { DatabaseLive } from '~/services/effect/layers/DatabaseLayer';
 import { AuthLive } from '~/layers/auth';
+import { DatabaseLive } from '~/layers/db';
 
 import { AuditApiLive, auditGroup } from './audit';
 import { EventsApiLive, eventsGroup } from './events';

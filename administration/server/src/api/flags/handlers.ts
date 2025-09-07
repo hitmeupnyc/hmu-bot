@@ -1,10 +1,7 @@
 import { HttpApi, HttpApiBuilder } from '@effect/platform';
 import { Effect, Schema } from 'effect';
+import { DatabaseLive, DatabaseService } from '~/layers/db';
 import { CurrentUser } from '~/middleware/auth';
-import {
-  DatabaseLive,
-  DatabaseService,
-} from '~/services/effect/layers/DatabaseLayer';
 import { flagsGroup } from './endpoints';
 import { MemberFlagSchema } from './schemas';
 

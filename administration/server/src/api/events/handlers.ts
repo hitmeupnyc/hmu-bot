@@ -3,10 +3,7 @@ import { Effect, Schema } from 'effect';
 import { sql } from 'kysely';
 import { NotFoundError, UnrecoverableError } from '~/api/errors';
 import { EventSchema } from '~/api/events/schemas';
-import {
-  DatabaseLive,
-  DatabaseService,
-} from '~/services/effect/layers/DatabaseLayer';
+import { DatabaseLive, DatabaseService } from '~/layers/db';
 import { eventsApi } from './endpoints';
 
 export const EventsApiLive = HttpApiBuilder.group(

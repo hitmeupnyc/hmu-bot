@@ -13,7 +13,7 @@ import { Effect, Schema } from 'effect';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { DatabaseService } from '~/services/effect/layers/DatabaseLayer';
+import { DatabaseService } from '~/layers/db';
 
 // Response schemas
 const HealthStatusSchema = Schema.Struct({

@@ -1,10 +1,7 @@
 import { HttpApiBuilder } from '@effect/platform';
 import { Effect, Layer } from 'effect';
 import { DatabaseError } from '~/api/errors';
-import {
-  DatabaseLive,
-  DatabaseService,
-} from '~/services/effect/layers/DatabaseLayer';
+import { DatabaseLive, DatabaseService } from '~/layers/db';
 import { auditApi } from './endpoints';
 
 export const AuditApiLive = HttpApiBuilder.group(

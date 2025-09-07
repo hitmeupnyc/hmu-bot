@@ -14,14 +14,9 @@ export const EventSchema = Schema.Struct({
   id: Schema.Number,
   name: Schema.String,
   description: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
-  start_datetime: Schema.String,
-  end_datetime: Schema.String,
-  flags: Schema.Number,
-  max_capacity: Schema.Union(Schema.Number, Schema.Null, Schema.Undefined),
-  eventbrite_id: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
-  eventbrite_url: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
-  created_at: Schema.String,
-  updated_at: Schema.String,
+  url: Schema.String,
+  flags: Schema.Union(Schema.Number, Schema.Null, Schema.Undefined),
+  created_by_member_id: Schema.Union(Schema.Number, Schema.Null, Schema.Undefined),
 });
 
 export type Event = typeof EventSchema.Type;
@@ -29,12 +24,9 @@ export type Event = typeof EventSchema.Type;
 export const CreateEventSchema = Schema.Struct({
   name: Schema.String,
   description: Schema.optional(Schema.String),
-  start_datetime: Schema.String,
-  end_datetime: Schema.String,
-  flags: Schema.optionalWith(Schema.Number, { default: () => 3 }), // Default: active + public
-  max_capacity: Schema.optional(Schema.Number),
-  eventbrite_id: Schema.optional(Schema.String),
-  eventbrite_url: Schema.optional(Schema.String),
+  url: Schema.String,
+  flags: Schema.optionalWith(Schema.Number, { default: () => 1 }), // Default: active
+  created_by_member_id: Schema.optional(Schema.Number),
 });
 
 export type CreateEvent = typeof CreateEventSchema.Type;
@@ -43,12 +35,9 @@ export const UpdateEventSchema = Schema.Struct({
   id: Schema.Number,
   name: Schema.optional(Schema.String),
   description: Schema.optional(Schema.String),
-  start_datetime: Schema.optional(Schema.String),
-  end_datetime: Schema.optional(Schema.String),
+  url: Schema.optional(Schema.String),
   flags: Schema.optional(Schema.Number),
-  max_capacity: Schema.optional(Schema.Number),
-  eventbrite_id: Schema.optional(Schema.String),
-  eventbrite_url: Schema.optional(Schema.String),
+  created_by_member_id: Schema.optional(Schema.Number),
 });
 
 export type UpdateEvent = typeof UpdateEventSchema.Type;
@@ -56,10 +45,35 @@ export type UpdateEvent = typeof UpdateEventSchema.Type;
 export const EventQueryOptionsSchema = Schema.Struct({
   page: Schema.Number,
   limit: Schema.Number,
-  upcoming: Schema.optionalWith(Schema.Boolean, { default: () => false }),
 });
 
 export type EventQueryOptions = typeof EventQueryOptionsSchema.Type;
+
+// Event flag relationship schema
+export const EventFlagSchema = Schema.Struct({
+  event_id: Schema.Number,
+  flag_id: Schema.String,
+  granted_at: Schema.NullOr(Schema.DateFromString),
+  granted_by: Schema.NullOr(Schema.String),
+  expires_at: Schema.NullOr(Schema.DateFromString),
+  metadata: Schema.NullOr(Schema.String),
+});
+
+export type EventFlag = typeof EventFlagSchema.Type;
+
+// Request schemas for event flags
+export const GrantEventFlagSchema = Schema.extend(
+  EventFlagSchema.omit('granted_at', 'granted_by', 'event_id', 'flag_id', 'expires_at'),
+  Schema.Struct({ expires_at: Schema.optional(Schema.String) })
+);
+
+export type GrantEventFlag = typeof GrantEventFlagSchema.Type;
+
+export const RevokeEventFlagSchema = Schema.Struct({
+  reason: Schema.optional(Schema.String),
+});
+
+export type RevokeEventFlag = typeof RevokeEventFlagSchema.Type;
 
 export const EventMarketingSchema = Schema.Struct({
   id: Schema.Number,

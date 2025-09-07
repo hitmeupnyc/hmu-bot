@@ -10,10 +10,8 @@ import dotenv from 'dotenv';
 import { Effect, Layer } from 'effect';
 import express from 'express';
 import { ApiLive } from './api';
-import {
-  BetterAuth,
-  BetterAuthLive,
-} from './services/effect/layers/BetterAuthLayer';
+import { auditMiddleware } from './middleware/auditLogging';
+import { Auth, AuthLive } from './services/auth/AuthLayer';
 
 dotenv.config();
 
@@ -49,17 +47,15 @@ app.get('/health', (_, res) => {
 async function startServer() {
   console.log('Starting Express server with BetterAuth...');
 
-  // Get BetterAuth handler
-  const { auth } = await Effect.runSync(
+  const { auth } = await Effect.runPromise(
     Effect.scoped(
       Effect.gen(function* () {
-        return yield* BetterAuth;
+        return yield* Auth;
       })
-    ).pipe(Effect.provide(BetterAuthLive))
+    ).pipe(Effect.provide(AuthLive))
   );
   const authHandler = toNodeHandler(auth);
 
-  // Mount BetterAuth routes - use app.all with wildcard as per docs
   app.all('/api/auth/*', (req, res) => {
     console.log(`[BetterAuth] ${req.method} ${req.url} ${req.originalUrl}`);
     authHandler(req, res);
@@ -71,23 +67,22 @@ async function startServer() {
   // In test mode, add endpoint to get magic link for testing
   if (process.env.NODE_ENV === 'test') {
     console.log('⚠️  BetterAuth running in TEST MODE - accepting test tokens');
-    
-    // Test endpoint to get magic link URL
+
     app.post('/api/test-magic-link', async (req, res) => {
       try {
         const { email = 'test@hitmeupnyc.com' } = req.body || {};
         const testToken = 'test-token-e2e';
-        
+
         // Generate the magic link URL directly using the test token
         const magicLinkUrl = `http://localhost:5173/api/auth/magic-link/verify?token=${testToken}&callbackURL=${encodeURIComponent('/')}`;
-        
+
         console.log(`Test magic link generated: ${magicLinkUrl}`);
-        
-        res.json({ 
-          success: true, 
+
+        res.json({
+          success: true,
           magicLinkUrl,
           email,
-          message: 'Magic link generated for testing'
+          message: 'Magic link generated for testing',
         });
       } catch (error) {
         console.error('Error generating test magic link:', error);
@@ -97,7 +92,6 @@ async function startServer() {
   }
 
   // Add audit logging middleware for all API routes (except auth)
-  const { auditMiddleware } = await import('./middleware/auditLogging');
   app.use(auditMiddleware);
 
   // TODO: fix this, it's super neat to have
@@ -175,9 +169,6 @@ async function startServer() {
   // Start server
   app.listen(PORT, () => {
     console.log(`✅ Express server running on http://localhost:${PORT}`);
-    console.log(`   Health check: http://localhost:${PORT}/health`);
-    console.log(`   BetterAuth: http://localhost:${PORT}/api/auth/*`);
-    console.log(`   Effect API: http://localhost:${PORT}/api/*`);
   });
 }
 

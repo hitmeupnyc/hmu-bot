@@ -9,9 +9,9 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { Effect, Layer } from 'effect';
 import express from 'express';
-import { ApiLive } from './api';
-import { auditMiddleware } from './middleware/auditLogging';
-import { Auth, AuthLive } from './services/auth/AuthLayer';
+import { ApiLive } from '~/api';
+import { Auth, AuthLive } from '~/layers/auth';
+import { auditMiddleware } from '~/middleware/auditLogging';
 
 dotenv.config();
 

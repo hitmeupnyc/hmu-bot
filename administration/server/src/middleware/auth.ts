@@ -11,7 +11,7 @@ import {
   AuthenticationError,
   AuthLive,
   type Session,
-} from '~/services/auth/AuthLayer';
+} from '~/layers/auth';
 
 // Context tags for authenticated user and session
 export class CurrentUser extends Context.Tag('CurrentUser')<

@@ -6,10 +6,7 @@ import { DurationInput } from 'effect/Duration';
 import * as Schema from 'effect/Schema';
 import { Kysely, sql } from 'kysely';
 import { ParseError, UnrecoverableError } from '~/api/errors';
-import {
-  DatabaseLive,
-  DatabaseService,
-} from '~/services/effect/layers/DatabaseLayer';
+import { DatabaseLive, DatabaseService } from '~/layers/db';
 import type { DB as DatabaseSchema, Session as DbSession } from '~/types';
 import { SnakeToCamelCaseObject } from '~/types/typehelpers';
 
@@ -111,7 +108,9 @@ export const AuthLive = Layer.effect(
   Effect.gen(function* () {
     const dbService = yield* DatabaseService;
     const rawDb = yield* dbService.querySync((db) => db);
-    const kyselyDb = yield* dbService.query<Kysely<DatabaseSchema>>(async (db) => db);
+    const kyselyDb = yield* dbService.query<Kysely<DatabaseSchema>>(
+      async (db) => db
+    );
 
     // ===========================================================================
 

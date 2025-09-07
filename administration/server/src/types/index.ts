@@ -41,71 +41,21 @@ export interface AuditLog {
 }
 
 export interface Events {
-  created_at: Generated<string | null>;
   created_by_member_id: number | null;
   description: string | null;
-  end_datetime: string;
-  eventbrite_id: string | null;
-  eventbrite_url: string | null;
   flags: Generated<number | null>;
   id: Generated<number | null>;
-  max_capacity: number | null;
   name: string;
-  start_datetime: string;
-  updated_at: Generated<string | null>;
+  url: string | null;
 }
 
-export interface EventsMarketing {
-  blurb: string | null;
-  created_at: Generated<string | null>;
-  created_by_member_id: number | null;
-  email_preview_text: string | null;
-  email_subject: string | null;
+export interface EventsFlags {
   event_id: number;
-  flags: Generated<number | null>;
-  hashtags: string | null;
-  id: Generated<number | null>;
-  key_selling_points: string | null;
-  marketing_images_json: string | null;
-  primary_marketing_copy: string | null;
-  secondary_marketing_copy: string | null;
-  seo_description: string | null;
-  seo_title: string | null;
-  social_media_copy: string | null;
-  updated_at: Generated<string | null>;
-}
-
-export interface EventsVolunteers {
-  arrival_time: string | null;
-  checked_in_at: string | null;
-  checked_out_at: string | null;
-  confirmed_at: string | null;
-  contact_email: string | null;
-  contact_phone: string | null;
-  coordinator_notes: string | null;
-  created_at: Generated<string | null>;
-  departure_time: string | null;
-  equipment_needed: string | null;
-  event_id: number;
-  flags: Generated<number | null>;
-  hours_worked: number | null;
-  id: Generated<number | null>;
-  member_id: number;
-  role: string;
-  skills_required: string | null;
-  special_instructions: string | null;
-  updated_at: Generated<string | null>;
-  volunteer_notes: string | null;
-}
-
-export interface ExternalIntegrations {
-  external_data_json: string | null;
-  external_id: string;
-  flags: Generated<number | null>;
-  id: Generated<number | null>;
-  last_synced_at: string | null;
-  member_id: number;
-  system_name: string;
+  expires_at: string | null;
+  flag_id: string;
+  granted_at: Generated<string | null>;
+  granted_by: string | null;
+  metadata: string | null;
 }
 
 export interface Flags {
@@ -120,7 +70,7 @@ export interface Members {
   date_added: Generated<string | null>;
   email: string;
   first_name: string;
-  flags: string | null;
+  flags: Generated<number | null>;
   id: Generated<number | null>;
   last_name: string;
   preferred_name: string | null;
@@ -149,19 +99,6 @@ export interface Session {
   userId: string;
 }
 
-export interface SyncOperations {
-  created_at: Generated<string | null>;
-  error_message: string | null;
-  external_id: string | null;
-  id: Generated<number | null>;
-  member_id: number | null;
-  operation_type: string;
-  payload_json: string | null;
-  platform: string;
-  processed_at: string | null;
-  status: string;
-}
-
 export interface User {
   createdAt: string;
   email: string;
@@ -185,14 +122,11 @@ export interface DB {
   account: Account;
   audit_log: AuditLog;
   events: Events;
-  events_marketing: EventsMarketing;
-  events_volunteers: EventsVolunteers;
-  external_integrations: ExternalIntegrations;
+  events_flags: EventsFlags;
   flags: Flags;
   members: Members;
   members_flags: MembersFlags;
   session: Session;
-  sync_operations: SyncOperations;
   user: User;
   verification: Verification;
 }

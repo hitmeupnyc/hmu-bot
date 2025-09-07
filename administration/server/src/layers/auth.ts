@@ -117,12 +117,6 @@ export const AuthLive = Layer.effect(
     const isTestMode = process.env.NODE_ENV === 'test';
     const testToken = 'test-token-e2e';
 
-    if (isTestMode) {
-      console.log(
-        '⚠️  BetterAuth running in TEST MODE - accepting test tokens'
-      );
-    }
-
     // Use the typed factory function to create auth with proper plugin types
     const auth = betterAuth({
       database: rawDb,

@@ -1,10 +1,10 @@
 import { HttpApiBuilder } from '@effect/platform';
 import { Effect, Schema } from 'effect';
 import { sql } from 'kysely';
+import { CurrentUser } from '~/api/auth';
 import { NotFoundError, UniqueError } from '~/api/errors';
 import { MemberSchema } from '~/api/members/schemas';
 import { DatabaseLive, DatabaseService } from '~/layers/db';
-import { CurrentUser } from '~/middleware/auth';
 import { membersApi } from './endpoints';
 
 export const MembersApiLive = HttpApiBuilder.group(

@@ -1,23 +1,58 @@
+import { betterAuth } from 'better-auth';
+import { magicLink } from 'better-auth/plugins';
 import { Console, Context, Data, Effect, Layer, Schedule } from 'effect';
 import { TimeoutException } from 'effect/Cause';
 import { DurationInput } from 'effect/Duration';
 import * as Schema from 'effect/Schema';
-import { sql } from 'kysely';
-import {
-  BetterAuth,
-  BetterAuthLive,
-} from '~/services/effect/layers/BetterAuthLayer';
-import { Session as DbSession } from '~/types';
+import { Kysely, sql } from 'kysely';
+import { ParseError, UnrecoverableError } from '~/api/errors';
+import { DatabaseLive, DatabaseService } from '~/layers/db';
+import type { DB as DatabaseSchema, Session as DbSession } from '~/types';
 import { SnakeToCamelCaseObject } from '~/types/typehelpers';
-import { ParseError, UnrecoverableError } from '../errors/CommonErrors';
-import { DatabaseLive, DatabaseService } from './DatabaseLayer';
 
 const config = {
   sessionTimeout: '30 minutes' as DurationInput,
   retryAttempts: 3,
   retryDelay: '100 millis' as DurationInput,
   enableMetrics: true,
+  baseURL: 'http://localhost:5173',
+  clientURL: 'http://localhost:5173',
+  magicLinkExpiresIn: 60 * 15, // 15 minutes
+  sessionExpiresIn: 60 * 60 * 24 * 7, // 7 days
+  sessionUpdateAge: 60 * 60 * 24, // 1 day
 };
+
+const sendEmail = (email: string, url: string) => {
+  // TODO: replace this with an actual email
+  console.log(`==================================================`);
+  console.log(`magic link 👉 ${url} 👈 to ${email}`);
+  console.log(`==================================================`);
+};
+
+const sendMagicLink =
+  (db: Kysely<DatabaseSchema>, send: (email, url) => void) =>
+  async ({ email, url }) => {
+    // Allow any email ending with @hitmeupnyc.com
+    if (email.endsWith('@hitmeupnyc.com')) {
+      send(email, url);
+      return;
+    }
+
+    try {
+      const member = await db
+        .selectFrom('members')
+        .select('id')
+        .where('email', '=', email)
+        .executeTakeFirst();
+
+      if (!member) {
+        return;
+      }
+      send(email, url);
+    } catch (error) {
+      console.error('Error validating email access:', error);
+    }
+  };
 
 export interface Session extends SnakeToCamelCaseObject<DbSession> {
   readonly user: {
@@ -63,6 +98,7 @@ export interface IAuth {
     AuthenticationError | TimeoutException | UnrecoverableError | ParseError,
     never
   >;
+  readonly auth: ReturnType<typeof betterAuth>;
 }
 
 export const Auth = Context.GenericTag<IAuth>('Auth');
@@ -70,8 +106,63 @@ export const Auth = Context.GenericTag<IAuth>('Auth');
 export const AuthLive = Layer.effect(
   Auth,
   Effect.gen(function* () {
-    const betterAuthService = yield* BetterAuth;
-    const db = yield* DatabaseService;
+    const dbService = yield* DatabaseService;
+    const rawDb = yield* dbService.querySync((db) => db);
+    const kyselyDb = yield* dbService.query<Kysely<DatabaseSchema>>(
+      async (db) => db
+    );
+
+    // ===========================================================================
+
+    const isTestMode = process.env.NODE_ENV === 'test';
+    const testToken = 'test-token-e2e';
+
+    // Use the typed factory function to create auth with proper plugin types
+    const auth = betterAuth({
+      database: rawDb,
+      baseURL: config.baseURL,
+      emailAndPassword: { enabled: false },
+      plugins: [
+        magicLink({
+          sendMagicLink: sendMagicLink(kyselyDb, sendEmail),
+          expiresIn: config.magicLinkExpiresIn,
+          generateToken: !isTestMode
+            ? undefined
+            : (email: string) => {
+                // In test mode, allow the deterministic test token
+                if (email === 'test@hitmeupnyc.com') {
+                  return testToken;
+                }
+                // Otherwise generate a random token (let Better Auth handle it)
+                return (
+                  Math.random().toString(36).substring(2, 15) +
+                  Math.random().toString(36).substring(2, 15)
+                );
+              },
+          // Custom token validation for test mode
+          storeToken: isTestMode
+            ? {
+                type: 'custom-hasher',
+                hash: async (token: string) => {
+                  // In test mode, accept the test token as-is for the test user
+                  if (token === testToken) {
+                    return testToken; // Return the token unchanged
+                  }
+                  // For other tokens, use default hashing
+                  return token; // This will use the default behavior
+                },
+              }
+            : 'plain',
+        }),
+      ],
+      session: {
+        expiresIn: config.sessionExpiresIn,
+        updateAge: config.sessionUpdateAge,
+      },
+      trustedOrigins: [config.clientURL],
+    });
+
+    // ===========================================================================
 
     const validateSession: IAuth['validateSession'] = (headers) => {
       return Effect.gen(function* () {
@@ -80,8 +171,7 @@ export const AuthLive = Layer.effect(
 
         // Get session from Better Auth with retry policy
         const sessionResult = yield* Effect.tryPromise({
-          try: () =>
-            betterAuthService.auth.api.getSession({ headers: validHeaders }),
+          try: () => auth.api.getSession({ headers: validHeaders }),
           catch: (error) =>
             new AuthenticationError({
               reason: 'auth_service_error',
@@ -142,7 +232,7 @@ export const AuthLive = Layer.effect(
           };
         }
 
-        const member = yield* db.query(async (db) =>
+        const member = yield* dbService.query(async (db) =>
           db
             .selectFrom('user')
             .innerJoin('members', 'members.email', 'user.email')
@@ -172,6 +262,6 @@ export const AuthLive = Layer.effect(
       );
     };
 
-    return { validateSession } satisfies IAuth;
+    return { validateSession, auth } satisfies IAuth;
   })
-).pipe(Layer.provide(Layer.mergeAll(BetterAuthLive, DatabaseLive)));
+).pipe(Layer.provide(DatabaseLive));

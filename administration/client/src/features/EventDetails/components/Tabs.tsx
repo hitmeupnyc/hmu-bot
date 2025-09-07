@@ -1,20 +1,13 @@
 import { ReactNode } from 'react';
 
 interface TabsProps {
-  activeTab: 'overview' | 'marketing' | 'volunteers' | 'attendance';
-  onTabChange: (tab: 'overview' | 'marketing' | 'volunteers' | 'attendance') => void;
-  volunteersCount: number;
-  attendanceCount: number;
+  activeTab: 'overview';
+  onTabChange: (tab: 'overview') => void;
   children: ReactNode;
 }
 
-export function Tabs({ activeTab, onTabChange, volunteersCount, attendanceCount, children }: TabsProps) {
-  const tabs = [
-    { key: 'overview', label: 'Overview' },
-    { key: 'marketing', label: 'Marketing' },
-    { key: 'volunteers', label: `Volunteers (${volunteersCount})` },
-    { key: 'attendance', label: `Attendance (${attendanceCount})` }
-  ] as const;
+export function Tabs({ activeTab, onTabChange, children }: TabsProps) {
+  const tabs = [{ key: 'overview', label: 'Overview' }] as const;
 
   return (
     <div className="bg-white shadow rounded-lg">
@@ -36,9 +29,7 @@ export function Tabs({ activeTab, onTabChange, volunteersCount, attendanceCount,
         </nav>
       </div>
 
-      <div className="p-6">
-        {children}
-      </div>
+      <div className="p-6">{children}</div>
     </div>
   );
 }

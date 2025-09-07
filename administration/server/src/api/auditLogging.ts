@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 // Approved by vcarl 2025-09-03
-import { db_DO_NOT_USE_WITHOUT_PRIOR_AUTHORIZATION as db } from '~/services/effect/layers/DatabaseLayer';
+import { db_DO_NOT_USE_WITHOUT_PRIOR_AUTHORIZATION as db } from '~/layers/db';
 
 // Extend Express Request type to include session
 declare global {

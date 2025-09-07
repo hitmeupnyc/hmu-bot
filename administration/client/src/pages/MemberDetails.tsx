@@ -264,7 +264,6 @@ export function MemberDetails() {
         )}
       </div>
 
-      {/* Edit Modal */}
       <Modal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
@@ -285,12 +284,11 @@ export function MemberDetails() {
         onSendEmail={handleSendEmail}
       />
 
-      {/* Grant Flag Modal */}
       <FlagGrantModal
         isOpen={showGrantModal}
         onClose={handleCloseGrantModal}
         flags={flags}
-        preselectedEmail={member.email}
+        preselectedMemberId={member.id.toString()}
       />
     </div>
   );

@@ -1,8 +1,9 @@
 import { HttpApiBuilder } from '@effect/platform';
-import { Effect } from 'effect';
-import { ParseError as InternalParseError } from 'effect/ParseResult';
-import { EventService, EventServiceLive } from '~/services/effect/EventEffects';
-import { NotFoundError, ParseError, UniqueError } from '~/services/effect/errors/CommonErrors';
+import { Effect, Schema } from 'effect';
+import { sql } from 'kysely';
+import { NotFoundError, UnrecoverableError } from '~/api/errors';
+import { EventSchema } from '~/api/events/schemas';
+import { DatabaseLive, DatabaseService } from '~/layers/db';
 import { eventsApi } from './endpoints';
 
 export const EventsApiLive = HttpApiBuilder.group(
@@ -10,92 +11,128 @@ export const EventsApiLive = HttpApiBuilder.group(
   'events',
   (handlers) =>
     Effect.gen(function* () {
-      const eventService = yield* EventService;
+      const dbService = yield* DatabaseService;
 
       return handlers
         .handle('api.events.list', ({ urlParams }) =>
           Effect.gen(function* () {
             const page = urlParams.page ?? 1;
             const limit = urlParams.limit ?? 20;
-            const search = urlParams.search;
+            const upcoming = urlParams.upcoming ?? true;
+            const offset = (page - 1) * limit;
 
-            const result = yield* eventService.getEvents({
-              page,
-              limit,
-              search,
+            const [countResult, events] = yield* dbService.query(async (db) => {
+              let query = db
+                .selectFrom('events')
+                .selectAll()
+                .where((eb) => eb('flags', '&', 1), '=', 1); // Only active events
+
+              if (upcoming) {
+                query = query.where(
+                  'start_datetime',
+                  '>',
+                  sql<string>`datetime('now')`
+                );
+              }
+
+              const countQuery = query
+                .clearSelect()
+                .select((eb) => eb.fn.count('id').as('total'));
+
+              return Promise.all([
+                countQuery.executeTakeFirst() as Promise<{ total: string }>,
+                query
+                  .orderBy('start_datetime', 'asc')
+                  .limit(limit)
+                  .offset(offset)
+                  .execute(),
+              ]);
             });
 
+            const total = parseInt(countResult?.total || '0');
+            const totalPages = Math.ceil(total / limit);
+
             return {
-              data: result.events,
-              total: result.pagination.total,
-              page: result.pagination.page,
-              limit: result.pagination.limit,
-              totalPages: result.pagination.totalPages,
+              data: yield* Schema.decodeUnknown(Schema.Array(EventSchema))(
+                events
+              ).pipe(Effect.orDie),
+              page,
+              limit,
+              total,
+              totalPages,
             };
           })
         )
 
         .handle('api.events.read', ({ path }) =>
           Effect.gen(function* () {
-            const event = yield* eventService.getEventById(path.id).pipe(
-              Effect.mapError((error) => {
-                if (error instanceof NotFoundError) {
-                  return new NotFoundError({
-                    id: path.id.toString(),
-                    resource: 'event',
-                  });
-                }
-                throw error;
-              })
+            const { id } = path;
+            const event = yield* dbService.query(async (db) =>
+              db
+                .selectFrom('events')
+                .selectAll()
+                .where('id', '=', id)
+                .where((eb) => eb('flags', '&', 1), '=', 1) // Only active events
+                .executeTakeFirst()
             );
-            return event;
+
+            if (!event) {
+              throw new NotFoundError({ id: `${id}`, resource: 'event' });
+            }
+
+            return yield* Schema.decodeUnknown(EventSchema)(event).pipe(
+              Effect.orDie
+            );
           })
         )
 
         .handle('api.events.create', ({ payload }) =>
           Effect.gen(function* () {
-            const event = yield* eventService.createEvent(payload).pipe(
-              Effect.mapError((error) => {
-                if (error instanceof UniqueError) {
-                  return new UniqueError({
-                    field: 'name',
-                    value: payload.name,
-                  });
-                }
-                throw error;
-              })
+            const result = yield* dbService.query(async (db) =>
+              db
+                .insertInto('events')
+                .values(payload)
+                .returningAll()
+                .executeTakeFirstOrThrow()
             );
-            return event;
+
+            if (!result.id) {
+              throw new UnrecoverableError({
+                message: 'Failed to create event',
+                stack: '',
+                attributes: { result },
+              });
+            }
+
+            return yield* Schema.decodeUnknown(EventSchema)(result).pipe(
+              Effect.orDie
+            );
           })
         )
 
         .handle('api.events.update', ({ path, payload }) =>
           Effect.gen(function* () {
-            const event = yield* eventService.updateEvent({
-              ...payload,
-              id: path.id,
-            });
-            return event;
-          }).pipe(
-            Effect.mapError((error) => {
-              if (error instanceof InternalParseError) {
-                return new ParseError(error);
-              }
-              throw error;
-            })
-          )
+            const result = yield* dbService.query(async (db) =>
+              db
+                .updateTable('events')
+                .set({ ...payload, updated_at: new Date().toISOString() })
+                .where('id', '=', path.id)
+                .returningAll()
+                .execute()
+            );
+
+            return yield* Schema.decodeUnknown(EventSchema)(result).pipe(
+              Effect.orDie
+            );
+          })
         )
 
         .handle('api.events.delete', ({ path }) =>
           Effect.gen(function* () {
-            // For now, return an error since delete is not implemented
-            return yield* Effect.fail(
-              new NotFoundError({
-                id: path.id.toString(),
-                resource: 'event',
-              })
+            yield* dbService.query(async (db) =>
+              db.deleteFrom('events').where('id', '=', path.id).execute()
             );
           })
         );
-    }).pipe(Effect.provide(EventServiceLive))
+    }).pipe(Effect.provide(DatabaseLive))
 );

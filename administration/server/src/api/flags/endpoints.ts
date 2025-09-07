@@ -1,34 +1,20 @@
-import {
-  HttpApiEndpoint,
-  HttpApiGroup,
-  OpenApi,
-} from '@effect/platform';
+import { HttpApiEndpoint, HttpApiGroup, OpenApi } from '@effect/platform';
 import { Schema } from 'effect';
-import {
-  NotFoundError,
-  ParseError,
-} from '~/services/effect/errors/CommonErrors';
+import { NotFoundError, ParseError } from '~/api/errors';
 import {
   BulkFlagRequestSchema,
-  BulkFlagResponseSchema,
-  FlagOperationResponseSchema,
   FlagSchema,
   GrantFlagSchema,
   MemberFlagSchema,
-  MemberWithFlagSchema,
-  ProcessingResultSchema,
   RevokeFlagSchema,
-} from '~/services/effect/schemas/FlagSchemas';
+} from './schemas';
 
 // Flags API group
 export const flagsGroup = HttpApiGroup.make('flags')
   .add(
     HttpApiEndpoint.get('api.flags.list', '/api/flags')
       .addSuccess(Schema.Array(FlagSchema))
-      .annotate(
-        OpenApi.Description,
-        'List all available flags in the system'
-      )
+      .annotate(OpenApi.Description, 'List all available flags in the system')
   )
   .add(
     HttpApiEndpoint.get('api.flags.members.list', '/api/members/:id/flags')
@@ -44,7 +30,7 @@ export const flagsGroup = HttpApiGroup.make('flags')
     HttpApiEndpoint.post('api.flags.members.grant', '/api/members/:id/flags')
       .setPath(Schema.Struct({ id: Schema.String }))
       .setPayload(GrantFlagSchema)
-      .addSuccess(FlagOperationResponseSchema)
+      .addSuccess(Schema.Void)
       .addError(NotFoundError)
       .addError(ParseError)
       .annotate(
@@ -53,13 +39,13 @@ export const flagsGroup = HttpApiGroup.make('flags')
       )
   )
   .add(
-    HttpApiEndpoint.del('api.flags.members.revoke', '/api/members/:id/flags/:flagId')
-      .setPath(Schema.Struct({ 
-        id: Schema.String, 
-        flagId: Schema.String 
-      }))
+    HttpApiEndpoint.del(
+      'api.flags.members.revoke',
+      '/api/members/:id/flags/:flagId'
+    )
+      .setPath(Schema.Struct({ id: Schema.String, flagId: Schema.String }))
       .setPayload(RevokeFlagSchema)
-      .addSuccess(FlagOperationResponseSchema)
+      .addSuccess(Schema.Void)
       .addError(NotFoundError)
       .annotate(
         OpenApi.Description,
@@ -69,7 +55,7 @@ export const flagsGroup = HttpApiGroup.make('flags')
   .add(
     HttpApiEndpoint.get('api.flags.flag.members', '/api/flags/:flagId/members')
       .setPath(Schema.Struct({ flagId: Schema.String }))
-      .addSuccess(Schema.Array(MemberWithFlagSchema))
+      .addSuccess(Schema.Array(MemberFlagSchema))
       .addError(NotFoundError)
       .annotate(
         OpenApi.Description,
@@ -79,18 +65,18 @@ export const flagsGroup = HttpApiGroup.make('flags')
   .add(
     HttpApiEndpoint.post('api.flags.bulk', '/api/flags/bulk')
       .setPayload(BulkFlagRequestSchema)
-      .addSuccess(BulkFlagResponseSchema)
+      .addSuccess(
+        Schema.Array(
+          Schema.Struct({
+            member_id: Schema.String,
+            flag_id: Schema.String,
+            success: Schema.Boolean,
+          })
+        )
+      )
       .addError(ParseError)
       .annotate(
         OpenApi.Description,
         'Process multiple flag grant operations in a single request'
-      )
-  )
-  .add(
-    HttpApiEndpoint.post('api.flags.expire', '/api/flags/expire')
-      .addSuccess(ProcessingResultSchema)
-      .annotate(
-        OpenApi.Description,
-        'Process and revoke all expired flags, returning processing statistics'
       )
   );

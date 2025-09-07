@@ -5,18 +5,9 @@ import {
   OpenApi,
 } from '@effect/platform';
 import { Schema } from 'effect';
-import {
-  NotFoundError,
-  ParseError,
-  UniqueError,
-} from '~/services/effect/errors/CommonErrors';
-import { ListQuerySchema } from '~/services/effect/http';
-// TODO: Fix and use schemas
-import {
-  CreateEventSchema,
-  EventSchema,
-  UpdateEventSchema,
-} from '~/services/effect/schemas/EventSchemas';
+import { NotFoundError, ParseError, UniqueError } from '~/api/errors';
+import { ListQuerySchema } from '~/api/schemas';
+import { CreateEventSchema, EventSchema, UpdateEventSchema } from './schemas';
 
 // Events API group
 export const eventsGroup = HttpApiGroup.make('events')
@@ -31,7 +22,13 @@ export const eventsGroup = HttpApiGroup.make('events')
           totalPages: Schema.Number,
         })
       )
-      .setUrlParams(ListQuerySchema)
+      .addError(ParseError)
+      .setUrlParams(
+        Schema.extend(
+          ListQuerySchema,
+          Schema.Struct({ upcoming: Schema.BooleanFromString })
+        )
+      )
       .annotate(
         OpenApi.Description,
         'List all events with pagination and search'
@@ -64,7 +61,7 @@ export const eventsGroup = HttpApiGroup.make('events')
   .add(
     HttpApiEndpoint.del('api.events.delete', '/api/events/:id')
       .setPath(Schema.Struct({ id: Schema.NumberFromString }))
-      .addSuccess(Schema.Struct({ message: Schema.String }))
+      .addSuccess(Schema.Void)
       .addError(NotFoundError)
       .annotate(OpenApi.Description, 'Delete an event')
   );

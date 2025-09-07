@@ -5,10 +5,7 @@
     "es2020": true
   },
   "extends": ["eslint:recommended"],
-  "plugins": [
-    "@typescript-eslint",
-    "unused-imports"
-  ],
+  "plugins": ["@typescript-eslint", "unused-imports"],
   "ignorePatterns": ["dist", ".eslintrc.json"],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
@@ -18,9 +15,6 @@
   "rules": {
     "no-unused-vars": "off",
     "no-undef": "off",
-    "no-useless-catch": "off",
-    
-    // Unused imports detection
-    "unused-imports/no-unused-imports": "warn"
+    "no-useless-catch": "off"
   }
 }

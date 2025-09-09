@@ -9,7 +9,10 @@ import { NotFoundError, ParseError, UniqueError } from '~/api/errors';
 import { ListQuerySchema } from '~/api/schemas';
 import {
   CreateMemberSchema,
+  GrantFlagSchema,
+  MemberFlagSchema,
   MemberSchema,
+  RevokeFlagSchema,
   UpdateMemberSchema,
 } from './schemas';
 
@@ -71,6 +74,53 @@ export const membersGroup = HttpApiGroup.make('members')
       .addError(NotFoundError)
       .addError(ParseError)
       .annotate(OpenApi.Description, 'Add a note to a member profile')
+  )
+
+  .add(
+    HttpApiEndpoint.get('api.flags.members.list', '/api/members/:id/flags')
+      .setPath(Schema.Struct({ id: Schema.String }))
+      .addSuccess(Schema.Array(MemberFlagSchema))
+      .addError(NotFoundError)
+      .annotate(
+        OpenApi.Description,
+        'Get all flags assigned to a specific member'
+      )
+  )
+  .add(
+    HttpApiEndpoint.post('api.flags.members.grant', '/api/members/:id/flags')
+      .setPath(Schema.Struct({ id: Schema.String }))
+      .setPayload(GrantFlagSchema)
+      .addSuccess(Schema.Void)
+      .addError(NotFoundError)
+      .addError(ParseError)
+      .annotate(
+        OpenApi.Description,
+        'Grant a flag to a member with optional expiration and metadata'
+      )
+  )
+  .add(
+    HttpApiEndpoint.del(
+      'api.flags.members.revoke',
+      '/api/members/:id/flags/:flagId'
+    )
+      .setPath(Schema.Struct({ id: Schema.String, flagId: Schema.String }))
+      .setPayload(RevokeFlagSchema)
+      .addSuccess(Schema.Void)
+      .addError(NotFoundError)
+      .annotate(
+        OpenApi.Description,
+        'Revoke a specific flag from a member with optional reason'
+      )
+  )
+  .add(
+    HttpApiEndpoint.get('api.flags.flag.members', '/api/flags/:flagId/members')
+      .setPath(Schema.Struct({ flagId: Schema.String }))
+      .addSuccess(Schema.Array(MemberFlagSchema))
+      .addError(NotFoundError)
+      .annotate(
+        OpenApi.Description,
+        'List all members who have been assigned a specific flag'
+      )
   );
 
 // Members API

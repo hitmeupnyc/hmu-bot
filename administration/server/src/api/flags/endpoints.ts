@@ -6,12 +6,12 @@ import { BulkFlagRequestSchema, FlagSchema } from './schemas';
 // Flags API group
 export const flagsGroup = HttpApiGroup.make('flags')
   .add(
-    HttpApiEndpoint.get('api.flags.list', '/api/flags')
+    HttpApiEndpoint.get('list', '/api/flags')
       .addSuccess(Schema.Array(FlagSchema))
       .annotate(OpenApi.Description, 'List all available flags in the system')
   )
   .add(
-    HttpApiEndpoint.post('api.flags.bulk', '/api/flags/bulk')
+    HttpApiEndpoint.post('bulk', '/api/flags/bulk')
       .setPayload(BulkFlagRequestSchema)
       .addSuccess(
         Schema.Array(

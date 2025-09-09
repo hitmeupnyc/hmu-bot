@@ -1,13 +1,3 @@
-/*
-===============================================================================
-TODO: (2025-08-22)
-
-These schemas are outdated and may be incorrect. The authoritative answer to 
-the shape of our persisted data is in administration/client/src/types/index.ts.
-It is generated with `npm run --workspace=api-server db:codegen`
-===============================================================================
-*/
-
 import { Schema } from 'effect';
 
 export const EventSchema = Schema.Struct({
@@ -16,10 +6,12 @@ export const EventSchema = Schema.Struct({
   description: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
   url: Schema.String,
   flags: Schema.Union(Schema.Number, Schema.Null, Schema.Undefined),
-  created_by_member_id: Schema.Union(Schema.Number, Schema.Null, Schema.Undefined),
+  created_by_member_id: Schema.Union(
+    Schema.Number,
+    Schema.Null,
+    Schema.Undefined
+  ),
 });
-
-export type Event = typeof EventSchema.Type;
 
 export const CreateEventSchema = Schema.Struct({
   name: Schema.String,
@@ -28,8 +20,6 @@ export const CreateEventSchema = Schema.Struct({
   flags: Schema.optionalWith(Schema.Number, { default: () => 1 }), // Default: active
   created_by_member_id: Schema.optional(Schema.Number),
 });
-
-export type CreateEvent = typeof CreateEventSchema.Type;
 
 export const UpdateEventSchema = Schema.Struct({
   id: Schema.Number,
@@ -40,14 +30,10 @@ export const UpdateEventSchema = Schema.Struct({
   created_by_member_id: Schema.optional(Schema.Number),
 });
 
-export type UpdateEvent = typeof UpdateEventSchema.Type;
-
 export const EventQueryOptionsSchema = Schema.Struct({
   page: Schema.Number,
   limit: Schema.Number,
 });
-
-export type EventQueryOptions = typeof EventQueryOptionsSchema.Type;
 
 // Event flag relationship schema
 export const EventFlagSchema = Schema.Struct({
@@ -59,21 +45,21 @@ export const EventFlagSchema = Schema.Struct({
   metadata: Schema.NullOr(Schema.String),
 });
 
-export type EventFlag = typeof EventFlagSchema.Type;
-
 // Request schemas for event flags
 export const GrantEventFlagSchema = Schema.extend(
-  EventFlagSchema.omit('granted_at', 'granted_by', 'event_id', 'flag_id', 'expires_at'),
+  EventFlagSchema.omit(
+    'granted_at',
+    'granted_by',
+    'event_id',
+    'flag_id',
+    'expires_at'
+  ),
   Schema.Struct({ expires_at: Schema.optional(Schema.String) })
 );
-
-export type GrantEventFlag = typeof GrantEventFlagSchema.Type;
 
 export const RevokeEventFlagSchema = Schema.Struct({
   reason: Schema.optional(Schema.String),
 });
-
-export type RevokeEventFlag = typeof RevokeEventFlagSchema.Type;
 
 export const EventMarketingSchema = Schema.Struct({
   id: Schema.Number,
@@ -114,8 +100,6 @@ export const EventMarketingSchema = Schema.Struct({
   updated_at: Schema.String,
 });
 
-export type EventMarketing = typeof EventMarketingSchema.Type;
-
 export const CreateEventMarketingSchema = Schema.Struct({
   event_id: Schema.Number,
   primary_marketing_copy: Schema.optional(Schema.String),
@@ -140,8 +124,6 @@ export const CreateEventMarketingSchema = Schema.Struct({
   key_selling_points: Schema.optional(Schema.Array(Schema.String)),
 });
 
-export type CreateEventMarketing = typeof CreateEventMarketingSchema.Type;
-
 export const EventVolunteerSchema = Schema.Struct({
   id: Schema.Number,
   event_id: Schema.Number,
@@ -164,8 +146,6 @@ export const EventVolunteerSchema = Schema.Struct({
   updated_at: Schema.String,
 });
 
-export type EventVolunteer = typeof EventVolunteerSchema.Type;
-
 export const CreateVolunteerSchema = Schema.Struct({
   event_id: Schema.Number,
   member_id: Schema.Number,
@@ -180,8 +160,6 @@ export const CreateVolunteerSchema = Schema.Struct({
   volunteer_notes: Schema.optional(Schema.String),
 });
 
-export type CreateVolunteer = typeof CreateVolunteerSchema.Type;
-
 export const EventWithDetailsSchema = Schema.Struct({
   event: EventSchema,
   eventbrite_event: Schema.optional(Schema.String),
@@ -189,5 +167,3 @@ export const EventWithDetailsSchema = Schema.Struct({
   volunteers: Schema.Array(EventVolunteerSchema),
   eventbrite_link: Schema.optional(Schema.String),
 });
-
-export type EventWithDetails = typeof EventWithDetailsSchema.Type;

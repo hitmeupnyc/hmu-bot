@@ -7,12 +7,18 @@ import {
 import { Schema } from 'effect';
 import { NotFoundError, ParseError, UniqueError } from '~/api/errors';
 import { ListQuerySchema } from '~/api/schemas';
-import { CreateEventSchema, EventSchema, UpdateEventSchema, EventFlagSchema, GrantEventFlagSchema } from './schemas';
+import {
+  CreateEventSchema,
+  EventFlagSchema,
+  EventSchema,
+  GrantEventFlagSchema,
+  UpdateEventSchema,
+} from './schemas';
 
 // Events API group
 export const eventsGroup = HttpApiGroup.make('events')
   .add(
-    HttpApiEndpoint.get('api.events.list', '/api/events')
+    HttpApiEndpoint.get('list', '/api/events')
       .addSuccess(
         Schema.Struct({
           data: Schema.Array(EventSchema),
@@ -30,21 +36,21 @@ export const eventsGroup = HttpApiGroup.make('events')
       )
   )
   .add(
-    HttpApiEndpoint.post('api.events.create', '/api/events')
+    HttpApiEndpoint.post('create', '/api/events')
       .setPayload(CreateEventSchema)
       .addSuccess(EventSchema, { status: 201 })
       .addError(UniqueError)
       .annotate(OpenApi.Description, 'Create a new event')
   )
   .add(
-    HttpApiEndpoint.get('api.events.read', '/api/events/:id')
+    HttpApiEndpoint.get('read', '/api/events/:id')
       .setPath(Schema.Struct({ id: Schema.NumberFromString }))
       .addSuccess(EventSchema)
       .addError(NotFoundError)
       .annotate(OpenApi.Description, 'Get an event by ID')
   )
   .add(
-    HttpApiEndpoint.put('api.events.update', '/api/events/:id')
+    HttpApiEndpoint.put('update', '/api/events/:id')
       .setPath(Schema.Struct({ id: Schema.NumberFromString }))
       .setPayload(UpdateEventSchema)
       .addSuccess(EventSchema)
@@ -54,36 +60,34 @@ export const eventsGroup = HttpApiGroup.make('events')
       .annotate(OpenApi.Description, 'Update an existing event')
   )
   .add(
-    HttpApiEndpoint.del('api.events.delete', '/api/events/:id')
+    HttpApiEndpoint.del('delete', '/api/events/:id')
       .setPath(Schema.Struct({ id: Schema.NumberFromString }))
       .addSuccess(Schema.Void)
       .addError(NotFoundError)
       .annotate(OpenApi.Description, 'Delete an event')
   )
   .add(
-    HttpApiEndpoint.get('api.events.flags.list', '/api/events/:id/flags')
+    HttpApiEndpoint.get('flags', '/api/events/:id/flags')
       .setPath(Schema.Struct({ id: Schema.NumberFromString }))
       .addSuccess(Schema.Array(EventFlagSchema))
       .addError(NotFoundError)
       .annotate(OpenApi.Description, 'List all flags for an event')
   )
   .add(
-    HttpApiEndpoint.post('api.events.flags.grant', '/api/events/:id/flags/:flagId')
-      .setPath(Schema.Struct({ 
-        id: Schema.NumberFromString,
-        flagId: Schema.String
-      }))
+    HttpApiEndpoint.post('grantFlag', '/api/events/:id/flags/:flagId')
+      .setPath(
+        Schema.Struct({ id: Schema.NumberFromString, flagId: Schema.String })
+      )
       .setPayload(GrantEventFlagSchema)
       .addSuccess(Schema.Void, { status: 201 })
       .addError(NotFoundError)
       .annotate(OpenApi.Description, 'Grant a flag to an event')
   )
   .add(
-    HttpApiEndpoint.del('api.events.flags.revoke', '/api/events/:id/flags/:flagId')
-      .setPath(Schema.Struct({ 
-        id: Schema.NumberFromString,
-        flagId: Schema.String
-      }))
+    HttpApiEndpoint.del('revokeFlag', '/api/events/:id/flags/:flagId')
+      .setPath(
+        Schema.Struct({ id: Schema.NumberFromString, flagId: Schema.String })
+      )
       .addSuccess(Schema.Void)
       .addError(NotFoundError)
       .annotate(OpenApi.Description, 'Revoke a flag from an event')

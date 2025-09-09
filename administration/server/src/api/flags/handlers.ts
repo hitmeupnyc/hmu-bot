@@ -15,7 +15,7 @@ export const FlagsApiLive = HttpApiBuilder.group(
       const dbService = yield* DatabaseService;
 
       return handlers
-        .handle('api.flags.list', () =>
+        .handle('list', () =>
           Effect.gen(function* () {
             const flags = yield* dbService
               .query((db) =>
@@ -40,7 +40,7 @@ export const FlagsApiLive = HttpApiBuilder.group(
           })
         )
 
-        .handle('api.flags.bulk', ({ payload }) =>
+        .handle('bulk', ({ payload }) =>
           Effect.gen(function* () {
             const currentUser = yield* CurrentUser;
             const { operations } = payload;

@@ -15,7 +15,7 @@ export const MembersApiLive = HttpApiBuilder.group(
       const dbService = yield* DatabaseService;
 
       return handlers
-        .handle('api.members.list', ({ urlParams }) =>
+        .handle('list', ({ urlParams }) =>
           Effect.gen(function* () {
             const { page, limit, search } = urlParams;
             const offset = (page - 1) * limit;
@@ -82,7 +82,7 @@ export const MembersApiLive = HttpApiBuilder.group(
           })
         )
 
-        .handle('api.members.read', ({ path }) =>
+        .handle('read', ({ path }) =>
           Effect.gen(function* () {
             const member = yield* dbService.query(async (db) =>
               db
@@ -95,7 +95,7 @@ export const MembersApiLive = HttpApiBuilder.group(
                   'email',
                   'pronouns',
                   'sponsor_notes',
-                  (eb) => sql`CAST(flags AS INTEGER)`.as('flags'),
+                  'flags',
                   'date_added',
                   'created_at',
                   'updated_at',
@@ -118,7 +118,7 @@ export const MembersApiLive = HttpApiBuilder.group(
           })
         )
 
-        .handle('api.members.create', ({ payload }) =>
+        .handle('create', ({ payload }) =>
           Effect.gen(function* () {
             // Check if email already exists
             const existingMember = yield* dbService.query(async (db) =>
@@ -152,7 +152,7 @@ export const MembersApiLive = HttpApiBuilder.group(
           })
         )
 
-        .handle('api.members.update', ({ path, payload }) =>
+        .handle('update', ({ payload }) =>
           Effect.gen(function* () {
             const { id, email } = payload;
             // email conflict
@@ -207,7 +207,7 @@ export const MembersApiLive = HttpApiBuilder.group(
           })
         )
 
-        .handle('api.members.delete', ({ path }) =>
+        .handle('delete', ({ path }) =>
           Effect.gen(function* () {
             const { id } = path;
             const member = yield* dbService.query(async (db) =>
@@ -273,7 +273,7 @@ export const MembersApiLive = HttpApiBuilder.group(
           })
         )
 
-        .handle('api.flags.members.list', ({ path }) =>
+        .handle('listFlags', ({ path }) =>
           Effect.gen(function* () {
             const member = yield* dbService.query((db) =>
               db
@@ -310,7 +310,7 @@ export const MembersApiLive = HttpApiBuilder.group(
           })
         )
 
-        .handle('api.flags.members.grant', ({ path, payload }) =>
+        .handle('grantFlag', ({ path, payload }) =>
           Effect.gen(function* () {
             const currentUser = yield* CurrentUser;
 
@@ -346,7 +346,7 @@ export const MembersApiLive = HttpApiBuilder.group(
           })
         )
 
-        .handle('api.flags.members.revoke', ({ path, payload }) =>
+        .handle('revokeFlag', ({ path }) =>
           Effect.gen(function* () {
             // TODO: audit logs
             yield* dbService.query((db) =>
@@ -361,25 +361,30 @@ export const MembersApiLive = HttpApiBuilder.group(
           })
         )
 
-        .handle('api.flags.flag.members', ({ path }) =>
+        .handle('flagMembers', ({ path }) =>
           Effect.gen(function* () {
             const members = yield* dbService.query((db) =>
               db
                 .selectFrom('members_flags as mf')
-                // .innerJoin('members as m', 'm.id', 'mf.member_id')
+                .innerJoin('members as m', 'm.id', 'mf.member_id')
                 .select([
-                  'mf.flag_id',
-                  'mf.member_id',
-                  'mf.granted_at',
-                  'mf.granted_by',
-                  'mf.expires_at',
-                  'mf.metadata',
+                  'm.id',
+                  'm.first_name',
+                  'm.last_name',
+                  'm.preferred_name',
+                  'm.email',
+                  'm.pronouns',
+                  'm.sponsor_notes',
+                  'm.flags',
+                  'm.date_added',
+                  'm.created_at',
+                  'm.updated_at',
                 ])
                 .where('mf.flag_id', '=', path.flagId)
                 .execute()
             );
 
-            return yield* Schema.decodeUnknown(Schema.Array(MemberFlagSchema))(
+            return yield* Schema.decodeUnknown(Schema.Array(MemberSchema))(
               members
             ).pipe(Effect.orDie);
           })

@@ -23,7 +23,7 @@ export const MembersApiLive = HttpApiBuilder.group(
             const [countResult, memberRows] = yield* dbService
               .query(async (db) => {
                 // Only active members
-                let query = db.selectFrom('members').where('flags', '=', '1');
+                let query = db.selectFrom('members').where('flags', '=', 1);
 
                 if (search) {
                   const searchTerm = `%${search}%`;
@@ -101,7 +101,7 @@ export const MembersApiLive = HttpApiBuilder.group(
                   'updated_at',
                 ])
                 .where('id', '=', path.id)
-                .where('flags', '=', '1')
+                .where('flags', '=', 1)
                 .executeTakeFirst()
             );
 
@@ -178,7 +178,7 @@ export const MembersApiLive = HttpApiBuilder.group(
                 .where('id', '=', id)
                 .executeTakeFirst()
             );
-            if (member && (parseInt(member.flags || '0') & 1) === 0) {
+            if (member && ((member.flags || 0) & 1) === 0) {
               throw new NotFoundError({ id: `${id}`, resource: 'member' });
             }
 
@@ -223,22 +223,19 @@ export const MembersApiLive = HttpApiBuilder.group(
             }
 
             // Soft delete by setting active flag to false
-            const flags = parseInt(member?.flags || '0') & ~1; // Clear active bit
+            const flags = (member?.flags || 0) & ~1; // Clear active bit
 
             yield* dbService.query(async (db) =>
               db
                 .updateTable('members')
-                .set({
-                  flags: flags.toString(),
-                  updated_at: new Date().toISOString(),
-                })
+                .set({ flags, updated_at: new Date().toISOString() })
                 .where('id', '=', path.id)
                 .execute()
             );
           })
         )
 
-        .handle('api.members.note', ({ path, payload }) =>
+        .handle('note', ({ path, payload }) =>
           Effect.gen(function* () {
             const currentUser = yield* CurrentUser;
 
@@ -248,7 +245,7 @@ export const MembersApiLive = HttpApiBuilder.group(
                 .selectFrom('members')
                 .select('id')
                 .where('id', '=', path.id)
-                .where('flags', '=', '1')
+                .where('flags', '=', 1)
                 .executeTakeFirst()
             );
 

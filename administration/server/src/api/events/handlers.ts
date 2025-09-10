@@ -1,8 +1,8 @@
 import { HttpApiBuilder } from '@effect/platform';
 import { Effect, Schema } from 'effect';
-import { sql } from 'kysely';
+import { CurrentUser } from '~/api/auth';
 import { NotFoundError, UnrecoverableError } from '~/api/errors';
-import { EventSchema } from '~/api/events/schemas';
+import { EventSchema, EventFlagSchema } from '~/api/events/schemas';
 import { DatabaseLive, DatabaseService } from '~/layers/db';
 import { eventsApi } from './endpoints';
 
@@ -18,7 +18,6 @@ export const EventsApiLive = HttpApiBuilder.group(
           Effect.gen(function* () {
             const page = urlParams.page ?? 1;
             const limit = urlParams.limit ?? 20;
-            const upcoming = urlParams.upcoming ?? true;
             const offset = (page - 1) * limit;
 
             const [countResult, events] = yield* dbService.query(async (db) => {
@@ -27,14 +26,6 @@ export const EventsApiLive = HttpApiBuilder.group(
                 .selectAll()
                 .where((eb) => eb('flags', '&', 1), '=', 1); // Only active events
 
-              if (upcoming) {
-                query = query.where(
-                  'start_datetime',
-                  '>',
-                  sql<string>`datetime('now')`
-                );
-              }
-
               const countQuery = query
                 .clearSelect()
                 .select((eb) => eb.fn.count('id').as('total'));
@@ -42,7 +33,7 @@ export const EventsApiLive = HttpApiBuilder.group(
               return Promise.all([
                 countQuery.executeTakeFirst() as Promise<{ total: string }>,
                 query
-                  .orderBy('start_datetime', 'asc')
+                  .orderBy('id', 'desc') // Order by id since we no longer have datetime fields
                   .limit(limit)
                   .offset(offset)
                   .execute(),
@@ -115,11 +106,15 @@ export const EventsApiLive = HttpApiBuilder.group(
             const result = yield* dbService.query(async (db) =>
               db
                 .updateTable('events')
-                .set({ ...payload, updated_at: new Date().toISOString() })
+                .set(payload)
                 .where('id', '=', path.id)
                 .returningAll()
-                .execute()
+                .executeTakeFirst()
             );
+
+            if (!result) {
+              throw new NotFoundError({ id: `${path.id}`, resource: 'event' });
+            }
 
             return yield* Schema.decodeUnknown(EventSchema)(result).pipe(
               Effect.orDie
@@ -131,6 +126,82 @@ export const EventsApiLive = HttpApiBuilder.group(
           Effect.gen(function* () {
             yield* dbService.query(async (db) =>
               db.deleteFrom('events').where('id', '=', path.id).execute()
+            );
+          })
+        )
+
+        .handle('api.events.flags.list', ({ path }) =>
+          Effect.gen(function* () {
+            const flags = yield* dbService.query(async (db) =>
+              db
+                .selectFrom('events_flags as ef')
+                .innerJoin('flags as f', 'f.id', 'ef.flag_id')
+                .select([
+                  'f.id',
+                  'ef.event_id',
+                  'f.name',
+                  'ef.granted_at',
+                  'ef.expires_at',
+                  'ef.granted_by',
+                  'ef.metadata',
+                ])
+                .where('ef.event_id', '=', path.id)
+                .execute()
+            );
+
+            return yield* Schema.decodeUnknown(Schema.Array(EventFlagSchema))(
+              flags
+            ).pipe(Effect.orDie);
+          })
+        )
+
+        .handle('api.events.flags.grant', ({ path, payload }) =>
+          Effect.gen(function* () {
+            const currentUser = yield* CurrentUser;
+
+            yield* dbService.query(async (db) =>
+              db.transaction().execute(async (trx) => {
+                const existing = await trx
+                  .selectFrom('events_flags')
+                  .select('event_id')
+                  .where('event_id', '=', path.id)
+                  .where('flag_id', '=', path.flagId)
+                  .executeTakeFirst();
+
+                if (existing) {
+                  await trx
+                    .updateTable('events_flags')
+                    .set({
+                      event_id: path.id,
+                      ...payload,
+                      granted_by: currentUser.id,
+                    })
+                    .where('event_id', '=', path.id)
+                    .where('flag_id', '=', path.flagId)
+                    .execute();
+                } else {
+                  await trx
+                    .insertInto('events_flags')
+                    .values({ event_id: path.id, flag_id: path.flagId, granted_by: currentUser.id, ...payload })
+                    .execute();
+                }
+                // TODO: Audit logging
+              })
+            );
+          })
+        )
+
+        .handle('api.events.flags.revoke', ({ path }) =>
+          Effect.gen(function* () {
+            // TODO: audit logs
+            yield* dbService.query(async (db) =>
+              db.transaction().execute(async (trx) => {
+                await trx
+                  .deleteFrom('events_flags')
+                  .where('event_id', '=', path.id)
+                  .where('flag_id', '=', path.flagId)
+                  .execute();
+              })
             );
           })
         );

@@ -7,7 +7,7 @@ import {
 import { Schema } from 'effect';
 import { NotFoundError, ParseError, UniqueError } from '~/api/errors';
 import { ListQuerySchema } from '~/api/schemas';
-import { CreateEventSchema, EventSchema, UpdateEventSchema } from './schemas';
+import { CreateEventSchema, EventSchema, UpdateEventSchema, EventFlagSchema, GrantEventFlagSchema } from './schemas';
 
 // Events API group
 export const eventsGroup = HttpApiGroup.make('events')
@@ -23,12 +23,7 @@ export const eventsGroup = HttpApiGroup.make('events')
         })
       )
       .addError(ParseError)
-      .setUrlParams(
-        Schema.extend(
-          ListQuerySchema,
-          Schema.Struct({ upcoming: Schema.BooleanFromString })
-        )
-      )
+      .setUrlParams(ListQuerySchema)
       .annotate(
         OpenApi.Description,
         'List all events with pagination and search'
@@ -64,6 +59,34 @@ export const eventsGroup = HttpApiGroup.make('events')
       .addSuccess(Schema.Void)
       .addError(NotFoundError)
       .annotate(OpenApi.Description, 'Delete an event')
+  )
+  .add(
+    HttpApiEndpoint.get('api.events.flags.list', '/api/events/:id/flags')
+      .setPath(Schema.Struct({ id: Schema.NumberFromString }))
+      .addSuccess(Schema.Array(EventFlagSchema))
+      .addError(NotFoundError)
+      .annotate(OpenApi.Description, 'List all flags for an event')
+  )
+  .add(
+    HttpApiEndpoint.post('api.events.flags.grant', '/api/events/:id/flags/:flagId')
+      .setPath(Schema.Struct({ 
+        id: Schema.NumberFromString,
+        flagId: Schema.String
+      }))
+      .setPayload(GrantEventFlagSchema)
+      .addSuccess(Schema.Void, { status: 201 })
+      .addError(NotFoundError)
+      .annotate(OpenApi.Description, 'Grant a flag to an event')
+  )
+  .add(
+    HttpApiEndpoint.del('api.events.flags.revoke', '/api/events/:id/flags/:flagId')
+      .setPath(Schema.Struct({ 
+        id: Schema.NumberFromString,
+        flagId: Schema.String
+      }))
+      .addSuccess(Schema.Void)
+      .addError(NotFoundError)
+      .annotate(OpenApi.Description, 'Revoke a flag from an event')
   );
 
 export const eventsApi = HttpApi.make('EventsAPI').add(eventsGroup);

@@ -36,7 +36,7 @@ const AuditQuerySchema = Schema.Struct({
 
 // Audit API group
 export const auditGroup = HttpApiGroup.make('audit').add(
-  HttpApiEndpoint.get('api.audit.list', '/api/audit')
+  HttpApiEndpoint.get('list', '/api/audit')
     .addSuccess(
       Schema.Struct({
         data: Schema.Array(AuditLogSchema),

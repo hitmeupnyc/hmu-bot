@@ -1,10 +1,9 @@
 import { HttpApiBuilder } from '@effect/platform';
 import { Effect, Schema } from 'effect';
-import { sql } from 'kysely';
 import { CurrentUser } from '~/api/auth';
 import { NotFoundError, UniqueError } from '~/api/errors';
-import { MemberSchema } from '~/api/members/schemas';
-import { DatabaseLive, DatabaseService } from '~/layers/db';
+import { MemberFlagSchema, MemberSchema } from '~/api/members/schemas';
+import { DatabaseService } from '~/layers/db';
 import { membersApi } from './endpoints';
 
 export const MembersApiLive = HttpApiBuilder.group(
@@ -15,7 +14,7 @@ export const MembersApiLive = HttpApiBuilder.group(
       const dbService = yield* DatabaseService;
 
       return handlers
-        .handle('api.members.list', ({ urlParams }) =>
+        .handle('list', ({ urlParams }) =>
           Effect.gen(function* () {
             const { page, limit, search } = urlParams;
             const offset = (page - 1) * limit;
@@ -23,7 +22,7 @@ export const MembersApiLive = HttpApiBuilder.group(
             const [countResult, memberRows] = yield* dbService
               .query(async (db) => {
                 // Only active members
-                let query = db.selectFrom('members').where('flags', '=', '1');
+                let query = db.selectFrom('members').where('flags', '=', 1);
 
                 if (search) {
                   const searchTerm = `%${search}%`;
@@ -49,7 +48,7 @@ export const MembersApiLive = HttpApiBuilder.group(
                     'email',
                     'pronouns',
                     'sponsor_notes',
-                    sql`CAST(flags AS INTEGER)`.as('flags'),
+                    'flags',
                     'date_added',
                     'created_at',
                     'updated_at',
@@ -66,7 +65,7 @@ export const MembersApiLive = HttpApiBuilder.group(
               .pipe(Effect.withSpan('db.members.list'));
 
             const members = yield* Effect.forEach(memberRows, (row) =>
-              Schema.decodeUnknown(MemberSchema)(row).pipe(Effect.orDie)
+              Schema.decode(MemberSchema)(row).pipe(Effect.orDie)
             );
 
             const total = parseInt(countResult?.total || '0');
@@ -82,7 +81,7 @@ export const MembersApiLive = HttpApiBuilder.group(
           })
         )
 
-        .handle('api.members.read', ({ path }) =>
+        .handle('read', ({ path }) =>
           Effect.gen(function* () {
             const member = yield* dbService.query(async (db) =>
               db
@@ -95,13 +94,13 @@ export const MembersApiLive = HttpApiBuilder.group(
                   'email',
                   'pronouns',
                   'sponsor_notes',
-                  (eb) => sql`CAST(flags AS INTEGER)`.as('flags'),
+                  'flags',
                   'date_added',
                   'created_at',
                   'updated_at',
                 ])
                 .where('id', '=', path.id)
-                .where('flags', '=', '1')
+                .where('flags', '=', 1)
                 .executeTakeFirst()
             );
 
@@ -112,13 +111,13 @@ export const MembersApiLive = HttpApiBuilder.group(
               });
             }
 
-            return yield* Schema.decodeUnknown(MemberSchema)(member).pipe(
+            return yield* Schema.decode(MemberSchema)(member).pipe(
               Effect.orDie
             );
           })
         )
 
-        .handle('api.members.create', ({ payload }) =>
+        .handle('create', ({ payload }) =>
           Effect.gen(function* () {
             // Check if email already exists
             const existingMember = yield* dbService.query(async (db) =>
@@ -152,7 +151,7 @@ export const MembersApiLive = HttpApiBuilder.group(
           })
         )
 
-        .handle('api.members.update', ({ path, payload }) =>
+        .handle('update', ({ payload }) =>
           Effect.gen(function* () {
             const { id, email } = payload;
             // email conflict
@@ -178,7 +177,7 @@ export const MembersApiLive = HttpApiBuilder.group(
                 .where('id', '=', id)
                 .executeTakeFirst()
             );
-            if (member && (parseInt(member.flags || '0') & 1) === 0) {
+            if (member && ((member.flags || 0) & 1) === 0) {
               throw new NotFoundError({ id: `${id}`, resource: 'member' });
             }
 
@@ -201,13 +200,13 @@ export const MembersApiLive = HttpApiBuilder.group(
                 .executeTakeFirstOrThrow()
             );
 
-            return yield* Schema.decodeUnknown(MemberSchema)(result).pipe(
+            return yield* Schema.decode(MemberSchema)(result).pipe(
               Effect.orDie
             );
           })
         )
 
-        .handle('api.members.delete', ({ path }) =>
+        .handle('delete', ({ path }) =>
           Effect.gen(function* () {
             const { id } = path;
             const member = yield* dbService.query(async (db) =>
@@ -223,22 +222,19 @@ export const MembersApiLive = HttpApiBuilder.group(
             }
 
             // Soft delete by setting active flag to false
-            const flags = parseInt(member?.flags || '0') & ~1; // Clear active bit
+            const flags = (member?.flags || 0) & ~1; // Clear active bit
 
             yield* dbService.query(async (db) =>
               db
                 .updateTable('members')
-                .set({
-                  flags: flags.toString(),
-                  updated_at: new Date().toISOString(),
-                })
+                .set({ flags, updated_at: new Date().toISOString() })
                 .where('id', '=', path.id)
                 .execute()
             );
           })
         )
 
-        .handle('api.members.note', ({ path, payload }) =>
+        .handle('note', ({ path, payload }) =>
           Effect.gen(function* () {
             const currentUser = yield* CurrentUser;
 
@@ -248,7 +244,7 @@ export const MembersApiLive = HttpApiBuilder.group(
                 .selectFrom('members')
                 .select('id')
                 .where('id', '=', path.id)
-                .where('flags', '=', '1')
+                .where('flags', '=', 1)
                 .executeTakeFirst()
             );
 
@@ -274,6 +270,128 @@ export const MembersApiLive = HttpApiBuilder.group(
                 })
               );
           })
+        )
+
+        .handle('listFlags', ({ path }) =>
+          Effect.gen(function* () {
+            const member = yield* dbService.query((db) =>
+              db
+                .selectFrom('members')
+                .select(['id'])
+                .where('id', '=', parseInt(path.id, 10))
+                .executeTakeFirst()
+            );
+
+            if (!member) {
+              return [];
+            }
+
+            const flags = yield* dbService.query((db) =>
+              db
+                .selectFrom('members_flags as mf')
+                .innerJoin('flags as f', 'f.id', 'mf.flag_id')
+                .select([
+                  'mf.member_id',
+                  'f.name',
+                  'mf.flag_id',
+                  'mf.granted_at',
+                  'mf.expires_at',
+                  'mf.granted_by',
+                  'mf.metadata',
+                ])
+                .where('mf.member_id', '=', path.id)
+                .execute()
+            );
+
+            return yield* Schema.decode(
+              Schema.Array(
+                Schema.extend(
+                  MemberFlagSchema,
+                  Schema.Struct({ name: Schema.String })
+                )
+              )
+            )(flags).pipe(Effect.orDie);
+          })
+        )
+
+        .handle('grantFlag', ({ path, payload }) =>
+          Effect.gen(function* () {
+            const currentUser = yield* CurrentUser;
+
+            yield* dbService.query((db) =>
+              db.transaction().execute(async (trx) => {
+                const existing = await trx
+                  .selectFrom('members_flags')
+                  .select('member_id')
+                  .where('member_id', '=', path.id)
+                  .where('flag_id', '=', payload.flag_id)
+                  .executeTakeFirst();
+
+                if (existing) {
+                  await trx
+                    .updateTable('members_flags')
+                    .set({
+                      member_id: path.id,
+                      ...payload,
+                      granted_by: currentUser.id,
+                    })
+                    .where('member_id', '=', path.id)
+                    .where('flag_id', '=', payload.flag_id)
+                    .execute();
+                } else {
+                  await trx
+                    .insertInto('members_flags')
+                    .values({ member_id: path.id, ...payload })
+                    .execute();
+                }
+                // TODO: Audit logging
+              })
+            );
+          })
+        )
+
+        .handle('revokeFlag', ({ path }) =>
+          Effect.gen(function* () {
+            // TODO: audit logs
+            yield* dbService.query((db) =>
+              db.transaction().execute(async (trx) => {
+                await trx
+                  .deleteFrom('members_flags')
+                  .where('member_id', '=', path.id)
+                  .where('flag_id', '=', path.flagId)
+                  .execute();
+              })
+            );
+          })
+        )
+
+        .handle('flagMembers', ({ path }) =>
+          Effect.gen(function* () {
+            const members = yield* dbService.query((db) =>
+              db
+                .selectFrom('members_flags as mf')
+                .innerJoin('members as m', 'm.id', 'mf.member_id')
+                .select([
+                  'm.id',
+                  'm.first_name',
+                  'm.last_name',
+                  'm.preferred_name',
+                  'm.email',
+                  'm.pronouns',
+                  'm.sponsor_notes',
+                  'm.flags',
+                  'm.date_added',
+                  'm.created_at',
+                  'm.updated_at',
+                ])
+                .where('mf.flag_id', '=', path.flagId)
+                .execute()
+            );
+
+            return yield* Schema.decode(Schema.Array(MemberSchema))(
+              members
+            ).pipe(Effect.orDie);
+          })
         );
-    }).pipe(Effect.provide(DatabaseLive))
+    })
 );

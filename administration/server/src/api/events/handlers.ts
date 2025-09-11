@@ -2,7 +2,7 @@ import { HttpApiBuilder } from '@effect/platform';
 import { Effect, Schema } from 'effect';
 import { CurrentUser } from '~/api/auth';
 import { NotFoundError, UnrecoverableError } from '~/api/errors';
-import { EventSchema, EventFlagSchema } from '~/api/events/schemas';
+import { EventFlagSchema, EventSchema } from '~/api/events/schemas';
 import { DatabaseLive, DatabaseService } from '~/layers/db';
 import { eventsApi } from './endpoints';
 
@@ -14,7 +14,7 @@ export const EventsApiLive = HttpApiBuilder.group(
       const dbService = yield* DatabaseService;
 
       return handlers
-        .handle('api.events.list', ({ urlParams }) =>
+        .handle('list', ({ urlParams }) =>
           Effect.gen(function* () {
             const page = urlParams.page ?? 1;
             const limit = urlParams.limit ?? 20;
@@ -44,7 +44,7 @@ export const EventsApiLive = HttpApiBuilder.group(
             const totalPages = Math.ceil(total / limit);
 
             return {
-              data: yield* Schema.decodeUnknown(Schema.Array(EventSchema))(
+              data: yield* Schema.decode(Schema.Array(EventSchema))(
                 events
               ).pipe(Effect.orDie),
               page,
@@ -55,7 +55,7 @@ export const EventsApiLive = HttpApiBuilder.group(
           })
         )
 
-        .handle('api.events.read', ({ path }) =>
+        .handle('read', ({ path }) =>
           Effect.gen(function* () {
             const { id } = path;
             const event = yield* dbService.query(async (db) =>
@@ -71,13 +71,11 @@ export const EventsApiLive = HttpApiBuilder.group(
               throw new NotFoundError({ id: `${id}`, resource: 'event' });
             }
 
-            return yield* Schema.decodeUnknown(EventSchema)(event).pipe(
-              Effect.orDie
-            );
+            return yield* Schema.decode(EventSchema)(event).pipe(Effect.orDie);
           })
         )
 
-        .handle('api.events.create', ({ payload }) =>
+        .handle('create', ({ payload }) =>
           Effect.gen(function* () {
             const result = yield* dbService.query(async (db) =>
               db
@@ -95,13 +93,11 @@ export const EventsApiLive = HttpApiBuilder.group(
               });
             }
 
-            return yield* Schema.decodeUnknown(EventSchema)(result).pipe(
-              Effect.orDie
-            );
+            return yield* Schema.decode(EventSchema)(result).pipe(Effect.orDie);
           })
         )
 
-        .handle('api.events.update', ({ path, payload }) =>
+        .handle('update', ({ path, payload }) =>
           Effect.gen(function* () {
             const result = yield* dbService.query(async (db) =>
               db
@@ -116,13 +112,11 @@ export const EventsApiLive = HttpApiBuilder.group(
               throw new NotFoundError({ id: `${path.id}`, resource: 'event' });
             }
 
-            return yield* Schema.decodeUnknown(EventSchema)(result).pipe(
-              Effect.orDie
-            );
+            return yield* Schema.decode(EventSchema)(result).pipe(Effect.orDie);
           })
         )
 
-        .handle('api.events.delete', ({ path }) =>
+        .handle('delete', ({ path }) =>
           Effect.gen(function* () {
             yield* dbService.query(async (db) =>
               db.deleteFrom('events').where('id', '=', path.id).execute()
@@ -130,14 +124,14 @@ export const EventsApiLive = HttpApiBuilder.group(
           })
         )
 
-        .handle('api.events.flags.list', ({ path }) =>
+        .handle('flags', ({ path }) =>
           Effect.gen(function* () {
             const flags = yield* dbService.query(async (db) =>
               db
                 .selectFrom('events_flags as ef')
                 .innerJoin('flags as f', 'f.id', 'ef.flag_id')
                 .select([
-                  'f.id',
+                  'ef.flag_id',
                   'ef.event_id',
                   'f.name',
                   'ef.granted_at',
@@ -149,13 +143,13 @@ export const EventsApiLive = HttpApiBuilder.group(
                 .execute()
             );
 
-            return yield* Schema.decodeUnknown(Schema.Array(EventFlagSchema))(
+            return yield* Schema.decode(Schema.Array(EventFlagSchema))(
               flags
             ).pipe(Effect.orDie);
           })
         )
 
-        .handle('api.events.flags.grant', ({ path, payload }) =>
+        .handle('grantFlag', ({ path, payload }) =>
           Effect.gen(function* () {
             const currentUser = yield* CurrentUser;
 
@@ -182,7 +176,12 @@ export const EventsApiLive = HttpApiBuilder.group(
                 } else {
                   await trx
                     .insertInto('events_flags')
-                    .values({ event_id: path.id, flag_id: path.flagId, granted_by: currentUser.id, ...payload })
+                    .values({
+                      event_id: path.id,
+                      flag_id: path.flagId,
+                      granted_by: currentUser.id,
+                      ...payload,
+                    })
                     .execute();
                 }
                 // TODO: Audit logging
@@ -191,7 +190,7 @@ export const EventsApiLive = HttpApiBuilder.group(
           })
         )
 
-        .handle('api.events.flags.revoke', ({ path }) =>
+        .handle('revokeFlag', ({ path }) =>
           Effect.gen(function* () {
             // TODO: audit logs
             yield* dbService.query(async (db) =>

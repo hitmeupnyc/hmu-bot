@@ -11,7 +11,7 @@ export const AuditApiLive = HttpApiBuilder.group(
     Effect.gen(function* () {
       const dbService = yield* DatabaseService;
 
-      return handlers.handle('api.audit.list', ({ urlParams }) =>
+      return handlers.handle('list', ({ urlParams }) =>
         Effect.gen(function* () {
           const entity_type = urlParams.entity_type;
           const entity_id = urlParams.entity_id;

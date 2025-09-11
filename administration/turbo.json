@@ -7,17 +7,23 @@
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
+    "build:sdk": {
+      "inputs": ["src/sdk/**", "tsconfig.sdk.json"],
+      "outputs": ["dist-sdk/**"]
+    },
     "start": {
       "cache": false,
       "persistent": true
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "dependsOn": ["api-server#build:sdk"]
     },
     "dev:e2e": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "dependsOn": ["api-server#build:sdk"]
     },
     "lint": {
       "dependsOn": ["^build"]

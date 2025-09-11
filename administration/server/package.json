@@ -72,24 +72,9 @@
     "vitest": "^3.2.4"
   },
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
     "./sdk": {
       "types": "./dist-sdk/sdk/index.d.ts",
-      "default": "./dist-sdk/sdk/index.js"
-    },
-    "./sdk/effect": {
-      "types": "./dist-sdk/sdk/client.d.ts", 
-      "default": "./dist-sdk/sdk/client.js"
-    },
-    "./sdk/promise": {
-      "types": "./dist-sdk/sdk/promise.d.ts",
-      "default": "./dist-sdk/sdk/promise.js"
-    },
-    "./sdk/types": {
-      "types": "./dist-sdk/sdk/types.d.ts"
+      "default": "./src/sdk/index.ts"
     }
   },
   "overrides": {

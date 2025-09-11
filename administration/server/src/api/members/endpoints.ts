@@ -79,7 +79,14 @@ export const membersGroup = HttpApiGroup.make('members')
   .add(
     HttpApiEndpoint.get('listFlags', '/api/members/:id/flags')
       .setPath(Schema.Struct({ id: Schema.String }))
-      .addSuccess(Schema.Array(MemberFlagSchema))
+      .addSuccess(
+        Schema.Array(
+          Schema.extend(
+            MemberFlagSchema,
+            Schema.Struct({ name: Schema.String })
+          )
+        )
+      )
       .addError(NotFoundError)
       .annotate(
         OpenApi.Description,

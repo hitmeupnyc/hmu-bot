@@ -44,7 +44,7 @@ export const EventsApiLive = HttpApiBuilder.group(
             const totalPages = Math.ceil(total / limit);
 
             return {
-              data: yield* Schema.decodeUnknown(Schema.Array(EventSchema))(
+              data: yield* Schema.decode(Schema.Array(EventSchema))(
                 events
               ).pipe(Effect.orDie),
               page,
@@ -71,9 +71,7 @@ export const EventsApiLive = HttpApiBuilder.group(
               throw new NotFoundError({ id: `${id}`, resource: 'event' });
             }
 
-            return yield* Schema.decodeUnknown(EventSchema)(event).pipe(
-              Effect.orDie
-            );
+            return yield* Schema.decode(EventSchema)(event).pipe(Effect.orDie);
           })
         )
 
@@ -95,9 +93,7 @@ export const EventsApiLive = HttpApiBuilder.group(
               });
             }
 
-            return yield* Schema.decodeUnknown(EventSchema)(result).pipe(
-              Effect.orDie
-            );
+            return yield* Schema.decode(EventSchema)(result).pipe(Effect.orDie);
           })
         )
 
@@ -116,9 +112,7 @@ export const EventsApiLive = HttpApiBuilder.group(
               throw new NotFoundError({ id: `${path.id}`, resource: 'event' });
             }
 
-            return yield* Schema.decodeUnknown(EventSchema)(result).pipe(
-              Effect.orDie
-            );
+            return yield* Schema.decode(EventSchema)(result).pipe(Effect.orDie);
           })
         )
 
@@ -137,7 +131,7 @@ export const EventsApiLive = HttpApiBuilder.group(
                 .selectFrom('events_flags as ef')
                 .innerJoin('flags as f', 'f.id', 'ef.flag_id')
                 .select([
-                  'f.id',
+                  'ef.flag_id',
                   'ef.event_id',
                   'f.name',
                   'ef.granted_at',
@@ -149,7 +143,7 @@ export const EventsApiLive = HttpApiBuilder.group(
                 .execute()
             );
 
-            return yield* Schema.decodeUnknown(Schema.Array(EventFlagSchema))(
+            return yield* Schema.decode(Schema.Array(EventFlagSchema))(
               flags
             ).pipe(Effect.orDie);
           })

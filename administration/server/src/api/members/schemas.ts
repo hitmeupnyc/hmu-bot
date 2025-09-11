@@ -1,17 +1,17 @@
 import { Schema } from 'effect';
 
 export const MemberSchema = Schema.Struct({
-  id: Schema.Number,
+  id: Schema.Union(Schema.Number, Schema.Null),
   first_name: Schema.String,
   last_name: Schema.String,
   preferred_name: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
   email: Schema.String.pipe(Schema.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)),
   pronouns: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
   sponsor_notes: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
-  flags: Schema.Number,
+  flags: Schema.Union(Schema.Number, Schema.Null),
   date_added: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
-  created_at: Schema.String,
-  updated_at: Schema.String,
+  created_at: Schema.Union(Schema.String, Schema.Null),
+  updated_at: Schema.Union(Schema.String, Schema.Null),
 });
 
 export const CreateMemberSchema = Schema.Struct({

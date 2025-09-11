@@ -1,10 +1,9 @@
 import { HttpApiBuilder } from '@effect/platform';
 import { Effect, Schema } from 'effect';
-import { sql } from 'kysely';
 import { CurrentUser } from '~/api/auth';
 import { NotFoundError, UniqueError } from '~/api/errors';
 import { MemberFlagSchema, MemberSchema } from '~/api/members/schemas';
-import { DatabaseLive, DatabaseService } from '~/layers/db';
+import { DatabaseService } from '~/layers/db';
 import { membersApi } from './endpoints';
 
 export const MembersApiLive = HttpApiBuilder.group(
@@ -49,7 +48,7 @@ export const MembersApiLive = HttpApiBuilder.group(
                     'email',
                     'pronouns',
                     'sponsor_notes',
-                    sql`CAST(flags AS INTEGER)`.as('flags'),
+                    'flags',
                     'date_added',
                     'created_at',
                     'updated_at',
@@ -66,7 +65,7 @@ export const MembersApiLive = HttpApiBuilder.group(
               .pipe(Effect.withSpan('db.members.list'));
 
             const members = yield* Effect.forEach(memberRows, (row) =>
-              Schema.decodeUnknown(MemberSchema)(row).pipe(Effect.orDie)
+              Schema.decode(MemberSchema)(row).pipe(Effect.orDie)
             );
 
             const total = parseInt(countResult?.total || '0');
@@ -112,7 +111,7 @@ export const MembersApiLive = HttpApiBuilder.group(
               });
             }
 
-            return yield* Schema.decodeUnknown(MemberSchema)(member).pipe(
+            return yield* Schema.decode(MemberSchema)(member).pipe(
               Effect.orDie
             );
           })
@@ -201,7 +200,7 @@ export const MembersApiLive = HttpApiBuilder.group(
                 .executeTakeFirstOrThrow()
             );
 
-            return yield* Schema.decodeUnknown(MemberSchema)(result).pipe(
+            return yield* Schema.decode(MemberSchema)(result).pipe(
               Effect.orDie
             );
           })
@@ -292,9 +291,9 @@ export const MembersApiLive = HttpApiBuilder.group(
                 .selectFrom('members_flags as mf')
                 .innerJoin('flags as f', 'f.id', 'mf.flag_id')
                 .select([
-                  'f.id',
                   'mf.member_id',
                   'f.name',
+                  'mf.flag_id',
                   'mf.granted_at',
                   'mf.expires_at',
                   'mf.granted_by',
@@ -304,9 +303,14 @@ export const MembersApiLive = HttpApiBuilder.group(
                 .execute()
             );
 
-            return yield* Schema.decodeUnknown(Schema.Array(MemberFlagSchema))(
-              flags
-            ).pipe(Effect.orDie);
+            return yield* Schema.decode(
+              Schema.Array(
+                Schema.extend(
+                  MemberFlagSchema,
+                  Schema.Struct({ name: Schema.String })
+                )
+              )
+            )(flags).pipe(Effect.orDie);
           })
         )
 
@@ -384,10 +388,10 @@ export const MembersApiLive = HttpApiBuilder.group(
                 .execute()
             );
 
-            return yield* Schema.decodeUnknown(Schema.Array(MemberSchema))(
+            return yield* Schema.decode(Schema.Array(MemberSchema))(
               members
             ).pipe(Effect.orDie);
           })
         );
-    }).pipe(Effect.provide(DatabaseLive))
+    })
 );

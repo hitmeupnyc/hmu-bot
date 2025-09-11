@@ -1,10 +1,10 @@
 import { Schema } from 'effect';
 
 export const EventSchema = Schema.Struct({
-  id: Schema.Number,
+  id: Schema.Union(Schema.Number, Schema.Null),
   name: Schema.String,
   description: Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
-  url: Schema.String,
+  url: Schema.Union(Schema.String, Schema.Null),
   flags: Schema.Union(Schema.Number, Schema.Null, Schema.Undefined),
   created_by_member_id: Schema.Union(
     Schema.Number,

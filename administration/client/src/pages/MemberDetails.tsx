@@ -252,8 +252,8 @@ export function MemberDetails() {
           <div className="bg-white shadow rounded-lg p-6">
             <FeatureErrorBoundary featureName="Member Flags & Permissions">
               <MemberFlags
-                memberEmail={member.email}
-                onGrantFlag={handleGrantFlag}
+                memberId={member.id}
+                onGrantFlag={() => handleGrantFlag()}
               />
             </FeatureErrorBoundary>
           </div>

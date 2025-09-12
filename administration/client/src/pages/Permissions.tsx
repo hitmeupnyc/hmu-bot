@@ -6,7 +6,10 @@ import {
   MemberFlagManager,
   PermissionTester,
 } from '@/features/Permissions/components';
-import { Flag, useFlagMembers, useFlags } from '@/hooks/useFlags';
+import { useFlags } from '@/hooks/useFlags';
+import { useFlagMembers } from '@/hooks/useMembers';
+// TODO: Extract from SDK
+type Flag = any;
 import {
   BeakerIcon,
   ChartBarIcon,
@@ -23,8 +26,12 @@ export default function Permissions() {
   const [showGrantModal, setShowGrantModal] = useState(false);
   const [preselectedEmail, setPreselectedEmail] = useState<string>('');
 
-  const { data: flags = [], isLoading: flagsLoading } = useFlags();
-  const { data: flagMembers = [] } = useFlagMembers(selectedFlag?.id || '');
+  const { data: flags = [], isLoading: flagsLoading } = useFlags({
+    urlParams: { limit: 100, page: 1, sortOrder: 'desc' }
+  });
+  const { data: flagMembers = [] } = useFlagMembers({ 
+    path: { flagId: selectedFlag?.id || '' }
+  });
 
   const handleGrantFlag = (email?: string) => {
     if (email) {

@@ -1,18 +1,22 @@
 import { useState } from 'react';
 import { PlusIcon, ClockIcon, ExclamationTriangleIcon, CheckCircleIcon, XMarkIcon, CalendarIcon, KeyIcon } from '@heroicons/react/24/outline';
 import { format, isAfter, differenceInDays } from 'date-fns';
-import { useMemberFlags, useRevokeFlag, MemberFlag } from '@/hooks/useFlags';
+import { useMemberFlags, useRevokeMemberFlag } from '@/hooks/useMembers';
+// TODO: Extract from SDK
+type MemberFlag = any;
 
 interface MemberFlagsProps {
-  memberEmail: string;
-  onGrantFlag: (email?: string) => void;
+  memberId: number;
+  onGrantFlag: () => void;
 }
 
-export function MemberFlags({ memberEmail, onGrantFlag }: MemberFlagsProps) {
+export function MemberFlags({ memberId, onGrantFlag }: MemberFlagsProps) {
   const [showExpired, setShowExpired] = useState(false);
   
-  const { data: memberFlags = [], isLoading } = useMemberFlags(memberEmail);
-  const revokeFlagMutation = useRevokeFlag();
+  const { data: memberFlags = [], isLoading } = useMemberFlags({ 
+    path: { id: memberId.toString() } 
+  });
+  const revokeFlagMutation = useRevokeMemberFlag();
 
   const getExpirationStatus = (expiresAt?: string) => {
     if (!expiresAt) return null;

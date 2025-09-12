@@ -3,12 +3,26 @@ import { useMembers } from '@/hooks/useMembers';
 
 export function Dashboard() {
   const { data: membersData, isLoading: membersLoading } = useMembers({
-    limit: 100,
+    urlParams: {
+      limit: 100,
+      page: 1,
+      sortOrder: 'desc',
+    }
   });
   const { data: eventsData, isLoading: eventsLoading } = useEvents({
-    upcoming: true,
+    urlParams: {
+      limit: 20,
+      page: 1,
+      sortOrder: 'desc',
+    }
   });
-  const { data: recentMembersData } = useMembers({ limit: 5 });
+  const { data: recentMembersData } = useMembers({
+    urlParams: {
+      limit: 5,
+      page: 1,
+      sortOrder: 'desc',
+    }
+  });
 
   const members = membersData?.members || [];
   const upcomingEvents = eventsData?.events || [];

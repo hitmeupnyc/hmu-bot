@@ -8,7 +8,8 @@ import {
 } from '@/features/Events/components';
 import { useEventCrud } from '@/features/Events/hooks/useEventCrud';
 import { useEvents } from '@/hooks/useEvents';
-import { Event } from '@/types';
+// TODO: Extract from SDK
+type Event = any;
 import { PlusIcon } from '@heroicons/react/24/outline';
 
 type EventFilter = 'upcoming' | 'past' | 'all';
@@ -21,13 +22,13 @@ export function Events() {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
 
   // React Query hooks
-  const { data, isLoading } = useEvents(
-    filter === 'upcoming'
-      ? { upcoming: true }
-      : filter === 'past'
-        ? { upcoming: false }
-        : {}
-  );
+  const { data, isLoading } = useEvents({
+    urlParams: {
+      limit: 20,
+      page: 1,
+      sortOrder: 'desc',
+    }
+  });
 
   // CRUD operations
   const { handleDeleteEvent, handleFormSubmit, isFormLoading } = useEventCrud();

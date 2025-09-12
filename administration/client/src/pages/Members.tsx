@@ -18,9 +18,12 @@ export function Members() {
   const [showCsvImport, setShowCsvImport] = useState(false);
 
   const { data, isLoading, error } = useMembers({
-    page: currentPage,
-    limit: 20,
-    search: searchTerm || undefined,
+    urlParams: {
+      page: currentPage,
+      limit: 20,
+      search: searchTerm || undefined,
+      sortOrder: 'desc',
+    }
   });
 
   const {

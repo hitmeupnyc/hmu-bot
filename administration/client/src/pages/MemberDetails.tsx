@@ -13,7 +13,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { FeatureErrorBoundary } from '@/components/FeatureErrorBoundary';
 import { Modal } from '@/components/Modal';
 import {
-  ApplicationNotes,
   AuditHistory,
   EditMemberForm,
   EmailModal,
@@ -22,14 +21,15 @@ import {
   MemberFlags,
 } from '@/features/MemberDetails/components';
 import { FlagGrantModal } from '@/features/Permissions/components';
-import { useAuditLog } from '@/hooks/useAudit';
+import { useAuditLogs } from '@/hooks/useAudit';
 import { useFlags } from '@/hooks/useFlags';
 import {
   useDeleteMember,
   useMember,
   useUpdateMember,
 } from '@/hooks/useMembers';
-import { MemberFormData } from '@/types';
+// TODO: Extract from SDK
+type MemberFormData = any;
 
 type TabType = 'info' | 'flags' | 'audit';
 
@@ -42,21 +42,21 @@ export function MemberDetails() {
   const [activeTab, setActiveTab] = useState<TabType>('info');
 
   const memberId = parseInt(id || '0', 10);
-  const { data: member, isLoading, error } = useMember(memberId, !!id);
+  const { data: member, isLoading, error } = useMember(memberId);
   const {
     data: auditLog,
     isLoading: auditLoading,
     refetch: refetchAuditLog,
-  } = useAuditLog('member', memberId, !!id);
-  const { data: flags = [] } = useFlags();
+  } = useAuditLogs({ urlParams: { entityType: 'member', entityId: memberId.toString() } });
+  const { data: flags = [] } = useFlags({});
   const updateMember = useUpdateMember();
   const deleteMember = useDeleteMember();
 
   const handleUpdateMember = async (formData: MemberFormData) => {
     try {
       await updateMember.mutateAsync({
-        id: memberId,
-        ...formData,
+        path: { id: memberId },
+        payload: formData,
       });
       setIsEditModalOpen(false);
     } catch (error) {
@@ -77,7 +77,7 @@ export function MemberDetails() {
     }
 
     try {
-      await deleteMember.mutateAsync(memberId);
+      await deleteMember.mutateAsync({ path: { id: memberId } });
       navigate('/members');
     } catch (error) {
       console.error('Failed to delete member:', error);
@@ -230,10 +230,6 @@ export function MemberDetails() {
           <>
             <InfoCards member={member} />
 
-            <ApplicationNotes
-              memberId={memberId}
-              onNoteAdded={handleNoteAdded}
-            />
             <div className="bg-white shadow rounded-lg p-6 mt-3">
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <ClockIcon className="h-5 w-5 mr-2" />

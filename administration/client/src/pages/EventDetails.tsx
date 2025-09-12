@@ -7,7 +7,7 @@ import {
   Overview,
   Tabs,
 } from '@/features/EventDetails/components';
-import { useEventDetails } from '@/hooks/useEvents';
+import { useEvent } from '@/hooks/useEvents';
 
 export function EventDetails() {
   const { id } = useParams<{ id: string }>();
@@ -15,7 +15,7 @@ export function EventDetails() {
   const [activeTab, setActiveTab] = useState<'overview'>('overview');
 
   const eventId = parseInt(id || '0', 10);
-  const { data: event, isLoading, error } = useEventDetails(eventId, !!id);
+  const { data: event, isLoading, error } = useEvent(eventId);
 
   if (isLoading || error) {
     return <LoadingStates isLoading={isLoading} error={error} />;

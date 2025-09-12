@@ -1,34 +1,15 @@
-import { api } from '@/lib/api';
-import { Member, MemberFormData } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { sdk } from '../lib/sdk';
 
-interface MembersResponse {
-  success: boolean;
-  data: Member[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
-
-// interface MemberResponse {
-//   success: boolean;
-//   data: Member;
-// }
-
-interface CreateMemberResponse {
-  success: boolean;
-  data: Member;
-  message: string;
-}
-
-interface GetMembersParams {
-  page?: number;
-  limit?: number;
-  search?: string;
-}
+// Type extraction from SDK
+type GetMembersParams = Parameters<typeof sdk.members.list>[0];
+type CreateMemberParams = Parameters<typeof sdk.members.create>[0];
+type UpdateMemberParams = Parameters<typeof sdk.members.update>[0];
+type DeleteMemberParams = Parameters<typeof sdk.members.delete>[0];
+type GetMemberFlagsParams = Parameters<typeof sdk.members.listFlags>[0];
+type GrantMemberFlagParams = Parameters<typeof sdk.members.grantFlag>[0];
+type RevokeMemberFlagParams = Parameters<typeof sdk.members.revokeFlag>[0];
+type FlagMembersParams = Parameters<typeof sdk.members.flagMembers>[0];
 
 // Query key factory for consistent cache management
 const memberKeys = {
@@ -37,132 +18,128 @@ const memberKeys = {
   list: (params: GetMembersParams) => [...memberKeys.lists(), params] as const,
   details: () => [...memberKeys.all, 'detail'] as const,
   detail: (id: number) => [...memberKeys.details(), id] as const,
+  flags: () => [...memberKeys.all, 'flags'] as const,
+  memberFlags: (memberId: number) => [...memberKeys.flags(), memberId] as const,
+  flagMembers: (flagId: string) =>
+    [...memberKeys.flags(), 'flag', flagId] as const,
 };
 
-/**
- * Hook to fetch paginated members list with search
- */
-export function useMembers(params: GetMembersParams = {}) {
+// Query hooks
+export function useMembers(params: GetMembersParams) {
   return useQuery({
     queryKey: memberKeys.list(params),
-    queryFn: async (): Promise<MembersResponse> => {
-      const response = await api.get('/members', { params });
-      return response.data;
+    queryFn: async () => {
+      const result = await sdk.members.list(params);
+      // SDK returns a single response object, not a tuple
+      return result;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     select: (data) => ({
       members: data.data,
-      pagination: data.pagination,
+      pagination: {
+        page: data.page,
+        limit: data.limit,
+        total: data.total,
+        totalPages: data.totalPages,
+      },
     }),
   });
 }
 
-/**
- * Hook to fetch a single member by ID
- */
-export function useMember(id: number, enabled = true) {
+export function useMember(id: number) {
   return useQuery({
     queryKey: memberKeys.detail(id),
-    queryFn: async (): Promise<Member> => {
-      const response = await api.get<Member>(`/members/${id}`);
-      // Effect HTTP API returns the member object directly, not wrapped in a data object
-      return response.data;
-    },
-    enabled: enabled && !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    queryFn: () => sdk.members.read({ path: { id } }),
+    staleTime: 5 * 60 * 1000,
   });
 }
 
-/**
- * Hook to create a new member
- */
+export function useMemberFlags(params: GetMemberFlagsParams) {
+  return useQuery({
+    queryKey: memberKeys.memberFlags(Number(params.path.id)),
+    queryFn: () => sdk.members.listFlags(params),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useFlagMembers(params: FlagMembersParams) {
+  return useQuery({
+    queryKey: memberKeys.flagMembers(params.path.flagId),
+    queryFn: () => sdk.members.flagMembers(params),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// Mutation hooks
 export function useCreateMember() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (memberData: MemberFormData): Promise<Member> => {
-      const response = await api.post<CreateMemberResponse>(
-        '/members',
-        memberData
-      );
-      return response.data.data;
-    },
-    onSuccess: (newMember) => {
-      // Invalidate and refetch members list
+    mutationFn: (data: CreateMemberParams) => sdk.members.create(data),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: memberKeys.lists() });
-
-      // Add the new member to the cache
-      queryClient.setQueryData(memberKeys.detail(newMember.id), newMember);
     },
   });
 }
 
-/**
- * Hook to update an existing member
- */
 export function useUpdateMember() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      id,
-      ...memberData
-    }: MemberFormData & { id: number }): Promise<Member> => {
-      const response = await api.put<Member>(`/members/${id}`, {
-        id,
-        ...memberData,
+    mutationFn: (data: UpdateMemberParams) => sdk.members.update(data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: memberKeys.detail(variables.payload.id),
       });
-      return response.data;
-    },
-    onSuccess: (updatedMember) => {
-      // Update the member in the cache
-      queryClient.setQueryData(
-        memberKeys.detail(updatedMember.id),
-        updatedMember
-      );
-
-      // Invalidate and refetch members list to ensure consistency
       queryClient.invalidateQueries({ queryKey: memberKeys.lists() });
     },
   });
 }
 
-/**
- * Hook to delete a member
- */
 export function useDeleteMember() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: number): Promise<void> => {
-      await api.delete(`/members/${id}`);
-    },
-    onSuccess: (_, deletedMemberId) => {
-      // Remove the member from the cache
-      queryClient.removeQueries({
-        queryKey: memberKeys.detail(deletedMemberId),
+    mutationFn: (params: DeleteMemberParams) => sdk.members.delete(params),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: memberKeys.detail(variables.path.id),
       });
-
-      // Invalidate and refetch members list
       queryClient.invalidateQueries({ queryKey: memberKeys.lists() });
     },
   });
 }
 
-/**
- * Hook to prefetch a member (useful for preloading when hovering over links)
- */
-export function usePrefetchMember() {
+export function useGrantMemberFlag() {
   const queryClient = useQueryClient();
 
-  return (id: number) => {
-    queryClient.prefetchQuery({
-      queryKey: memberKeys.detail(id),
-      queryFn: async (): Promise<Member> => {
-        const response = await api.get<Member>(`/members/${id}`);
-        return response.data;
-      },
-      staleTime: 5 * 60 * 1000,
-    });
-  };
+  return useMutation({
+    mutationFn: (params: GrantMemberFlagParams) =>
+      sdk.members.grantFlag(params),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: memberKeys.memberFlags(Number(variables.path.id)),
+      });
+      queryClient.invalidateQueries({
+        queryKey: memberKeys.flagMembers(variables.payload.flag_id),
+      });
+    },
+  });
+}
+
+export function useRevokeMemberFlag() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: RevokeMemberFlagParams) =>
+      sdk.members.revokeFlag(params),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: memberKeys.memberFlags(Number(variables.path.id)),
+      });
+      queryClient.invalidateQueries({
+        queryKey: memberKeys.flagMembers(variables.path.flagId),
+      });
+    },
+  });
 }

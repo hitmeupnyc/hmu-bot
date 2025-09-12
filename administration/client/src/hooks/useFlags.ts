@@ -33,3 +33,32 @@ export function useBulkFlags() {
     },
   });
 }
+
+// Re-export from other hooks for backward compatibility
+export { 
+  useRevokeMemberFlag as useRevokeFlag, 
+  useGrantMemberFlag as useGrantFlag,
+  useMemberFlags,
+  useFlagMembers
+} from './useMembers';
+
+// TODO: Extract from SDK
+export type Flag = any;
+export type FlagMember = any;
+export type MemberFlag = any;
+
+// Placeholder for missing hooks
+export function useMemberPermissions() {
+  // TODO: Implement based on actual requirements
+  return { data: [], isLoading: false };
+}
+
+export function useBulkGrantFlags() {
+  // TODO: Implement based on actual requirements
+  return { mutateAsync: async () => {}, isPending: false };
+}
+
+export function useProcessExpiredFlags() {
+  // TODO: Implement based on actual requirements
+  return { mutateAsync: async () => {}, isPending: false };
+}

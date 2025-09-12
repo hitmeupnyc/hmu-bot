@@ -1,7 +1,6 @@
 import { AppHeader } from '@/components/AppHeader';
 import { Layout } from '@/components/Layout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { Apply } from '@/pages/Apply';
 import { Dashboard } from '@/pages/Dashboard';
 import { Debug } from '@/pages/Debug';
 import { EventDetails } from '@/pages/EventDetails';
@@ -35,7 +34,6 @@ function App() {
                 <Route path="/events/:id" element={<EventDetails />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/settings/permissions" element={<Permissions />} />
-                <Route path="/apply" element={<Apply />} />
                 <Route path="/debug" element={<Debug />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

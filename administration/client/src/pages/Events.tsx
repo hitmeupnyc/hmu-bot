@@ -6,7 +6,7 @@ import {
   EventGrid,
   EventTableRow,
 } from '@/features/Events/components';
-import { useEventCrud } from '@/features/Events/hooks/useEventCrud';
+import { useCreateEvent, useUpdateEvent, useDeleteEvent } from '@/hooks/useEvents';
 import { useEvents } from '@/hooks/useEvents';
 // TODO: Extract from SDK
 type Event = any;
@@ -30,8 +30,37 @@ export function Events() {
     }
   });
 
-  // CRUD operations
-  const { handleDeleteEvent, handleFormSubmit, isFormLoading } = useEventCrud();
+  // CRUD operations  
+  const createEvent = useCreateEvent();
+  const updateEvent = useUpdateEvent();
+  const deleteEvent = useDeleteEvent();
+  
+  const handleDeleteEvent = async (event: any) => {
+    if (confirm(`Delete event "${event.title}"?`)) {
+      try {
+        await deleteEvent.mutateAsync({ path: { id: event.id } });
+      } catch (error) {
+        console.error('Delete failed:', error);
+      }
+    }
+  };
+  
+  const handleFormSubmit = async (formData: any) => {
+    try {
+      if (editingEvent) {
+        await updateEvent.mutateAsync({
+          path: { id: editingEvent.id },
+          payload: formData
+        });
+      } else {
+        await createEvent.mutateAsync({ payload: formData });
+      }
+      setIsModalOpen(false);
+      setEditingEvent(null);
+    } catch (error) {
+      console.error('Form submit failed:', error);
+    }
+  };
 
   // Filter events client-side for 'past' filter since backend doesn't handle it
   const allEvents = data?.events || [];
@@ -107,7 +136,7 @@ export function Events() {
           setIsModalOpen(false);
           setEditingEvent(null);
         }}
-        isLoading={isFormLoading}
+        isLoading={editingEvent ? updateEvent.isPending : createEvent.isPending}
       />
     </div>
   );

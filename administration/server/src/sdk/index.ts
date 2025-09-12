@@ -1,6 +1,6 @@
 import { FetchHttpClient, HttpApiClient, HttpClient } from '@effect/platform';
 import { Effect } from 'effect';
-import { Api } from '~/api';
+import { Api } from '../api';
 
 export interface ClientConfig {
   baseUrl: string;

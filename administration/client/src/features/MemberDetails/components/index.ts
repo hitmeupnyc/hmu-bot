@@ -1,4 +1,3 @@
-export * from './ApplicationNotes';
 export * from './AuditHistory';
 export * from './EditMemberForm';
 export * from './EmailModal';

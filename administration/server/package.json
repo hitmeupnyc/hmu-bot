@@ -3,10 +3,6 @@
   "version": "1.0.0",
   "description": "Backend API for club management system",
   "main": "dist/index.js",
-  "exports": {
-    ".": "./dist/index.js",
-    "./sdk": "./dist-sdk/sdk/index.js"
-  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "dev:e2e": "NODE_ENV=test DATABASE_PATH=./data/test.db tsx watch src/index.ts",
@@ -76,9 +72,8 @@
     "vitest": "^3.2.4"
   },
   "exports": {
-    "./sdk": {
-      "types": "./dist-sdk/sdk/index.d.ts",
-      "default": "./src/sdk/index.ts"
+    "./types": {
+      "types": "./dist-sdk/sdk/index.d.ts"
     }
   },
   "overrides": {

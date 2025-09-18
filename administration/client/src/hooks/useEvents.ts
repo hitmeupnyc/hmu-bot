@@ -1,14 +1,14 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { sdk } from '../lib/sdk';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Events } from 'api-server/types';
 
 // Type extraction from SDK
-type GetEventsParams = Parameters<typeof sdk.events.list>[0];
-type CreateEventParams = Parameters<typeof sdk.events.create>[0];
-type UpdateEventParams = Parameters<typeof sdk.events.update>[0];
-type DeleteEventParams = Parameters<typeof sdk.events.delete>[0];
-type GetEventFlagsParams = Parameters<typeof sdk.events.flags>[0];
-type GrantEventFlagParams = Parameters<typeof sdk.events.grantFlag>[0];
-type RevokeEventFlagParams = Parameters<typeof sdk.events.revokeFlag>[0];
+type GetEventsParams = Events['list'];
+type CreateEventParams = Events['create'];
+type UpdateEventParams = Events['update'];
+type DeleteEventParams = Events['delete'];
+type GetEventFlagsParams = Events['flags'];
+type GrantEventFlagParams = Events['grantFlag'];
+type RevokeEventFlagParams = Events['revokeFlag'];
 
 // Query key factory for consistent cache management
 const eventKeys = {
@@ -61,7 +61,7 @@ export function useEventFlags(params: GetEventFlagsParams) {
 // Mutation hooks
 export function useCreateEvent() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (data: CreateEventParams) => sdk.events.create(data),
     onSuccess: () => {
@@ -72,11 +72,13 @@ export function useCreateEvent() {
 
 export function useUpdateEvent() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (data: UpdateEventParams) => sdk.events.update(data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: eventKeys.detail(variables.path.id) });
+      queryClient.invalidateQueries({
+        queryKey: eventKeys.detail(variables.path.id),
+      });
       queryClient.invalidateQueries({ queryKey: eventKeys.lists() });
     },
   });
@@ -84,11 +86,13 @@ export function useUpdateEvent() {
 
 export function useDeleteEvent() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (params: DeleteEventParams) => sdk.events.delete(params),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: eventKeys.detail(variables.path.id) });
+      queryClient.invalidateQueries({
+        queryKey: eventKeys.detail(variables.path.id),
+      });
       queryClient.invalidateQueries({ queryKey: eventKeys.lists() });
     },
   });
@@ -96,22 +100,27 @@ export function useDeleteEvent() {
 
 export function useGrantEventFlag() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (params: GrantEventFlagParams) => sdk.events.grantFlag(params),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: eventKeys.eventFlags(Number(variables.path.id)) });
+      queryClient.invalidateQueries({
+        queryKey: eventKeys.eventFlags(Number(variables.path.id)),
+      });
     },
   });
 }
 
 export function useRevokeEventFlag() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (params: RevokeEventFlagParams) => sdk.events.revokeFlag(params),
+    mutationFn: (params: RevokeEventFlagParams) =>
+      sdk.events.revokeFlag(params),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: eventKeys.eventFlags(Number(variables.path.id)) });
+      queryClient.invalidateQueries({
+        queryKey: eventKeys.eventFlags(Number(variables.path.id)),
+      });
     },
   });
 }

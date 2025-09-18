@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { sdk } from '../lib/sdk';
+import { AuditLog } from 'api-server/types';
 
 // Type extraction from SDK
-type GetAuditParams = Parameters<typeof sdk.audit.list>[0];
+type GetAuditParams = AuditLog['list']['params'];
 
 // Query key factory for consistent cache management
 const auditKeys = {
@@ -15,7 +15,7 @@ const auditKeys = {
 export function useAuditLogs(params: GetAuditParams) {
   return useQuery({
     queryKey: auditKeys.list(params),
-    queryFn: () => sdk.audit.list(params),
+    queryFn: () => fetch('/api/audit'),
     staleTime: 5 * 60 * 1000,
   });
 }

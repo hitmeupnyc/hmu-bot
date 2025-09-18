@@ -1,58 +1,67 @@
+// organize-imports-ignore
+import type { Sink, Stream, Channel } from 'effect';
+import type { NodeInspectSymbol } from 'effect/Inspectable';
+
 import { FetchHttpClient, HttpApiClient, HttpClient } from '@effect/platform';
 import { Effect } from 'effect';
 import { Api } from '../api';
 
-export interface ClientConfig {
-  baseUrl: string;
-}
+const apiClient = Effect.runSync(
+  HttpApiClient.make(Api, {
+    baseUrl: 'localhost:5173',
+    transformClient: (client) => client.pipe(HttpClient.filterStatusOk),
+  }).pipe(Effect.provide(FetchHttpClient.layer))
+);
+type ApiClient = typeof apiClient;
 
-function promisify<Args, A, E, R extends never>(
-  apiCall: (args: Args) => Effect.Effect<A, E, R>
-): (args: Args) => Promise<A> {
-  return (p) => Effect.runPromise(apiCall(p));
-}
+type MembersClient = ApiClient['members'];
+type EventsClient = ApiClient['events'];
+type FlagsClient = ApiClient['flags'];
+type AuditClient = ApiClient['audit'];
 
-function createPromiseClient(config: ClientConfig) {
-  const { members, audit, events, flags } = Effect.runSync(
-    HttpApiClient.make(Api, {
-      baseUrl: config.baseUrl,
-      transformClient: (client) => client.pipe(HttpClient.filterStatusOk),
-    }).pipe(Effect.provide(FetchHttpClient.layer))
-  );
+type UnwrapEffect<E> = E extends (
+  r: infer Params extends Record<string, any>
+) => Effect.Effect<infer Output, infer Errors>
+  ? { params: Params; response: Output; errors: Errors }
+  : never;
 
-  // Unwrap stuff from Effect and let it be used as a promise.
-  // `promisify` has to be pretty careful about preserving types.
-  return {
-    members: {
-      list: promisify(members.list),
-      create: promisify(members.create),
-      read: promisify(members.read),
-      update: promisify(members.update),
-      delete: promisify(members.delete),
-      note: promisify(members.note),
-      listFlags: promisify(members.listFlags),
-      grantFlag: promisify(members.grantFlag),
-      revokeFlag: promisify(members.revokeFlag),
-      flagMembers: promisify(members.flagMembers),
-    } satisfies Record<keyof typeof members, any>,
-    events: {
-      list: promisify(events.list),
-      create: promisify(events.create),
-      read: promisify(events.read),
-      update: promisify(events.update),
-      delete: promisify(events.delete),
-      flags: promisify(events.flags),
-      grantFlag: promisify(events.grantFlag),
-      revokeFlag: promisify(events.revokeFlag),
-    } satisfies Record<keyof typeof events, any>,
-    flags: {
-      list: promisify(flags.list),
-      bulk: promisify(flags.bulk),
-    } satisfies Record<keyof typeof flags, any>,
-    audit: {
-      list: promisify(audit.list),
-    } satisfies Record<keyof typeof audit, any>,
-  };
-}
+type x = UnwrapEffect<MembersClient['list']>;
 
-export const sdk = createPromiseClient({ baseUrl: 'localhost:5173' });
+export type Members = {
+  list: UnwrapEffect<MembersClient['list']>;
+  read: UnwrapEffect<MembersClient['read']>;
+  create: UnwrapEffect<MembersClient['create']>;
+  update: UnwrapEffect<MembersClient['update']>;
+  delete: UnwrapEffect<MembersClient['delete']>;
+  note: UnwrapEffect<MembersClient['note']>;
+  listFlags: UnwrapEffect<MembersClient['listFlags']>;
+  grantFlag: UnwrapEffect<MembersClient['grantFlag']>;
+  revokeFlag: UnwrapEffect<MembersClient['revokeFlag']>;
+  flagMembers: UnwrapEffect<MembersClient['flagMembers']>;
+};
+
+export type Events = {
+  list: UnwrapEffect<EventsClient['list']>;
+  read: UnwrapEffect<EventsClient['read']>;
+  create: UnwrapEffect<EventsClient['create']>;
+  update: UnwrapEffect<EventsClient['update']>;
+  delete: UnwrapEffect<EventsClient['delete']>;
+  flags: UnwrapEffect<EventsClient['flags']>;
+  grantFlag: UnwrapEffect<EventsClient['grantFlag']>;
+  revokeFlag: UnwrapEffect<EventsClient['revokeFlag']>;
+};
+
+export type Flags = {
+  list: UnwrapEffect<FlagsClient['list']>;
+  bulk: UnwrapEffect<FlagsClient['bulk']>;
+};
+
+export type AuditLog = {
+  list: UnwrapEffect<AuditClient['list']>;
+};
+
+// function promisify<Args, A, E, R extends never>(
+//   apiCall: (args: Args) => Effect.Effect<A, E, R>
+// ): (args: Args) => Promise<A> {
+//   return (p) => Effect.runPromise(apiCall(p));
+// }

@@ -1,5 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { sdk } from '../lib/sdk';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { sdk } from 'api-server/types';
 
 // Type extraction from SDK
 type GetFlagsParams = Parameters<typeof sdk.flags.list>[0];
@@ -25,7 +25,7 @@ export function useFlags(params: GetFlagsParams) {
 // Mutation hooks
 export function useBulkFlags() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (params: BulkFlagsParams) => sdk.flags.bulk(params),
     onSuccess: () => {
@@ -35,11 +35,11 @@ export function useBulkFlags() {
 }
 
 // Re-export from other hooks for backward compatibility
-export { 
-  useRevokeMemberFlag as useRevokeFlag, 
+export {
+  useFlagMembers,
   useGrantMemberFlag as useGrantFlag,
   useMemberFlags,
-  useFlagMembers
+  useRevokeMemberFlag as useRevokeFlag,
 } from './useMembers';
 
 // TODO: Extract from SDK

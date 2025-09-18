@@ -112,7 +112,7 @@ const flagKeys = {
 
 ```typescript
 import { useQuery } from '@tanstack/react-query';
-import { sdk } from 'api-server/sdk';
+import { sdk } from 'api-server/types';
 
 // Type extracted directly from SDK - complete type safety!
 type GetMembersParams = Parameters<typeof members.list<true>>[0];

@@ -1,21 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { sdk } from '../lib/sdk';
+import { Members } from 'api-server/types';
 
 // Type extraction from SDK
-type GetMembersParams = Parameters<typeof sdk.members.list>[0];
-type CreateMemberParams = Parameters<typeof sdk.members.create>[0];
-type UpdateMemberParams = Parameters<typeof sdk.members.update>[0];
-type DeleteMemberParams = Parameters<typeof sdk.members.delete>[0];
-type GetMemberFlagsParams = Parameters<typeof sdk.members.listFlags>[0];
-type GrantMemberFlagParams = Parameters<typeof sdk.members.grantFlag>[0];
-type RevokeMemberFlagParams = Parameters<typeof sdk.members.revokeFlag>[0];
-type FlagMembersParams = Parameters<typeof sdk.members.flagMembers>[0];
+type GetMembers = Members['list'];
+type CreateMember = Members['create'];
+type UpdateMember = Members['update'];
+type DeleteMember = Members['delete'];
+type GetMemberFlags = Members['listFlags'];
+type GrantMemberFlag = Members['grantFlag'];
+type RevokeMemberFlag = Members['revokeFlag'];
+type FlagMembers = Members['flagMembers'];
 
 // Query key factory for consistent cache management
 const memberKeys = {
   all: ['members'] as const,
   lists: () => [...memberKeys.all, 'list'] as const,
-  list: (params: GetMembersParams) => [...memberKeys.lists(), params] as const,
+  list: (params: GetMembers['params']) =>
+    [...memberKeys.lists(), params] as const,
   details: () => [...memberKeys.all, 'detail'] as const,
   detail: (id: number) => [...memberKeys.details(), id] as const,
   flags: () => [...memberKeys.all, 'flags'] as const,
@@ -25,14 +26,15 @@ const memberKeys = {
 };
 
 // Query hooks
-export function useMembers(params: GetMembersParams) {
+export function useMembers(params: GetMembers['params']) {
   return useQuery({
     queryKey: memberKeys.list(params),
-    queryFn: async () => {
-      const result = await sdk.members.list(params);
-      // SDK returns a single response object, not a tuple
-      return result;
-    },
+    queryFn: () =>
+      fetch(
+        `/api/members/?${new URLSearchParams(
+          Object.entries(params).map(([l, r]) => [l, r ? r.toString() : r])
+        )}`
+      ),
     staleTime: 5 * 60 * 1000,
     select: (data) => ({
       members: data.data,
@@ -49,23 +51,23 @@ export function useMembers(params: GetMembersParams) {
 export function useMember(id: number) {
   return useQuery({
     queryKey: memberKeys.detail(id),
-    queryFn: () => sdk.members.read({ path: { id } }),
+    queryFn: () => fetch(`/api/members/${id}`),
     staleTime: 5 * 60 * 1000,
   });
 }
 
-export function useMemberFlags(params: GetMemberFlagsParams) {
+export function useMemberFlags(params: GetMemberFlags['params']) {
   return useQuery({
     queryKey: memberKeys.memberFlags(Number(params.path.id)),
-    queryFn: () => sdk.members.listFlags(params),
+    queryFn: () => fetch('/api/members/'),
     staleTime: 5 * 60 * 1000,
   });
 }
 
-export function useFlagMembers(params: FlagMembersParams) {
+export function useFlagMembers(params: FlagMembers) {
   return useQuery({
     queryKey: memberKeys.flagMembers(params.path.flagId),
-    queryFn: () => sdk.members.flagMembers(params),
+    queryFn: () => fetch('/api/members/'),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -75,7 +77,7 @@ export function useCreateMember() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateMemberParams) => sdk.members.create(data),
+    mutationFn: (data: CreateMemberParams) => fetch('/api/members/'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: memberKeys.lists() });
     },
@@ -86,7 +88,7 @@ export function useUpdateMember() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: UpdateMemberParams) => sdk.members.update(data),
+    mutationFn: (data: UpdateMemberParams) => fetch('/api/members/'),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: memberKeys.detail(variables.payload.id),
@@ -100,7 +102,7 @@ export function useDeleteMember() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (params: DeleteMemberParams) => sdk.members.delete(params),
+    mutationFn: (params: DeleteMemberParams) => fetch('/api/members/'),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: memberKeys.detail(variables.path.id),
@@ -114,8 +116,7 @@ export function useGrantMemberFlag() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (params: GrantMemberFlagParams) =>
-      sdk.members.grantFlag(params),
+    mutationFn: (params: GrantMemberFlagParams) => fetch('/api/members/'),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: memberKeys.memberFlags(Number(variables.path.id)),
@@ -131,8 +132,7 @@ export function useRevokeMemberFlag() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (params: RevokeMemberFlagParams) =>
-      sdk.members.revokeFlag(params),
+    mutationFn: (params: RevokeMemberFlagParams) => fetch('/api/members/'),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: memberKeys.memberFlags(Number(variables.path.id)),

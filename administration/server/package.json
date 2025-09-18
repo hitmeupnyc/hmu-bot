@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "dev:e2e": "NODE_ENV=test DATABASE_PATH=./data/test.db tsx watch src/index.ts",
-    "build": "tsc && npm run openapi:export && npm run openapi:generate-types",
+    "build": "tsc",
     "build:sdk": "tsx scripts/export-openapi.ts && openapi-typescript openapi.json --output dist-sdk/types.ts",
     "start": "node dist/index.js",
     "test": "vitest --run",

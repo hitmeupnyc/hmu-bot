@@ -1,21 +1,28 @@
+import { apiClient, paths } from '@/lib/apiClient';
 import { useQuery } from '@tanstack/react-query';
-import { AuditLog } from 'api-server/types';
 
-// Type extraction from SDK
-type GetAuditParams = AuditLog['list']['params'];
+type AuditListParams = paths['/api/audit']['get']['parameters'];
 
 // Query key factory for consistent cache management
 const auditKeys = {
   all: ['audit'] as const,
   lists: () => [...auditKeys.all, 'list'] as const,
-  list: (params: GetAuditParams) => [...auditKeys.lists(), params] as const,
+  list: (params: AuditListParams) => [...auditKeys.lists(), params] as const,
 };
 
 // Query hooks
-export function useAuditLogs(params: GetAuditParams) {
+export function useAuditLogs(params: AuditListParams) {
   return useQuery({
     queryKey: auditKeys.list(params),
-    queryFn: () => fetch('/api/audit'),
+    queryFn: () => apiClient.GET('/api/audit', { params }),
     staleTime: 5 * 60 * 1000,
+    select: ({ data }) => ({
+      logs: data?.data,
+      pagination: {
+        offset: data?.offset,
+        limit: data?.limit,
+        total: data?.total,
+      },
+    }),
   });
 }

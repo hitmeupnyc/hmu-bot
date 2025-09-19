@@ -250,11 +250,11 @@ export function MemberFlagManager({ onGrantFlag }: MemberFlagManagerProps) {
                       );
                       const isExpired =
                         flag.expires_at &&
-                        isAfter(new Date(), new Date(flag.expiresAt));
+                        isAfter(new Date(), new Date(flag.expires_at));
 
                       return (
                         <div
-                          key={flag.id}
+                          key={flag.flag_id}
                           className={`p-4 border rounded-lg transition-colors ${
                             isExpired
                               ? 'border-red-200 bg-red-50'
@@ -269,40 +269,30 @@ export function MemberFlagManager({ onGrantFlag }: MemberFlagManagerProps) {
                                 <h4 className="font-medium text-gray-900">
                                   {flag.name}
                                 </h4>
-                                {flag.category && (
-                                  <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
-                                    {flag.category}
-                                  </span>
-                                )}
                                 {isExpired && (
                                   <ExclamationTriangleIcon className="h-4 w-4 text-red-500" />
                                 )}
                                 {expirationStatus?.type === 'warning' && (
                                   <ClockIcon className="h-4 w-4 text-yellow-500" />
                                 )}
-                                {!flag.expiresAt && (
+                                {!flag.expires_at && (
                                   <CheckCircleIcon className="h-4 w-4 text-green-500" />
                                 )}
                               </div>
 
-                              {flag.description && (
-                                <p className="text-sm text-gray-600 mb-2">
-                                  {flag.description}
-                                </p>
-                              )}
 
                               <div className="flex items-center gap-4 text-xs text-gray-500">
                                 {/* <span>
                                   Granted {format(new Date(flag.grantedAt), 'MMM d, yyyy')} by {flag.grantedBy}
                                 </span> */}
 
-                                {flag.expiresAt && (
+                                {flag.expires_at && (
                                   <div className="flex items-center gap-1">
                                     <CalendarIcon className="h-3 w-3" />
                                     <span className={expirationStatus?.color}>
                                       {isExpired ? 'Expired' : 'Expires'}{' '}
                                       {format(
-                                        new Date(flag.expiresAt),
+                                        new Date(flag.expires_at),
                                         'MMM d, yyyy'
                                       )}
                                       {expirationStatus &&

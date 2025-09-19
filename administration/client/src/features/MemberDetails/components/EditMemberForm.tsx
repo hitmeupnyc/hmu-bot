@@ -1,4 +1,4 @@
-import { Member, MemberFormData } from '@/types';
+import { type Member, type MemberFormData } from '@/lib/apiClient';
 import { useState } from 'react';
 
 interface EditMemberFormProps {

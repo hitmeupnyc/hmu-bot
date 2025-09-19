@@ -1,4 +1,4 @@
-import { Event, EventFormData } from '@/types';
+import { type Event, type EventFormData } from '@/lib/apiClient';
 import { useState } from 'react';
 
 interface EventFormProps {

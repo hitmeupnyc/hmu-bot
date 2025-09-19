@@ -1,4 +1,4 @@
-import { Event } from '@/types';
+import { type Event } from '@/lib/apiClient';
 import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
 import { EventStatusBadge } from './EventStatusBadge';

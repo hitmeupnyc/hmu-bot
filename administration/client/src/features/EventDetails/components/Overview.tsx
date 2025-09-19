@@ -1,4 +1,4 @@
-import { Event, EventAttendance, EventVolunteer } from '@/types';
+import { type Event, type EventAttendance, type EventVolunteer } from '@/lib/apiClient';
 
 interface OverviewProps {
   event: Event;

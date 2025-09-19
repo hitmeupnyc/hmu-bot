@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { Modal } from '@/components/Modal';
-import { Member } from '@/types';
+import { type Member } from '@/lib/apiClient';
 
 interface EmailTemplate {
   id: string;

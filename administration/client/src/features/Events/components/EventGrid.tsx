@@ -1,4 +1,4 @@
-import { Event } from '@/types';
+import { type Event } from '@/lib/apiClient';
 import { CalendarIcon } from '@heroicons/react/24/outline';
 
 type EventFilter = 'upcoming' | 'past' | 'all';

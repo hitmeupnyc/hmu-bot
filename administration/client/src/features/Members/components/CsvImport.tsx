@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 
 import { HeaderMapping } from '@/components/HeaderMapping';
-import { ApplicationFormData } from '@/types';
+import { type ApplicationFormData } from '@/lib/apiClient';
 
 interface CsvImportProps {
   onImport: (applications: ApplicationFormData[]) => void;

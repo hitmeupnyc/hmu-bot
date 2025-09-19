@@ -1,4 +1,4 @@
-import { Member } from '@/types';
+import { type Member } from '@/lib/apiClient';
 
 interface StatusBadgeProps {
   member: Member;

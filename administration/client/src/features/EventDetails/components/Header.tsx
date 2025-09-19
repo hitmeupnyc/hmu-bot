@@ -1,4 +1,4 @@
-import { Event, EventWithDetails } from '@/types';
+import { type Event, type EventWithDetails } from '@/lib/apiClient';
 import { ArrowLeftIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { useMemo } from 'react';
 

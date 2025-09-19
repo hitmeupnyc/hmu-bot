@@ -18,7 +18,8 @@ export function EventTableRow({
   isEditPending,
   isDeletePending,
 }: EventTableRowProps) {
-  const formatDateTime = (dateString: string) => {
+  const formatDateTime = (dateString: string | undefined) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleString();
   };
 

@@ -47,7 +47,7 @@ export function InfoCards({ member }: InfoCardsProps) {
           <div>
             <dt className="text-sm font-medium text-gray-500">Member Since</dt>
             <dd className="text-sm text-gray-900">
-              {new Date(member.created_at).toLocaleDateString()}
+              {member.created_at ? new Date(member.created_at).toLocaleDateString() : 'N/A'}
             </dd>
           </div>
         </dl>
@@ -72,7 +72,7 @@ export function InfoCards({ member }: InfoCardsProps) {
           <div>
             <dt className="text-sm font-medium text-gray-500">Last Updated</dt>
             <dd className="text-sm text-gray-900">
-              {new Date(member.updated_at).toLocaleDateString()}
+              {member.updated_at ? new Date(member.updated_at).toLocaleDateString() : 'N/A'}
             </dd>
           </div>
         </dl>

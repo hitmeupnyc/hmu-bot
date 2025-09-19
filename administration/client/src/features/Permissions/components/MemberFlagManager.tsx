@@ -21,7 +21,10 @@ export function MemberFlagManager({ onGrantFlag }: MemberFlagManagerProps) {
   const [selectedMember, setSelectedMember] = useState<string>('');
   const [showExpired, setShowExpired] = useState(false);
 
-  const { data: memberFlags = [], isLoading } = useMemberFlags(selectedMember);
+  const { data: memberFlagsResponse = [], isLoading } = useMemberFlags({
+    path: { id: selectedMember }
+  });
+  const memberFlags = Array.isArray(memberFlagsResponse) ? memberFlagsResponse : memberFlagsResponse?.data || [];
   const revokeFlagMutation = useRevokeFlag();
 
   const handleSearch = () => {
@@ -85,31 +88,31 @@ export function MemberFlagManager({ onGrantFlag }: MemberFlagManagerProps) {
 
     if (confirmed) {
       revokeFlagMutation.mutate({
-        email: selectedMember,
-        flagId: flag.id,
+        memberId: selectedMember,
+        flagId: flag.flag_id,
         reason: 'Manual revocation from member flag manager',
       });
     }
   };
 
   // Filter flags based on show expired setting
-  const filteredFlags = memberFlags.filter((flag) => {
+  const filteredFlags = memberFlags.filter((flag: any) => {
     const isExpired =
-      flag.expiresAt && isAfter(new Date(), new Date(flag.expiresAt));
+      flag.expires_at && isAfter(new Date(), new Date(flag.expires_at));
     return showExpired || !isExpired;
   });
 
   const activeFlags = memberFlags.filter(
-    (flag) => !flag.expiresAt || isAfter(new Date(flag.expiresAt), new Date())
+    (flag: any) => !flag.expires_at || isAfter(new Date(flag.expires_at), new Date())
   );
 
   const expiredFlags = memberFlags.filter(
-    (flag) => flag.expiresAt && isAfter(new Date(), new Date(flag.expiresAt))
+    (flag: any) => flag.expires_at && isAfter(new Date(), new Date(flag.expires_at))
   );
 
-  const expiringFlags = memberFlags.filter((flag) => {
-    if (!flag.expiresAt) return false;
-    const days = differenceInDays(new Date(flag.expiresAt), new Date());
+  const expiringFlags = memberFlags.filter((flag: any) => {
+    if (!flag.expires_at) return false;
+    const days = differenceInDays(new Date(flag.expires_at), new Date());
     return days >= 0 && days <= 7;
   });
 
@@ -243,10 +246,10 @@ export function MemberFlagManager({ onGrantFlag }: MemberFlagManagerProps) {
                   <div className="space-y-3">
                     {filteredFlags.map((flag) => {
                       const expirationStatus = getExpirationStatus(
-                        flag.expiresAt
+                        flag.expires_at
                       );
                       const isExpired =
-                        flag.expiresAt &&
+                        flag.expires_at &&
                         isAfter(new Date(), new Date(flag.expiresAt));
 
                       return (

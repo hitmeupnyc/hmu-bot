@@ -1,16 +1,15 @@
-import { apiClient, paths } from '@/lib/apiClient';
+import {
+  apiClient,
+  type MemberListParams,
+  type MemberCreateBody,
+  type MemberUpdateBody,
+  type MemberFlagsParams,
+  type MemberGrantFlagBody,
+  type FlagMembersParams,
+  type MutationWithId,
+  type FlagMutation
+} from '@/lib/apiClient';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-
-type MemberListParams = paths['/api/members']['get']['parameters'];
-type CreateMemberParams =
-  paths['/api/members']['post']['requestBody']['content']['application/json'];
-type UpdateMemberParams =
-  paths['/api/members/{id}']['put']['requestBody']['content']['application/json'];
-type MemberFlagsParams = paths['/api/members/{id}/flags']['get']['parameters'];
-type GrantMemberFlagParams =
-  paths['/api/members/{id}/flags']['post']['requestBody']['content']['application/json'];
-type FlagMembersListParams =
-  paths['/api/flags/{flagId}/members']['get']['parameters'];
 
 // Query key factory for consistent cache management
 const memberKeys = {
@@ -62,7 +61,7 @@ export function useMemberFlags(params: MemberFlagsParams) {
   });
 }
 
-export function useFlagMembers(params: FlagMembersListParams) {
+export function useFlagMembers(params: FlagMembersParams) {
   return useQuery({
     queryKey: memberKeys.flagMembers(params.path.flagId),
     queryFn: () => apiClient.GET('/api/flags/{flagId}/members', { params }),
@@ -75,7 +74,7 @@ export function useCreateMember() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (body: CreateMemberParams) =>
+    mutationFn: (body: MemberCreateBody) =>
       apiClient.POST('/api/members', { body }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: memberKeys.lists() });
@@ -87,7 +86,7 @@ export function useUpdateMember() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: { id: number } & UpdateMemberParams) =>
+    mutationFn: (data: MutationWithId<MemberUpdateBody>) =>
       apiClient.PUT('/api/members/{id}', {
         params: { path: { id: data.id.toString() } },
         body: data
@@ -122,7 +121,7 @@ export function useGrantMemberFlag() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ memberId, ...body }: { memberId: string } & GrantMemberFlagParams) =>
+    mutationFn: ({ memberId, ...body }: { memberId: string } & MemberGrantFlagBody) =>
       apiClient.POST('/api/members/{id}/flags', {
         params: { path: { id: memberId } },
         body
@@ -142,7 +141,7 @@ export function useRevokeMemberFlag() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ memberId, flagId, reason }: { memberId: string; flagId: string; reason?: string }) =>
+    mutationFn: ({ memberId, flagId, reason }: FlagMutation) =>
       apiClient.DELETE('/api/members/{id}/flags/{flagId}', {
         params: { path: { id: memberId, flagId } },
         body: reason ? { reason } : {}

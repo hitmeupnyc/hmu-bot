@@ -1,7 +1,5 @@
-import { apiClient, paths } from '@/lib/apiClient';
+import { apiClient, type AuditListParams } from '@/lib/apiClient';
 import { useQuery } from '@tanstack/react-query';
-
-type AuditListParams = paths['/api/audit']['get']['parameters'];
 
 // Query key factory for consistent cache management
 const auditKeys = {

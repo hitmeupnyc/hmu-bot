@@ -1,8 +1,9 @@
-import { apiClient, paths } from '@/lib/apiClient';
+import {
+  apiClient,
+  type FlagBulkBody,
+  type FlagListParams,
+} from '@/lib/apiClient';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-
-type FlagListParams = paths['/api/flags']['get']['parameters'];
-type BulkFlagsParams = paths['/api/flags/bulk']['post']['requestBody']['content']['application/json'];
 
 // Query key factory for consistent cache management
 const flagKeys = {
@@ -18,15 +19,7 @@ export function useFlags(params: FlagListParams) {
     queryKey: flagKeys.list(params),
     queryFn: () => apiClient.GET('/api/flags', { params }),
     staleTime: 5 * 60 * 1000,
-    select: ({ data }) => ({
-      flags: data?.data,
-      pagination: {
-        page: data?.page,
-        limit: data?.limit,
-        total: data?.total,
-        totalPages: data?.totalPages,
-      },
-    }),
+    select: (data) => ({ flags: data?.data }),
   });
 }
 
@@ -35,7 +28,8 @@ export function useBulkFlags() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (body: BulkFlagsParams) => apiClient.POST('/api/flags/bulk', { body }),
+    mutationFn: (body: FlagBulkBody) =>
+      apiClient.POST('/api/flags/bulk', { body }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: flagKeys.lists() });
     },

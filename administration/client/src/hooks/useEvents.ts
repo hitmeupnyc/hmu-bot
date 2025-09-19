@@ -1,12 +1,12 @@
-import { apiClient, paths } from '@/lib/apiClient';
+import {
+  apiClient,
+  type EventListParams,
+  type EventCreateBody,
+  type EventUpdateBody,
+  type EventFlagsParams,
+  type MutationWithId
+} from '@/lib/apiClient';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-
-type EventListParams = paths['/api/events']['get']['parameters'];
-type CreateEventParams =
-  paths['/api/events']['post']['requestBody']['content']['application/json'];
-type UpdateEventParams =
-  paths['/api/events/{id}']['put']['requestBody']['content']['application/json'];
-type EventFlagsParams = paths['/api/events/{id}/flags']['get']['parameters'];
 
 // Query key factory for consistent cache management
 const eventKeys = {
@@ -61,7 +61,7 @@ export function useCreateEvent() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (body: CreateEventParams) =>
+    mutationFn: (body: EventCreateBody) =>
       apiClient.POST('/api/events', { body }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: eventKeys.lists() });
@@ -73,7 +73,7 @@ export function useUpdateEvent() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: { id: number } & UpdateEventParams) =>
+    mutationFn: (data: MutationWithId<EventUpdateBody>) =>
       apiClient.PUT('/api/events/{id}', {
         params: { path: { id: data.id.toString() } },
         body: data

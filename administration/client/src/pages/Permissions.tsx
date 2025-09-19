@@ -4,21 +4,19 @@ import {
   FlagGrantModal,
   FlagList,
   MemberFlagManager,
-  PermissionTester,
 } from '@/features/Permissions/components';
 import { useFlags } from '@/hooks/useFlags';
 import { useFlagMembers } from '@/hooks/useMembers';
-// TODO: Extract from SDK
-type Flag = any;
 import {
-  BeakerIcon,
   ChartBarIcon,
   ShieldCheckIcon,
   UsersIcon,
 } from '@heroicons/react/24/outline';
 import { useState } from 'react';
+// TODO: Extract from SDK
+type Flag = any;
 
-type TabType = 'flags' | 'members' | 'bulk' | 'tester';
+type TabType = 'flags' | 'members' | 'bulk';
 
 export default function Permissions() {
   const [activeTab, setActiveTab] = useState<TabType>('flags');
@@ -27,11 +25,15 @@ export default function Permissions() {
   const [preselectedEmail, setPreselectedEmail] = useState<string>('');
 
   const { data: flagsResponse = [], isLoading: flagsLoading } = useFlags({});
-  const flags = Array.isArray(flagsResponse) ? flagsResponse : flagsResponse?.flags || [];
+  const flags = Array.isArray(flagsResponse)
+    ? flagsResponse
+    : flagsResponse?.flags || [];
   const { data: flagMembersResponse = [] } = useFlagMembers({
-    path: { flagId: selectedFlag?.id || '' }
+    path: { flagId: selectedFlag?.id || '' },
   });
-  const flagMembers = Array.isArray(flagMembersResponse) ? flagMembersResponse : flagMembersResponse?.data || [];
+  const flagMembers = Array.isArray(flagMembersResponse)
+    ? flagMembersResponse
+    : flagMembersResponse?.data || [];
 
   const handleGrantFlag = (email?: string) => {
     if (email) {
@@ -63,12 +65,6 @@ export default function Permissions() {
       label: 'Bulk Operations',
       icon: ChartBarIcon,
       description: 'Perform bulk flag operations and cleanup',
-    },
-    {
-      id: 'tester' as TabType,
-      label: 'Permission Tester',
-      icon: BeakerIcon,
-      description: 'Test and validate permission scenarios',
     },
   ];
 
@@ -143,8 +139,6 @@ export default function Permissions() {
         )}
 
         {activeTab === 'bulk' && <BulkOperations flags={flags} />}
-
-        {activeTab === 'tester' && <PermissionTester />}
       </div>
 
       {/* Grant Flag Modal */}

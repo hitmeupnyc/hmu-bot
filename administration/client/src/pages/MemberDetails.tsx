@@ -42,17 +42,17 @@ export function MemberDetails() {
   const [activeTab, setActiveTab] = useState<TabType>('info');
 
   const memberId = parseInt(id || '0', 10);
-  const { data: member, isLoading, error } = useMember(memberId);
+  const { data: memberResponse, isLoading, error } = useMember(memberId);
+  const member = memberResponse?.data;
   const {
     data: auditLog,
     isLoading: auditLoading,
     refetch: refetchAuditLog,
   } = useAuditLogs({
-    params: {
-      query: { entityType: 'member', entityId: memberId.toString() }
-    }
+    query: { entity_type: 'member', entity_id: memberId.toString() }
   });
-  const { data: flags = [] } = useFlags({});
+  const { data: flagsResponse = [] } = useFlags({});
+  const flags = Array.isArray(flagsResponse) ? flagsResponse : flagsResponse?.data || [];
   const updateMember = useUpdateMember();
   const deleteMember = useDeleteMember();
 
@@ -74,7 +74,7 @@ export function MemberDetails() {
 
     if (
       !confirm(
-        `Are you sure you want to delete ${member.first_name} ${member.last_name}?`
+        `Are you sure you want to delete ${member?.first_name} ${member?.last_name}?`
       )
     ) {
       return;
@@ -98,7 +98,7 @@ export function MemberDetails() {
     // In a real implementation, this would call an API to send the email
     // For now, we'll just show an alert
     alert(
-      `Email would be sent to ${member.email}\n\nSubject: ${subject}\n\nBody: ${body.substring(0, 100)}...\n\nThis is a placeholder implementation.`
+      `Email would be sent to ${member?.email}\n\nSubject: ${subject}\n\nBody: ${body.substring(0, 100)}...\n\nThis is a placeholder implementation.`
     );
     setIsEmailModalOpen(false);
   };
@@ -141,7 +141,7 @@ export function MemberDetails() {
     return <LoadingStates isLoading={isLoading} error={error} />;
   }
 
-  const displayName = `${member.first_name} ${member.preferred_name ? `(${member.preferred_name}) ` : ''}${member.last_name}`;
+  const displayName = `${member?.first_name || ''} ${member?.preferred_name ? `(${member.preferred_name}) ` : ''}${member?.last_name || ''}`;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -245,7 +245,7 @@ export function MemberDetails() {
                     Loading audit history...
                   </div>
                 ) : (
-                  <AuditHistory auditLog={auditLog} />
+                  <AuditHistory auditLog={auditLog?.logs || auditLog} />
                 )}
               </FeatureErrorBoundary>
             </div>
@@ -256,7 +256,7 @@ export function MemberDetails() {
           <div className="bg-white shadow rounded-lg p-6">
             <FeatureErrorBoundary featureName="Member Flags & Permissions">
               <MemberFlags
-                memberId={member.id}
+                memberId={member?.id || memberId}
                 onGrantFlag={() => handleGrantFlag()}
               />
             </FeatureErrorBoundary>
@@ -288,7 +288,7 @@ export function MemberDetails() {
         isOpen={showGrantModal}
         onClose={handleCloseGrantModal}
         flags={flags}
-        preselectedMemberId={member.id.toString()}
+        preselectedMemberId={member?.id?.toString()}
       />
     </div>
   );

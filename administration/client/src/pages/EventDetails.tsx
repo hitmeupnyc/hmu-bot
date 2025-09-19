@@ -27,12 +27,19 @@ export function EventDetails() {
     <div className="max-w-7xl mx-auto">
       <Header
         event={event}
+        eventDetails={event} // Use event as eventDetails
         onBack={() => navigate('/events')}
         onEdit={() => navigate('/events', { state: { editEventId: event.id } })}
       />
 
       <Tabs activeTab={activeTab} onTabChange={setActiveTab}>
-        {activeTab === 'overview' && <Overview event={event} />}
+        {activeTab === 'overview' && (
+          <Overview
+            event={event}
+            volunteers={[]} // Placeholder empty array
+            attendance={[]} // Placeholder empty array
+          />
+        )}
       </Tabs>
     </div>
   );

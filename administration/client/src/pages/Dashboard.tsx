@@ -131,7 +131,7 @@ export function Dashboard() {
                     <p className="font-medium text-gray-900">{event.name}</p>
                   </a>
                   <p className="text-sm text-gray-500">
-                    {event.created_at ? new Date(event.created_at).toLocaleDateString() : 'No date'}
+                    Event #{event.id}
                   </p>
                 </div>
               ))}

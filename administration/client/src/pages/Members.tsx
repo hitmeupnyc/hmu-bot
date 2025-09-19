@@ -15,13 +15,11 @@ export function Members() {
 
 
   const { data, isLoading, error } = useMembers({
-    params: {
-      query: {
-        page: currentPage.toString(),
-        limit: '20',
-        search: searchTerm || undefined,
-        sortOrder: 'desc',
-      }
+    query: {
+      page: currentPage.toString(),
+      limit: '20',
+      search: searchTerm || undefined,
+      sortOrder: 'desc',
     }
   });
 
@@ -120,7 +118,7 @@ export function Members() {
           {pagination && (
             <MemberPagination
               currentPage={currentPage}
-              totalPages={pagination.totalPages}
+              totalPages={pagination?.totalPages || 1}
               isLoading={isLoading}
               onPageChange={setCurrentPage}
             />

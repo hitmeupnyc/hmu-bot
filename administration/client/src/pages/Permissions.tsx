@@ -26,11 +26,10 @@ export default function Permissions() {
   const [showGrantModal, setShowGrantModal] = useState(false);
   const [preselectedEmail, setPreselectedEmail] = useState<string>('');
 
-  const { data: flags = [], isLoading: flagsLoading } = useFlags({
-    params: {
-      query: { limit: '100', page: '1', sortOrder: 'desc' }
-    }
+  const { data: flagsResponse = [], isLoading: flagsLoading } = useFlags({
+    query: { limit: '100', page: '1', sortOrder: 'desc' }
   });
+  const flags = Array.isArray(flagsResponse) ? flagsResponse : flagsResponse?.data || [];
   const { data: flagMembers = [] } = useFlagMembers({ 
     path: { flagId: selectedFlag?.id || '' }
   });

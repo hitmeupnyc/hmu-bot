@@ -5,8 +5,8 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ member }: StatusBadgeProps) {
-  const isActive = member.flags & 1;
-  const isProfessional = member.flags & 2;
+  const isActive = member.flags ? member.flags & 1 : false;
+  const isProfessional = member.flags ? member.flags & 2 : false;
 
   return (
     <div className="flex flex-wrap gap-1">

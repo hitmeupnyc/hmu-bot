@@ -21,7 +21,7 @@ export function EditMemberForm({
     email: member?.email || '',
     pronouns: member?.pronouns || '',
     sponsor_notes: member?.sponsor_notes || '',
-    is_professional_affiliate: member ? !!(member.flags & 2) : false,
+    is_professional_affiliate: member ? !!(member.flags != null && member.flags & 2) : false,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});

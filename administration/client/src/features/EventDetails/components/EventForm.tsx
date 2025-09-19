@@ -23,8 +23,8 @@ export function EventForm({
     end_datetime: event?.end_datetime
       ? formatDateTimeLocal(event.end_datetime)
       : '',
-    is_public: event ? !!(event.flags & 2) : true,
-    max_capacity: event?.max_capacity?.toString() || '',
+    is_public: event ? !!(event.flags != null && event.flags & 2) : true,
+    max_capacity: event?.max_capacity ? event.max_capacity.toString() : ''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -53,7 +53,7 @@ export function EventForm({
       }
     }
 
-    if (formData.max_capacity && parseInt(formData.max_capacity) < 1) {
+    if (formData.max_capacity && parseInt(formData.max_capacity, 10) < 1) {
       newErrors.max_capacity = 'Capacity must be at least 1';
     }
 

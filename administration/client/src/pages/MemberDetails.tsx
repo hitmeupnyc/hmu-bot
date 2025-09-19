@@ -47,12 +47,13 @@ export function MemberDetails() {
   const {
     data: auditLog,
     isLoading: auditLoading,
-    refetch: refetchAuditLog,
   } = useAuditLogs({
-    query: { entity_type: 'member', entity_id: memberId.toString() }
+    query: { entity_type: 'member', entity_id: memberId.toString() },
   });
   const { data: flagsResponse = [] } = useFlags({});
-  const flags = Array.isArray(flagsResponse) ? flagsResponse : flagsResponse?.data || [];
+  const flags = Array.isArray(flagsResponse)
+    ? flagsResponse
+    : flagsResponse?.flags || [];
   const updateMember = useUpdateMember();
   const deleteMember = useDeleteMember();
 
@@ -103,9 +104,6 @@ export function MemberDetails() {
     setIsEmailModalOpen(false);
   };
 
-  const handleNoteAdded = () => {
-    refetchAuditLog();
-  };
 
   const handleGrantFlag = () => {
     setShowGrantModal(true);
@@ -245,7 +243,7 @@ export function MemberDetails() {
                     Loading audit history...
                   </div>
                 ) : (
-                  <AuditHistory auditLog={auditLog?.logs || auditLog} />
+                  <AuditHistory auditLog={Array.isArray(auditLog) ? auditLog : auditLog?.logs || []} />
                 )}
               </FeatureErrorBoundary>
             </div>

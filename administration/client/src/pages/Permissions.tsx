@@ -27,7 +27,9 @@ export default function Permissions() {
   const [preselectedEmail, setPreselectedEmail] = useState<string>('');
 
   const { data: flags = [], isLoading: flagsLoading } = useFlags({
-    urlParams: { limit: 100, page: 1, sortOrder: 'desc' }
+    params: {
+      query: { limit: '100', page: '1', sortOrder: 'desc' }
+    }
   });
   const { data: flagMembers = [] } = useFlagMembers({ 
     path: { flagId: selectedFlag?.id || '' }

@@ -15,11 +15,13 @@ export function Members() {
 
 
   const { data, isLoading, error } = useMembers({
-    urlParams: {
-      page: currentPage,
-      limit: 20,
-      search: searchTerm || undefined,
-      sortOrder: 'desc',
+    params: {
+      query: {
+        page: currentPage.toString(),
+        limit: '20',
+        search: searchTerm || undefined,
+        sortOrder: 'desc',
+      }
     }
   });
 
@@ -43,7 +45,7 @@ export function Members() {
   const handleDeleteMember = async (member: any) => {
     if (confirm(`Delete ${member.first_name} ${member.last_name}?`)) {
       try {
-        await deleteMember.mutateAsync({ path: { id: member.id } });
+        await deleteMember.mutateAsync(member.id);
       } catch (error) {
         console.error('Delete failed:', error);
       }
@@ -54,11 +56,11 @@ export function Members() {
     try {
       if (editingMember) {
         await updateMember.mutateAsync({
-          path: { id: editingMember.id },
-          payload: formData
+          id: editingMember.id,
+          ...formData
         });
       } else {
-        await createMember.mutateAsync({ payload: formData });
+        await createMember.mutateAsync(formData);
       }
       setIsModalOpen(false);
     } catch (error) {

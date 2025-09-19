@@ -47,7 +47,11 @@ export function MemberDetails() {
     data: auditLog,
     isLoading: auditLoading,
     refetch: refetchAuditLog,
-  } = useAuditLogs({ urlParams: { entityType: 'member', entityId: memberId.toString() } });
+  } = useAuditLogs({
+    params: {
+      query: { entityType: 'member', entityId: memberId.toString() }
+    }
+  });
   const { data: flags = [] } = useFlags({});
   const updateMember = useUpdateMember();
   const deleteMember = useDeleteMember();
@@ -55,8 +59,8 @@ export function MemberDetails() {
   const handleUpdateMember = async (formData: MemberFormData) => {
     try {
       await updateMember.mutateAsync({
-        path: { id: memberId },
-        payload: formData,
+        id: memberId,
+        ...formData,
       });
       setIsEditModalOpen(false);
     } catch (error) {
@@ -77,7 +81,7 @@ export function MemberDetails() {
     }
 
     try {
-      await deleteMember.mutateAsync({ path: { id: memberId } });
+      await deleteMember.mutateAsync(memberId);
       navigate('/members');
     } catch (error) {
       console.error('Failed to delete member:', error);

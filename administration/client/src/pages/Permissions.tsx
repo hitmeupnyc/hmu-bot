@@ -27,10 +27,11 @@ export default function Permissions() {
   const [preselectedEmail, setPreselectedEmail] = useState<string>('');
 
   const { data: flagsResponse = [], isLoading: flagsLoading } = useFlags({});
-  const flags = Array.isArray(flagsResponse) ? flagsResponse : flagsResponse?.data || [];
-  const { data: flagMembers = [] } = useFlagMembers({ 
+  const flags = Array.isArray(flagsResponse) ? flagsResponse : flagsResponse?.flags || [];
+  const { data: flagMembersResponse = [] } = useFlagMembers({
     path: { flagId: selectedFlag?.id || '' }
   });
+  const flagMembers = Array.isArray(flagMembersResponse) ? flagMembersResponse : flagMembersResponse?.data || [];
 
   const handleGrantFlag = (email?: string) => {
     if (email) {

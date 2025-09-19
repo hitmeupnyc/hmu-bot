@@ -142,7 +142,7 @@ export function FlagList({
             No flags match your search criteria
           </div>
         ) : (
-          Object.entries(flagsByCategory).map(([category, categoryFlags]) => (
+          (Object.entries(flagsByCategory) as [string, Flag[]][]).map(([category, categoryFlags]) => (
             <div key={category} className="p-4">
               <h3 className="font-medium text-sm text-gray-500 uppercase tracking-wider mb-2">
                 {category} ({categoryFlags.length})

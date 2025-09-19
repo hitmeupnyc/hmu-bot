@@ -23,9 +23,9 @@ export function Events() {
 
   // React Query hooks
   const { data, isLoading } = useEvents({
-    urlParams: {
-      limit: 20,
-      page: 1,
+    query: {
+      limit: '20',
+      page: '1',
       sortOrder: 'desc',
     }
   });
@@ -38,7 +38,7 @@ export function Events() {
   const handleDeleteEvent = async (event: any) => {
     if (confirm(`Delete event "${event.title}"?`)) {
       try {
-        await deleteEvent.mutateAsync({ path: { id: event.id } });
+        await deleteEvent.mutateAsync(event.id);
       } catch (error) {
         console.error('Delete failed:', error);
       }
@@ -49,11 +49,11 @@ export function Events() {
     try {
       if (editingEvent) {
         await updateEvent.mutateAsync({
-          path: { id: editingEvent.id },
-          payload: formData
+          id: editingEvent.id,
+          ...formData
         });
       } else {
-        await createEvent.mutateAsync({ payload: formData });
+        await createEvent.mutateAsync(formData);
       }
       setIsModalOpen(false);
       setEditingEvent(null);
@@ -66,7 +66,7 @@ export function Events() {
   const allEvents = data?.events || [];
   const events =
     filter === 'past'
-      ? allEvents.filter((event) => new Date(event.end_datetime) < new Date())
+      ? allEvents.filter((event) => event.created_at && new Date(event.created_at) < new Date())
       : allEvents;
   const loading = isLoading;
 
@@ -127,10 +127,7 @@ export function Events() {
         isOpen={isModalOpen}
         editingEvent={editingEvent}
         onSubmit={async (formData: any) => {
-          await handleFormSubmit(formData, editingEvent, () => {
-            setIsModalOpen(false);
-            setEditingEvent(null);
-          });
+          await handleFormSubmit(formData);
         }}
         onClose={() => {
           setIsModalOpen(false);

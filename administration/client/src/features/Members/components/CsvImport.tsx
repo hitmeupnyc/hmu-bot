@@ -291,28 +291,18 @@ export function CsvImport({
         errors.push(...rowErrors);
       } else {
         // Convert to ApplicationFormData format
+        // Split name into first_name and last_name
+        const nameParts = name.split(' ');
+        const first_name = nameParts[0] || '';
+        const last_name = nameParts.slice(1).join(' ') || '';
+
         const applicationData: ApplicationFormData = {
-          name,
+          first_name,
+          last_name,
           pronouns: extractValue('pronouns'),
           preferred_name: extractValue('preferred_name'),
           email,
-          social_urls: {
-            primary: extractValue('social_url_primary'),
-            secondary: extractValue('social_url_secondary'),
-            tertiary: extractValue('social_url_tertiary'),
-          },
-          birth_year: parseInt(birthYearStr),
-          referral_source: referralSource,
-          sponsor_name: sponsorName,
-          sponsor_email_confirmation: sponsorEmailConfirmation === 'true',
-          referral_details: referralDetails,
-          kinky_experience: kinkyExperience,
-          self_description: selfDescription,
-          consent_understanding: consentUnderstanding,
-          additional_info: extractValue('additional_info'),
-          consent_policy_agreement: consentPolicyAgreement as
-            | 'yes'
-            | 'questions',
+          sponsor_notes: extractValue('additional_info'),
         };
         valid.push(applicationData);
       }
@@ -571,8 +561,8 @@ export function CsvImport({
                         key={index}
                         className="text-sm bg-blue-100 p-2 rounded"
                       >
-                        <span className="font-medium">{application.name}</span>{' '}
-                        ({application.email}) - {application.referral_source}
+                        <span className="font-medium">{application.first_name} {application.last_name}</span>{' '}
+                        ({application.email})
                       </div>
                     ))}
                     {preview.valid.length > 5 && (

@@ -3,23 +3,23 @@ import { useMembers } from '@/hooks/useMembers';
 
 export function Dashboard() {
   const { data: membersData, isLoading: membersLoading } = useMembers({
-    urlParams: {
-      limit: 100,
-      page: 1,
+    query: {
+      limit: '100',
+      page: '1',
       sortOrder: 'desc',
     }
   });
   const { data: eventsData, isLoading: eventsLoading } = useEvents({
-    urlParams: {
-      limit: 20,
-      page: 1,
+    query: {
+      limit: '20',
+      page: '1',
       sortOrder: 'desc',
     }
   });
   const { data: recentMembersData } = useMembers({
-    urlParams: {
-      limit: 5,
-      page: 1,
+    query: {
+      limit: '5',
+      page: '1',
       sortOrder: 'desc',
     }
   });
@@ -29,7 +29,7 @@ export function Dashboard() {
   const recentMembers = recentMembersData?.members || [];
 
   const totalMembers = membersData?.pagination?.total || 0;
-  const activeMembers = members.filter((member) => member.flags & 1).length;
+  const activeMembers = members.filter((member) => (member.flags || 0) & 1).length;
   const upcomingEventsCount = upcomingEvents.length;
 
   const formatCount = (count: number, isLoading: boolean) => {
@@ -131,7 +131,7 @@ export function Dashboard() {
                     <p className="font-medium text-gray-900">{event.name}</p>
                   </a>
                   <p className="text-sm text-gray-500">
-                    {new Date(event.start_datetime).toLocaleDateString()}
+                    {event.created_at ? new Date(event.created_at).toLocaleDateString() : 'No date'}
                   </p>
                 </div>
               ))}

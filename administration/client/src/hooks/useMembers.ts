@@ -1,13 +1,13 @@
 import {
   apiClient,
-  type MemberListParams,
+  type FlagMembersParams,
+  type FlagMutation,
   type MemberCreateBody,
-  type MemberUpdateBody,
   type MemberFlagsParams,
   type MemberGrantFlagBody,
-  type FlagMembersParams,
+  type MemberListParams,
+  type MemberUpdateBody,
   type MutationWithId,
-  type FlagMutation
 } from '@/lib/apiClient';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -89,7 +89,7 @@ export function useUpdateMember() {
     mutationFn: (data: MutationWithId<MemberUpdateBody>) =>
       apiClient.PUT('/api/members/{id}', {
         params: { path: { id: data.id.toString() } },
-        body: data
+        body: data,
       }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
@@ -106,7 +106,7 @@ export function useDeleteMember() {
   return useMutation({
     mutationFn: (id: number) =>
       apiClient.DELETE('/api/members/{id}', {
-        params: { path: { id: id.toString() } }
+        params: { path: { id: id.toString() } },
       }),
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({
@@ -121,10 +121,13 @@ export function useGrantMemberFlag() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ memberId, ...body }: { memberId: string } & MemberGrantFlagBody) =>
+    mutationFn: ({
+      memberId,
+      ...body
+    }: { memberId: string } & MemberGrantFlagBody) =>
       apiClient.POST('/api/members/{id}/flags', {
         params: { path: { id: memberId } },
-        body
+        body,
       }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
@@ -144,7 +147,7 @@ export function useRevokeMemberFlag() {
     mutationFn: ({ memberId, flagId, reason }: FlagMutation) =>
       apiClient.DELETE('/api/members/{id}/flags/{flagId}', {
         params: { path: { id: memberId, flagId } },
-        body: reason ? { reason } : {}
+        body: reason ? { reason } : {},
       }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({

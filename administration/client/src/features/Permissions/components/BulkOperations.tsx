@@ -142,7 +142,7 @@ export function BulkOperations({ flags }: BulkOperationsProps) {
     if (!confirmed) return;
 
     try {
-      await bulkGrantMutation.mutateAsync(operations);
+      await bulkGrantMutation.mutateAsync();
       setOperations([]);
       setCsvText('');
       setPreviewMode(false);

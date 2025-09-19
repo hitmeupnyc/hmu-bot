@@ -15,9 +15,10 @@ export function EventDetails() {
   const [activeTab, setActiveTab] = useState<'overview'>('overview');
 
   const eventId = parseInt(id || '0', 10);
-  const { data: event, isLoading, error } = useEvent(eventId);
+  const { data: eventResponse, isLoading, error } = useEvent(eventId);
+  const event = eventResponse?.data;
 
-  if (isLoading || error) {
+  if (isLoading || error || !event) {
     return <LoadingStates isLoading={isLoading} error={error} />;
   }
 

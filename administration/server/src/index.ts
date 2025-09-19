@@ -9,7 +9,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { Effect, Layer } from 'effect';
 import express from 'express';
-import { Api } from '~/api';
 import { auditMiddleware } from '~/api/auditLogging';
 import { ApiLive } from '~/api/live';
 import { Auth, AuthLive } from '~/layers/auth';

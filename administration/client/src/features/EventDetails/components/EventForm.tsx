@@ -36,7 +36,7 @@ export function EventForm({
       ? formatDateTimeLocal(event.end_datetime)
       : '',
     is_public: event ? !!(event.flags != null && event.flags & 2) : true,
-    max_capacity: event?.max_capacity ? event.max_capacity.toString() : ''
+    max_capacity: event?.max_capacity ? event.max_capacity.toString() : '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -79,7 +79,9 @@ export function EventForm({
       // Convert form data to API format
       const apiData: EventFormData = {
         ...formData,
-        max_capacity: formData.max_capacity ? parseInt(formData.max_capacity, 10) : undefined,
+        max_capacity: formData.max_capacity
+          ? parseInt(formData.max_capacity, 10)
+          : undefined,
       };
       onSubmit(apiData);
     }

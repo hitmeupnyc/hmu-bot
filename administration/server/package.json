@@ -7,7 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "dev:e2e": "NODE_ENV=test DATABASE_PATH=./data/test.db tsx watch src/index.ts",
     "build": "tsc",
-    "build:sdk": "tsx scripts/export-openapi.ts && openapi-typescript openapi.json --output dist-sdk/types.ts",
+    "build:sdk": "tsx scripts/export-openapi.ts && openapi-typescript dist-sdk/openapi.json --output dist-sdk/types.ts",
     "start": "node dist/index.js",
     "test": "vitest --run",
     "test:watch": "vitest --watch",

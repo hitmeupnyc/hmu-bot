@@ -1,4 +1,4 @@
-import type { paths, operations } from 'api-server/types';
+import type { operations, paths } from 'api-server/types';
 import createClient from 'openapi-fetch';
 
 // Re-export paths for convenience
@@ -6,7 +6,7 @@ export type { paths as rawApiPaths_USE_ONLY_WITH_AUTHORIZATION };
 
 // Create the typed client
 export const apiClient = createClient<paths>({
-  baseUrl: process.env.API_BASE_URL || 'http://localhost:5173',
+  baseUrl: 'http://localhost:5173',
 });
 
 // Member API Types
@@ -53,12 +53,16 @@ export type FlagMutation = {
 // RESPONSE TYPES (what we get from API)
 // ============================================================================
 
-export type MemberResponse = operations['members.read']['responses']['200']['content']['application/json'];
-export type EventResponse = operations['events.read']['responses']['200']['content']['application/json'];
+export type MemberResponse =
+  operations['members.read']['responses']['200']['content']['application/json'];
+export type EventResponse =
+  operations['events.read']['responses']['200']['content']['application/json'];
 
 // List response types
-export type MemberListResponse = operations['members.list']['responses']['200']['content']['application/json'];
-export type EventListResponse = operations['events.list']['responses']['200']['content']['application/json'];
+export type MemberListResponse =
+  operations['members.list']['responses']['200']['content']['application/json'];
+export type EventListResponse =
+  operations['events.list']['responses']['200']['content']['application/json'];
 
 // ============================================================================
 // DOMAIN MODELS (used throughout the app)

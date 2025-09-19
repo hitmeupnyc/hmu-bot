@@ -1,10 +1,10 @@
 import {
   apiClient,
-  type EventListParams,
   type EventCreateBody,
-  type EventUpdateBody,
   type EventFlagsParams,
-  type MutationWithId
+  type EventListParams,
+  type EventUpdateBody,
+  type MutationWithId,
 } from '@/lib/apiClient';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -76,7 +76,7 @@ export function useUpdateEvent() {
     mutationFn: (data: MutationWithId<EventUpdateBody>) =>
       apiClient.PUT('/api/events/{id}', {
         params: { path: { id: data.id.toString() } },
-        body: data
+        body: data,
       }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
@@ -93,7 +93,7 @@ export function useDeleteEvent() {
   return useMutation({
     mutationFn: (id: number) =>
       apiClient.DELETE('/api/events/{id}', {
-        params: { path: { id: id.toString() } }
+        params: { path: { id: id.toString() } },
       }),
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({

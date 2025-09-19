@@ -21,9 +21,10 @@ interface MemberFlagsProps {
 export function MemberFlags({ memberId, onGrantFlag }: MemberFlagsProps) {
   const [showExpired, setShowExpired] = useState(false);
 
-  const { data: memberFlagsResponse = { data: [] }, isLoading } = useMemberFlags({
-    path: { id: memberId.toString() },
-  });
+  const { data: memberFlagsResponse = { data: [] }, isLoading } =
+    useMemberFlags({
+      path: { id: memberId.toString() },
+    });
   const memberFlags = memberFlagsResponse.data || [];
   const revokeFlagMutation = useRevokeMemberFlag();
 
@@ -225,11 +226,11 @@ export function MemberFlags({ memberId, onGrantFlag }: MemberFlagsProps) {
                       )}
                     </div>
 
-
                     <div className="flex items-center gap-4 text-xs text-gray-500">
                       <span>
                         Granted{' '}
-                        {format(new Date(flag.granted_at), 'MMM d, yyyy')}{flag.granted_by ? ` by ${flag.granted_by}` : ''}
+                        {format(new Date(flag.granted_at), 'MMM d, yyyy')}
+                        {flag.granted_by ? ` by ${flag.granted_by}` : ''}
                       </span>
 
                       {flag.expires_at && (

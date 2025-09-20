@@ -19,12 +19,6 @@ export function MemberTableRow({
   isEditPending,
   isDeletePending,
 }: MemberTableRowProps) {
-  const getDisplayName = () => {
-    return member.preferred_name
-      ? `${member.preferred_name} (${member.first_name}) ${member.last_name}`
-      : `${member.first_name} ${member.last_name}`;
-  };
-
   const handleDelete = () => {
     if (
       !confirm(
@@ -35,6 +29,7 @@ export function MemberTableRow({
     }
     onDelete(member);
   };
+  const fullName = `${member.first_name} ${member.last_name}`;
 
   return (
     <tr className="hover:bg-gray-50">
@@ -43,7 +38,13 @@ export function MemberTableRow({
           to={`/members/${member.id}`}
           className="text-sm font-medium text-blue-600 hover:text-blue-900"
         >
-          {getDisplayName()}
+          {member.preferred_name ? (
+            <>
+              {member.preferred_name} <small>({fullName})</small>
+            </>
+          ) : (
+            fullName
+          )}
         </Link>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">

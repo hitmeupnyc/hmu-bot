@@ -20,6 +20,7 @@ import {
   LoadingStates,
   MemberFlags,
 } from '@/features/MemberDetails/components';
+import { ApplicationNotes } from '@/features/MemberDetails/components/ApplicationNotes';
 import { FlagGrantModal } from '@/features/Permissions/components';
 import { useAuditLogs } from '@/hooks/useAudit';
 import { useFlags } from '@/hooks/useFlags';
@@ -31,7 +32,7 @@ import {
 // TODO: Extract from SDK
 type MemberFormData = any;
 
-type TabType = 'info' | 'flags' | 'audit';
+type TabType = 'info' | 'flags';
 
 export function MemberDetails() {
   const { id } = useParams<{ id: string }>();
@@ -47,6 +48,7 @@ export function MemberDetails() {
   const {
     data: auditLog,
     isLoading: auditLoading,
+    refetch,
   } = useAuditLogs({
     query: { entity_type: 'member', entity_id: memberId.toString() },
   });
@@ -104,7 +106,6 @@ export function MemberDetails() {
     setIsEmailModalOpen(false);
   };
 
-
   const handleGrantFlag = () => {
     setShowGrantModal(true);
   };
@@ -124,12 +125,6 @@ export function MemberDetails() {
       id: 'flags' as TabType,
       label: 'Flags & Permissions',
       icon: ShieldCheckIcon,
-      count: null,
-    },
-    {
-      id: 'audit' as TabType,
-      label: 'Audit History',
-      icon: ClockIcon,
       count: null,
     },
   ];
@@ -232,6 +227,11 @@ export function MemberDetails() {
           <>
             <InfoCards member={member} />
 
+            <ApplicationNotes
+              memberId={memberId}
+              onNoteAdded={() => refetch()}
+            />
+
             <div className="bg-white shadow rounded-lg p-6 mt-3">
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <ClockIcon className="h-5 w-5 mr-2" />
@@ -243,7 +243,11 @@ export function MemberDetails() {
                     Loading audit history...
                   </div>
                 ) : (
-                  <AuditHistory auditLog={Array.isArray(auditLog) ? auditLog : auditLog?.logs || []} />
+                  <AuditHistory
+                    auditLog={
+                      Array.isArray(auditLog) ? auditLog : auditLog?.logs || []
+                    }
+                  />
                 )}
               </FeatureErrorBoundary>
             </div>

@@ -1,5 +1,6 @@
 import {
   apiClient,
+  MemberCreateNoteBody,
   type FlagMembersParams,
   type FlagMutation,
   type MemberCreateBody,
@@ -18,6 +19,7 @@ const memberKeys = {
   list: (params: MemberListParams) => [...memberKeys.lists(), params] as const,
   details: () => [...memberKeys.all, 'detail'] as const,
   detail: (id: number) => [...memberKeys.details(), id] as const,
+  memberLogs: (id: number) => [...memberKeys.all, 'audit_log', id] as const,
   flags: () => [...memberKeys.all, 'flags'] as const,
   memberFlags: (memberId: number) => [...memberKeys.flags(), memberId] as const,
   flagMembers: (flagId: string) =>
@@ -155,6 +157,23 @@ export function useRevokeMemberFlag() {
       });
       queryClient.invalidateQueries({
         queryKey: memberKeys.flagMembers(variables.flagId),
+      });
+    },
+  });
+}
+
+export function useCreateMemberNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, ...body }: MutationWithId<MemberCreateNoteBody>) =>
+      apiClient.POST('/api/members/{id}/note', {
+        params: { path: { id: id.toString() } },
+        body,
+      }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: memberKeys.memberLogs(Number(variables.id)),
       });
     },
   });

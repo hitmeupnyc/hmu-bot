@@ -11,6 +11,8 @@ export const apiClient = createClient<paths>({
 
 // Member API Types
 export type MemberListParams = paths['/api/members']['get']['parameters'];
+export type MemberCreateNoteBody =
+  paths['/api/members/{id}/note']['post']['requestBody']['content']['application/json'];
 export type MemberCreateBody =
   paths['/api/members']['post']['requestBody']['content']['application/json'];
 export type MemberUpdateBody =

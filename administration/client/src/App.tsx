@@ -1,6 +1,7 @@
 import { AppHeader } from '@/components/AppHeader';
 import { Layout } from '@/components/Layout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { Apply } from '@/pages/Apply';
 import { Dashboard } from '@/pages/Dashboard';
 import { Debug } from '@/pages/Debug';
 import { EventDetails } from '@/pages/EventDetails';
@@ -30,6 +31,7 @@ function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/members" element={<Members />} />
                 <Route path="/members/:id" element={<MemberDetails />} />
+                <Route path="/apply" element={<Apply />} />
                 <Route path="/events" element={<Events />} />
                 <Route path="/events/:id" element={<EventDetails />} />
                 <Route path="/settings" element={<Settings />} />

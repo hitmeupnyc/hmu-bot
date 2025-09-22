@@ -134,7 +134,7 @@ export function MemberDetails() {
     return <LoadingStates isLoading={isLoading} error={error} />;
   }
 
-  const displayName = `${member?.first_name || ''} ${member?.preferred_name ? `(${member.preferred_name}) ` : ''}${member?.last_name || ''}`;
+  const fullName = `${member?.first_name || ''} ${member?.last_name || ''}`;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -152,7 +152,13 @@ export function MemberDetails() {
               className="text-3xl font-bold text-gray-900"
               data-testid="member-name-heading"
             >
-              {displayName}
+              {member.preferred_name ? (
+                <>
+                  {member.preferred_name} <small>({fullName})</small>
+                </>
+              ) : (
+                fullName
+              )}
             </h1>
             <p className="text-gray-600">{member.email}</p>
           </div>

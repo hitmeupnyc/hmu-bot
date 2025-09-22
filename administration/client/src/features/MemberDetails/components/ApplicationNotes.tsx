@@ -24,6 +24,7 @@ export function ApplicationNotes({
 
     try {
       await mutateAsync({ id: memberId, content: noteContent.trim() });
+      setNoteContent(''); // Clear the form after successful submission
       onNoteAdded();
     } catch (error) {
       console.error('Failed to add note:', error);

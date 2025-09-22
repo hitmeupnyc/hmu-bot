@@ -66,12 +66,7 @@ export function FlagGrantModal({
   const grantFlagMutation = useGrantFlag();
 
   // Fetch current permissions for the selected member (for preview)
-  const { data: currentPermissions } = useMemberPermissions(
-    formData.userId,
-    undefined,
-    undefined,
-    undefined
-  );
+  const { data: currentPermissions } = useMemberPermissions();
 
   // Initialize form with preselected values
   useEffect(() => {
@@ -133,10 +128,10 @@ export function FlagGrantModal({
 
     try {
       await grantFlagMutation.mutateAsync({
-        userId: formData.userId,
-        flagId: formData.flagId,
-        expiresAt: formData.expiresAt || undefined,
-        reason: formData.reason || undefined,
+        memberId: formData.userId,
+        flag_id: formData.flagId,
+        expires_at: formData.expiresAt || undefined,
+        metadata: formData.reason || null,
       });
 
       onClose();
@@ -281,13 +276,13 @@ export function FlagGrantModal({
               </div>
 
               <div className="border border-gray-300 rounded-md max-h-64 overflow-y-auto">
-                {Object.entries(flagsByCategory).map(
+                {(Object.entries(flagsByCategory) as [string, any[]][]).map(
                   ([category, categoryFlags]) => (
                     <div key={category}>
                       <div className="px-3 py-1 bg-gray-50 text-xs font-medium text-gray-500 uppercase">
                         {category}
                       </div>
-                      {categoryFlags.map((flag) => (
+                      {categoryFlags.map((flag: any) => (
                         <label
                           key={flag.id}
                           className="flex items-center p-2 hover:bg-gray-50 cursor-pointer"
@@ -388,9 +383,9 @@ export function FlagGrantModal({
                   </button>
                 </div>
 
-                {showPermissionPreview && currentPermissions.flags && (
+                {showPermissionPreview && Array.isArray(currentPermissions) && currentPermissions.length > 0 && (
                   <div className="space-y-1 text-xs">
-                    {currentPermissions.flags.map((flag: any) => (
+                    {currentPermissions.map((flag: any) => (
                       <div
                         key={flag.id}
                         className="flex items-center justify-between"
@@ -408,7 +403,7 @@ export function FlagGrantModal({
                     ))}
 
                     {formData.flagId &&
-                      !currentPermissions.flags.find(
+                      !(Array.isArray(currentPermissions) ? currentPermissions : []).find(
                         (f: any) => f.id === formData.flagId
                       ) && (
                         <div className="flex items-center gap-1 text-green-600 font-medium">

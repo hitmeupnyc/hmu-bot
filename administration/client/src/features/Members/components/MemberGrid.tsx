@@ -1,4 +1,4 @@
-import { Member } from '@/types';
+import { type Member } from '@/lib/apiClient';
 import { MemberTableRow } from './MemberTableRow';
 
 interface MemberGridProps {

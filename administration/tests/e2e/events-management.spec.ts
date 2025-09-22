@@ -6,7 +6,7 @@ test.describe('Events Management System', () => {
     await page.goto('/');
     
     // Wait for the page to load
-    await expect(page.getByRole('heading', { name: 'Club Management' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'HMU Administration' })).toBeVisible();
   });
 
   test('should display events list page', async ({ page }) => {

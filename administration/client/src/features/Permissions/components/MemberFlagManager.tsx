@@ -21,7 +21,10 @@ export function MemberFlagManager({ onGrantFlag }: MemberFlagManagerProps) {
   const [selectedMember, setSelectedMember] = useState<string>('');
   const [showExpired, setShowExpired] = useState(false);
 
-  const { data: memberFlags = [], isLoading } = useMemberFlags(selectedMember);
+  const { data: memberFlagsResponse = [], isLoading } = useMemberFlags({
+    path: { id: selectedMember }
+  });
+  const memberFlags = Array.isArray(memberFlagsResponse) ? memberFlagsResponse : memberFlagsResponse?.data || [];
   const revokeFlagMutation = useRevokeFlag();
 
   const handleSearch = () => {
@@ -85,31 +88,31 @@ export function MemberFlagManager({ onGrantFlag }: MemberFlagManagerProps) {
 
     if (confirmed) {
       revokeFlagMutation.mutate({
-        email: selectedMember,
-        flagId: flag.id,
+        memberId: selectedMember,
+        flagId: flag.flag_id,
         reason: 'Manual revocation from member flag manager',
       });
     }
   };
 
   // Filter flags based on show expired setting
-  const filteredFlags = memberFlags.filter((flag) => {
+  const filteredFlags = memberFlags.filter((flag: any) => {
     const isExpired =
-      flag.expiresAt && isAfter(new Date(), new Date(flag.expiresAt));
+      flag.expires_at && isAfter(new Date(), new Date(flag.expires_at));
     return showExpired || !isExpired;
   });
 
   const activeFlags = memberFlags.filter(
-    (flag) => !flag.expiresAt || isAfter(new Date(flag.expiresAt), new Date())
+    (flag: any) => !flag.expires_at || isAfter(new Date(flag.expires_at), new Date())
   );
 
   const expiredFlags = memberFlags.filter(
-    (flag) => flag.expiresAt && isAfter(new Date(), new Date(flag.expiresAt))
+    (flag: any) => flag.expires_at && isAfter(new Date(), new Date(flag.expires_at))
   );
 
-  const expiringFlags = memberFlags.filter((flag) => {
-    if (!flag.expiresAt) return false;
-    const days = differenceInDays(new Date(flag.expiresAt), new Date());
+  const expiringFlags = memberFlags.filter((flag: any) => {
+    if (!flag.expires_at) return false;
+    const days = differenceInDays(new Date(flag.expires_at), new Date());
     return days >= 0 && days <= 7;
   });
 
@@ -243,15 +246,15 @@ export function MemberFlagManager({ onGrantFlag }: MemberFlagManagerProps) {
                   <div className="space-y-3">
                     {filteredFlags.map((flag) => {
                       const expirationStatus = getExpirationStatus(
-                        flag.expiresAt
+                        flag.expires_at
                       );
                       const isExpired =
-                        flag.expiresAt &&
-                        isAfter(new Date(), new Date(flag.expiresAt));
+                        flag.expires_at &&
+                        isAfter(new Date(), new Date(flag.expires_at));
 
                       return (
                         <div
-                          key={flag.id}
+                          key={flag.flag_id}
                           className={`p-4 border rounded-lg transition-colors ${
                             isExpired
                               ? 'border-red-200 bg-red-50'
@@ -266,40 +269,30 @@ export function MemberFlagManager({ onGrantFlag }: MemberFlagManagerProps) {
                                 <h4 className="font-medium text-gray-900">
                                   {flag.name}
                                 </h4>
-                                {flag.category && (
-                                  <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
-                                    {flag.category}
-                                  </span>
-                                )}
                                 {isExpired && (
                                   <ExclamationTriangleIcon className="h-4 w-4 text-red-500" />
                                 )}
                                 {expirationStatus?.type === 'warning' && (
                                   <ClockIcon className="h-4 w-4 text-yellow-500" />
                                 )}
-                                {!flag.expiresAt && (
+                                {!flag.expires_at && (
                                   <CheckCircleIcon className="h-4 w-4 text-green-500" />
                                 )}
                               </div>
 
-                              {flag.description && (
-                                <p className="text-sm text-gray-600 mb-2">
-                                  {flag.description}
-                                </p>
-                              )}
 
                               <div className="flex items-center gap-4 text-xs text-gray-500">
                                 {/* <span>
                                   Granted {format(new Date(flag.grantedAt), 'MMM d, yyyy')} by {flag.grantedBy}
                                 </span> */}
 
-                                {flag.expiresAt && (
+                                {flag.expires_at && (
                                   <div className="flex items-center gap-1">
                                     <CalendarIcon className="h-3 w-3" />
                                     <span className={expirationStatus?.color}>
                                       {isExpired ? 'Expired' : 'Expires'}{' '}
                                       {format(
-                                        new Date(flag.expiresAt),
+                                        new Date(flag.expires_at),
                                         'MMM d, yyyy'
                                       )}
                                       {expirationStatus &&

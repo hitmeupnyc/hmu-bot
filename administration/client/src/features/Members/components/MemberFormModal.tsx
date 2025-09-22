@@ -1,6 +1,6 @@
 import { Modal } from '@/components/Modal';
 import { EditMemberForm } from '@/features/MemberDetails/components/EditMemberForm';
-import { Member, MemberFormData } from '@/types';
+import { type Member, type MemberFormData } from '@/lib/apiClient';
 
 interface MemberFormModalProps {
   isOpen: boolean;

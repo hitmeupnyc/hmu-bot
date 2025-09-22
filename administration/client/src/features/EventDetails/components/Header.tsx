@@ -1,4 +1,4 @@
-import { Event, EventWithDetails } from '@/types';
+import { type Event, type EventWithDetails } from '@/lib/apiClient';
 import { ArrowLeftIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { useMemo } from 'react';
 
@@ -8,23 +8,20 @@ interface HeaderProps {
   onBack: () => void;
   onEdit: () => void;
 }
-const formatDateTime = (dateTime: string) => {
-  return new Date(dateTime).toLocaleString();
-};
 
 export function Header({ event, onBack, onEdit }: HeaderProps) {
   const status = useMemo(() => {
     const now = new Date();
-    const start = new Date(event.start_datetime);
-    const end = new Date(event.end_datetime);
+    const start = event.start_datetime ? new Date(event.start_datetime) : null;
+    const end = event.end_datetime ? new Date(event.end_datetime) : null;
+
+    if (!start || !end) return 'unknown';
 
     if (now < start) return 'upcoming';
     if (now >= start && now <= end) return 'ongoing';
     return 'past';
   }, [event.start_datetime, event.end_datetime]);
 
-  const isActive = event.flags & 1;
-  const isPublic = event.flags & 2;
   console.log({ event });
   return (
     <div className="mb-6">

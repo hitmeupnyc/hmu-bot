@@ -1,4 +1,4 @@
-import { Event } from '@/types';
+import { type Event } from '@/lib/apiClient';
 import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
 import { EventStatusBadge } from './EventStatusBadge';
@@ -18,7 +18,8 @@ export function EventTableRow({
   isEditPending,
   isDeletePending,
 }: EventTableRowProps) {
-  const formatDateTime = (dateString: string) => {
+  const formatDateTime = (dateString: string | undefined) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleString();
   };
 

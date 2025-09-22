@@ -7,7 +7,7 @@ import {
   Overview,
   Tabs,
 } from '@/features/EventDetails/components';
-import { useEventDetails } from '@/hooks/useEvents';
+import { useEvent } from '@/hooks/useEvents';
 
 export function EventDetails() {
   const { id } = useParams<{ id: string }>();
@@ -15,9 +15,10 @@ export function EventDetails() {
   const [activeTab, setActiveTab] = useState<'overview'>('overview');
 
   const eventId = parseInt(id || '0', 10);
-  const { data: event, isLoading, error } = useEventDetails(eventId, !!id);
+  const { data: eventResponse, isLoading, error } = useEvent(eventId);
+  const event = eventResponse?.data;
 
-  if (isLoading || error) {
+  if (isLoading || error || !event) {
     return <LoadingStates isLoading={isLoading} error={error} />;
   }
 
@@ -26,12 +27,19 @@ export function EventDetails() {
     <div className="max-w-7xl mx-auto">
       <Header
         event={event}
+        eventDetails={event} // Use event as eventDetails
         onBack={() => navigate('/events')}
         onEdit={() => navigate('/events', { state: { editEventId: event.id } })}
       />
 
       <Tabs activeTab={activeTab} onTabChange={setActiveTab}>
-        {activeTab === 'overview' && <Overview event={event} />}
+        {activeTab === 'overview' && (
+          <Overview
+            event={event}
+            volunteers={[]} // Placeholder empty array
+            attendance={[]} // Placeholder empty array
+          />
+        )}
       </Tabs>
     </div>
   );

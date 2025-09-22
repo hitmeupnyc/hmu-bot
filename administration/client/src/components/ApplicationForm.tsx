@@ -1,5 +1,27 @@
 import { useState } from 'react';
-import { ApplicationFormData } from '../types';
+
+// Application form data structure (what the form uses)
+interface ApplicationFormData {
+  name: string;
+  pronouns: string;
+  preferred_name: string;
+  email: string;
+  social_urls: {
+    primary: string;
+    secondary: string;
+    tertiary: string;
+  };
+  birth_year: number;
+  referral_source: string;
+  sponsor_name: string;
+  sponsor_email_confirmation: boolean;
+  referral_details: string;
+  kinky_experience: string;
+  self_description: string;
+  consent_understanding: string;
+  additional_info: string;
+  consent_policy_agreement: string;
+}
 
 interface ApplicationFormProps {
   onSubmit: (data: ApplicationFormData) => void;
@@ -105,7 +127,7 @@ export function ApplicationForm({ onSubmit, isLoading = false }: ApplicationForm
     
     if (name.startsWith('social_urls.')) {
       const urlKey = name.split('.')[1] as keyof typeof formData.social_urls;
-      setFormData(prev => ({
+      setFormData((prev: ApplicationFormData) => ({
         ...prev,
         social_urls: {
           ...prev.social_urls,
@@ -113,9 +135,9 @@ export function ApplicationForm({ onSubmit, isLoading = false }: ApplicationForm
         }
       }));
     } else {
-      setFormData(prev => ({
+      setFormData((prev: ApplicationFormData) => ({
         ...prev,
-        [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : 
+        [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked :
                 type === 'number' ? parseInt(value) || 0 : value
       }));
     }

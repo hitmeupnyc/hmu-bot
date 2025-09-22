@@ -13,7 +13,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { FeatureErrorBoundary } from '@/components/FeatureErrorBoundary';
 import { Modal } from '@/components/Modal';
 import {
-  ApplicationNotes,
   AuditHistory,
   EditMemberForm,
   EmailModal,
@@ -21,17 +20,19 @@ import {
   LoadingStates,
   MemberFlags,
 } from '@/features/MemberDetails/components';
+import { ApplicationNotes } from '@/features/MemberDetails/components/ApplicationNotes';
 import { FlagGrantModal } from '@/features/Permissions/components';
-import { useAuditLog } from '@/hooks/useAudit';
+import { useAuditLogs } from '@/hooks/useAudit';
 import { useFlags } from '@/hooks/useFlags';
 import {
   useDeleteMember,
   useMember,
   useUpdateMember,
 } from '@/hooks/useMembers';
-import { MemberFormData } from '@/types';
+// TODO: Extract from SDK
+type MemberFormData = any;
 
-type TabType = 'info' | 'flags' | 'audit';
+type TabType = 'info' | 'flags';
 
 export function MemberDetails() {
   const { id } = useParams<{ id: string }>();
@@ -42,13 +43,19 @@ export function MemberDetails() {
   const [activeTab, setActiveTab] = useState<TabType>('info');
 
   const memberId = parseInt(id || '0', 10);
-  const { data: member, isLoading, error } = useMember(memberId, !!id);
+  const { data: memberResponse, isLoading, error } = useMember(memberId);
+  const member = memberResponse?.data;
   const {
     data: auditLog,
     isLoading: auditLoading,
-    refetch: refetchAuditLog,
-  } = useAuditLog('member', memberId, !!id);
-  const { data: flags = [] } = useFlags();
+    refetch,
+  } = useAuditLogs({
+    query: { entity_type: 'member', entity_id: memberId.toString() },
+  });
+  const { data: flagsResponse = [] } = useFlags({});
+  const flags = Array.isArray(flagsResponse)
+    ? flagsResponse
+    : flagsResponse?.flags || [];
   const updateMember = useUpdateMember();
   const deleteMember = useDeleteMember();
 
@@ -70,7 +77,7 @@ export function MemberDetails() {
 
     if (
       !confirm(
-        `Are you sure you want to delete ${member.first_name} ${member.last_name}?`
+        `Are you sure you want to delete ${member?.first_name} ${member?.last_name}?`
       )
     ) {
       return;
@@ -94,13 +101,9 @@ export function MemberDetails() {
     // In a real implementation, this would call an API to send the email
     // For now, we'll just show an alert
     alert(
-      `Email would be sent to ${member.email}\n\nSubject: ${subject}\n\nBody: ${body.substring(0, 100)}...\n\nThis is a placeholder implementation.`
+      `Email would be sent to ${member?.email}\n\nSubject: ${subject}\n\nBody: ${body.substring(0, 100)}...\n\nThis is a placeholder implementation.`
     );
     setIsEmailModalOpen(false);
-  };
-
-  const handleNoteAdded = () => {
-    refetchAuditLog();
   };
 
   const handleGrantFlag = () => {
@@ -124,12 +127,6 @@ export function MemberDetails() {
       icon: ShieldCheckIcon,
       count: null,
     },
-    {
-      id: 'audit' as TabType,
-      label: 'Audit History',
-      icon: ClockIcon,
-      count: null,
-    },
   ];
 
   // Handle loading and error states
@@ -137,7 +134,7 @@ export function MemberDetails() {
     return <LoadingStates isLoading={isLoading} error={error} />;
   }
 
-  const displayName = `${member.first_name} ${member.preferred_name ? `(${member.preferred_name}) ` : ''}${member.last_name}`;
+  const fullName = `${member?.first_name || ''} ${member?.last_name || ''}`;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -155,7 +152,13 @@ export function MemberDetails() {
               className="text-3xl font-bold text-gray-900"
               data-testid="member-name-heading"
             >
-              {displayName}
+              {member.preferred_name ? (
+                <>
+                  {member.preferred_name} <small>({fullName})</small>
+                </>
+              ) : (
+                fullName
+              )}
             </h1>
             <p className="text-gray-600">{member.email}</p>
           </div>
@@ -232,8 +235,9 @@ export function MemberDetails() {
 
             <ApplicationNotes
               memberId={memberId}
-              onNoteAdded={handleNoteAdded}
+              onNoteAdded={() => refetch()}
             />
+
             <div className="bg-white shadow rounded-lg p-6 mt-3">
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <ClockIcon className="h-5 w-5 mr-2" />
@@ -245,7 +249,11 @@ export function MemberDetails() {
                     Loading audit history...
                   </div>
                 ) : (
-                  <AuditHistory auditLog={auditLog} />
+                  <AuditHistory
+                    auditLog={
+                      Array.isArray(auditLog) ? auditLog : auditLog?.logs || []
+                    }
+                  />
                 )}
               </FeatureErrorBoundary>
             </div>
@@ -256,8 +264,8 @@ export function MemberDetails() {
           <div className="bg-white shadow rounded-lg p-6">
             <FeatureErrorBoundary featureName="Member Flags & Permissions">
               <MemberFlags
-                memberEmail={member.email}
-                onGrantFlag={handleGrantFlag}
+                memberId={member?.id || memberId}
+                onGrantFlag={() => handleGrantFlag()}
               />
             </FeatureErrorBoundary>
           </div>
@@ -288,7 +296,7 @@ export function MemberDetails() {
         isOpen={showGrantModal}
         onClose={handleCloseGrantModal}
         flags={flags}
-        preselectedMemberId={member.id.toString()}
+        preselectedMemberId={member?.id?.toString()}
       />
     </div>
   );

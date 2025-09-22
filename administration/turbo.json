@@ -8,7 +8,7 @@
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "build:sdk": {
-      "inputs": ["src/sdk/**", "tsconfig.sdk.json"],
+      "inputs": ["src/api/**"],
       "outputs": ["dist-sdk/**"]
     },
     "start": {

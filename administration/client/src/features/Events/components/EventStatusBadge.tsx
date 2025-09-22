@@ -1,4 +1,4 @@
-import { Event } from '@/types';
+import { type Event } from '@/lib/apiClient';
 
 interface EventStatusBadgeProps {
   event: Event;
@@ -7,8 +7,10 @@ interface EventStatusBadgeProps {
 export function EventStatusBadge({ event }: EventStatusBadgeProps) {
   const getEventStatus = (event: Event) => {
     const now = new Date();
-    const start = new Date(event.start_datetime);
-    const end = new Date(event.end_datetime);
+    const start = event.start_datetime ? new Date(event.start_datetime) : null;
+    const end = event.end_datetime ? new Date(event.end_datetime) : null;
+
+    if (!start || !end) return 'unknown';
 
     if (now < start) return 'upcoming';
     if (now >= start && now <= end) return 'ongoing';
@@ -16,8 +18,8 @@ export function EventStatusBadge({ event }: EventStatusBadgeProps) {
   };
 
   const status = getEventStatus(event);
-  const isActive = event.flags & 1;
-  const isPublic = event.flags & 2;
+  const isActive = event.flags ? event.flags & 1 : false;
+  const isPublic = event.flags ? event.flags & 2 : false;
 
   return (
     <div className="flex space-x-1">

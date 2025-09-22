@@ -3,19 +3,33 @@ import { useMembers } from '@/hooks/useMembers';
 
 export function Dashboard() {
   const { data: membersData, isLoading: membersLoading } = useMembers({
-    limit: 100,
+    query: {
+      limit: '100',
+      page: '1',
+      sortOrder: 'desc',
+    }
   });
   const { data: eventsData, isLoading: eventsLoading } = useEvents({
-    upcoming: true,
+    query: {
+      limit: '20',
+      page: '1',
+      sortOrder: 'desc',
+    }
   });
-  const { data: recentMembersData } = useMembers({ limit: 5 });
+  const { data: recentMembersData } = useMembers({
+    query: {
+      limit: '5',
+      page: '1',
+      sortOrder: 'desc',
+    }
+  });
 
   const members = membersData?.members || [];
   const upcomingEvents = eventsData?.events || [];
   const recentMembers = recentMembersData?.members || [];
 
   const totalMembers = membersData?.pagination?.total || 0;
-  const activeMembers = members.filter((member) => member.flags & 1).length;
+  const activeMembers = members.filter((member) => (member.flags || 0) & 1).length;
   const upcomingEventsCount = upcomingEvents.length;
 
   const formatCount = (count: number, isLoading: boolean) => {
@@ -117,7 +131,7 @@ export function Dashboard() {
                     <p className="font-medium text-gray-900">{event.name}</p>
                   </a>
                   <p className="text-sm text-gray-500">
-                    {new Date(event.start_datetime).toLocaleDateString()}
+                    Event #{event.id}
                   </p>
                 </div>
               ))}

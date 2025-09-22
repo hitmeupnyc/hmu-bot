@@ -1,4 +1,4 @@
-import { ApplicationFormData } from '@/types';
+import { type ApplicationFormData } from '@/lib/apiClient';
 import { useState } from 'react';
 
 export function useMemberCsvImport() {

@@ -1,4 +1,5 @@
-import { AuditLogEntry } from '@/hooks/useAudit';
+// TODO: Extract from SDK
+type AuditLogEntry = any;
 
 interface AuditHistoryProps {
   auditLog: AuditLogEntry[] | undefined;

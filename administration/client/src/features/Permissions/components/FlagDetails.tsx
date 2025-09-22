@@ -85,7 +85,7 @@ export function FlagDetails({ flag, members, isLoading = false }: FlagDetailsPro
     
     if (confirmed) {
       revokeFlagMutation.mutate({
-        email: member.email,
+        memberId: member.id.toString(),
         flagId: flag.id,
         reason: 'Manual revocation from permissions dashboard'
       });

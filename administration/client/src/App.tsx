@@ -31,11 +31,11 @@ function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/members" element={<Members />} />
                 <Route path="/members/:id" element={<MemberDetails />} />
+                <Route path="/apply" element={<Apply />} />
                 <Route path="/events" element={<Events />} />
                 <Route path="/events/:id" element={<EventDetails />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/settings/permissions" element={<Permissions />} />
-                <Route path="/apply" element={<Apply />} />
                 <Route path="/debug" element={<Debug />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

@@ -1,5 +1,16 @@
-import { Event, EventFormData } from '@/types';
+import { type Event, type EventFormData } from '@/lib/apiClient';
 import { useState } from 'react';
+
+// Form state with string values for inputs
+type EventFormState = {
+  name: string;
+  description: string;
+  url: string;
+  start_datetime: string;
+  end_datetime: string;
+  is_public: boolean;
+  max_capacity: string;
+};
 
 interface EventFormProps {
   event?: Event;
@@ -14,17 +25,18 @@ export function EventForm({
   onCancel,
   isLoading = false,
 }: EventFormProps) {
-  const [formData, setFormData] = useState<EventFormData>({
+  const [formData, setFormData] = useState<EventFormState>({
     name: event?.name || '',
     description: event?.description || '',
+    url: (event as any)?.url || '',
     start_datetime: event?.start_datetime
       ? formatDateTimeLocal(event.start_datetime)
       : '',
     end_datetime: event?.end_datetime
       ? formatDateTimeLocal(event.end_datetime)
       : '',
-    is_public: event ? !!(event.flags & 2) : true,
-    max_capacity: event?.max_capacity?.toString() || '',
+    is_public: event ? !!(event.flags != null && event.flags & 2) : true,
+    max_capacity: event?.max_capacity ? event.max_capacity.toString() : '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -53,7 +65,7 @@ export function EventForm({
       }
     }
 
-    if (formData.max_capacity && parseInt(formData.max_capacity) < 1) {
+    if (formData.max_capacity && parseInt(formData.max_capacity, 10) < 1) {
       newErrors.max_capacity = 'Capacity must be at least 1';
     }
 
@@ -64,7 +76,14 @@ export function EventForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      onSubmit(formData);
+      // Convert form data to API format
+      const apiData: EventFormData = {
+        ...formData,
+        max_capacity: formData.max_capacity
+          ? parseInt(formData.max_capacity, 10)
+          : undefined,
+      };
+      onSubmit(apiData);
     }
   };
 

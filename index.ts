@@ -410,7 +410,7 @@ const checkMembership = async (c: any, email: string) => {
     throw new Error("no 'sheet' in KV store");
   }
   const [sheetData] = await Promise.all([
-    fetchSheet(documentId, "Main List!B2:J"),
+    fetchSheet(documentId, "Main List!A2:J"),
   ]);
 
   if (!sheetData.values) {
@@ -438,7 +438,7 @@ const getEmailListFromSheetValues = (
   sheetValues: Array<Array<string | undefined>>,
 ): (readonly [string, string, string])[] =>
   sheetValues
-    .map((x) => [x[0] || "", x[2] || "", x[8] || ""] as const)
+    .map((x) => [x[0] || "", x[4] || "", x[9] || ""] as const)
     .filter((x) => x.every((i) => typeof i === "string"));
 
 export default app;

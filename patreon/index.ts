@@ -46,16 +46,16 @@ client.on("ready", (bot) => {
     if (channel.isSendable()) {
       await channel.send(`# The #n00dz r00lz
 
-1. This is a **PRIVATE CHANNEL**.  Everything posted and discussed here is to remain here.  That means _ABSOLUTELY NO_ outside sharing of others photos/videos/comments posted in this channel.
-2. You may only post content of yourself.  If you want to post content of you with other people, you must have the consent of every individual in the photo/video prior to posting.
-3. Effort must be put into the post!  Avoid just posting closeups of your genitals. Generally keep your nudes body and/or face oriented.
-4. No sliding into DMs! If you would like to DM someone, always ask here first.
-5. Be respectful. No harassment of any kind will be tolerated. The [Hit Me Up Consent Policy](https://www.hitmeupnyc.com/consent) applies here. 
-6. Any violation of these rules will result in immediate lifetime ban from Hit Me Up.
+1. This is a **SECRET CHANNEL**. Everything posted here is to remain here. That means _ABSOLUTELY NO_ saving or outside sharing of others posts in this channel.
+2. You may only post content of yourself. If you want to post content of you with others, you must have the consent of everyone in the photo/video prior to posting.
+3. Effort must be put into the post! Generally keep your nudes body and/or face oriented, avoid closeups of genitals.
+4. Anything that may be triggering (blood, sharps, CNC, anything red room related) must be posted with a [spoiler tag](<https://support.discord.com/hc/en-us/articles/360022320632-Spoiler-Tags>) & trigger warning. 
+5. No sliding into DMs! If you would like to DM someone,  ask here first.
+6. Be respectful. No harassment of any kind will be tolerated. The [Hit Me Up Consent Policy](https://www.hitmeupnyc.com/consent) applies here. 
+7. Violation of these rules will result in a ban from Hit Me Up.
+8. Please note, this channel includes both Private AND Vetted members who subscribe to Patreon.
 
-Have fun, and happy posting!
-
--# cc @here: you can suppress this mention from [notification settings](https://support.discord.com/hc/en-us/articles/215253148-How-do-I-stop-everyone-mentions-from-select-servers). This notification is sent every couple of days.`);
+Have fun, and happy posting!`);
     }
   });
 });

@@ -12,7 +12,7 @@ export const client = new Client({
 });
 
 const CHANNELS = {
-  n00dz: "1334571592633810964",
+  n00dz: "1516191612256915699",
 };
 
 const privateRole = "1260328377940836462";
